@@ -60,7 +60,7 @@ export default function Dashboard() {
           <ExportButton />
           {isEditor && (
             <>
-              <Button size="sm" variant="outline" onClick={() => setAdminPanelOpen(true)}>
+              <Button size="sm" variant="outline" onClick={() => setAdminPanelOpen(true)} data-testid="button-admin-settings">
                 Admin Settings
               </Button>
               <Button size="sm" className="gap-1" onClick={() => setProjectFormOpen(true)}>

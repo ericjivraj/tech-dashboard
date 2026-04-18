@@ -6,6 +6,7 @@ import sprintsRouter from "./sprints";
 import goalsRouter from "./goals";
 import projectsRouter from "./projects";
 import summaryRouter from "./summary";
+import emailScheduleRouter from "./email-schedule";
 
 const router: IRouter = Router();
 
@@ -16,5 +17,6 @@ router.use(sprintsRouter);
 router.use(goalsRouter);
 router.use(projectsRouter);
 router.use(summaryRouter);
+router.use(emailScheduleRouter);
 
 export default router;

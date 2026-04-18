@@ -9,8 +9,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useQueryClient } from "@tanstack/react-query";
-import { Trash2, Plus, Pencil, Check, X } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query";
+import { Trash2, Plus, Pencil, Check, X, Mail, Send, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format, parseISO } from "date-fns";
 
@@ -23,10 +24,11 @@ export default function AdminPanel({ open, onOpenChange }: { open: boolean, onOp
         </DialogHeader>
         
         <Tabs defaultValue="goals" className="flex-1 flex flex-col min-h-0">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="goals" data-testid="admin-tab-goals">Goals</TabsTrigger>
             <TabsTrigger value="cycles" data-testid="admin-tab-cycles">Cycles</TabsTrigger>
             <TabsTrigger value="sprints" data-testid="admin-tab-sprints">Sprints</TabsTrigger>
+            <TabsTrigger value="email-reports" data-testid="admin-tab-email-reports">Email Reports</TabsTrigger>
           </TabsList>
           
           <div className="flex-1 overflow-y-auto mt-4 min-h-[400px]">
@@ -39,10 +41,235 @@ export default function AdminPanel({ open, onOpenChange }: { open: boolean, onOp
             <TabsContent value="sprints" className="m-0 border-0 p-0 h-full">
               <SprintsTab />
             </TabsContent>
+            <TabsContent value="email-reports" className="m-0 border-0 p-0 h-full">
+              <EmailReportsTab />
+            </TabsContent>
           </div>
         </Tabs>
       </DialogContent>
     </Dialog>
+  );
+}
+
+type EmailSchedule = {
+  id: number;
+  enabled: boolean;
+  dayOfWeek: number;
+  hour: number;
+  recipients: string;
+  lastSentAt: string | null;
+};
+
+const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+async function fetchEmailSchedule(): Promise<EmailSchedule> {
+  const res = await fetch("/api/email-schedule", { credentials: "include" });
+  if (!res.ok) throw new Error("Failed to fetch email schedule");
+  return res.json();
+}
+
+async function updateEmailSchedule(data: Partial<Omit<EmailSchedule, "id" | "lastSentAt">>): Promise<EmailSchedule> {
+  const res = await fetch("/api/email-schedule", {
+    method: "PATCH",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: "Unknown error" }));
+    throw new Error(err.error ?? "Failed to update email schedule");
+  }
+  return res.json();
+}
+
+async function sendReportNow(): Promise<void> {
+  const res = await fetch("/api/email-schedule/send-now", {
+    method: "POST",
+    credentials: "include",
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: "Unknown error" }));
+    throw new Error(err.error ?? "Failed to send report");
+  }
+}
+
+function EmailReportsTab() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const { data: schedule, isLoading } = useQuery({
+    queryKey: ["email-schedule"],
+    queryFn: fetchEmailSchedule,
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: updateEmailSchedule,
+    onSuccess: (updated) => {
+      queryClient.setQueryData(["email-schedule"], updated);
+      toast({ title: "Email schedule saved" });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Failed to save", description: err.message, variant: "destructive" });
+    },
+  });
+
+  const sendNowMutation = useMutation({
+    mutationFn: sendReportNow,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["email-schedule"] });
+      toast({ title: "Report sent successfully" });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Failed to send report", description: err.message, variant: "destructive" });
+    },
+  });
+
+  const [localRecipients, setLocalRecipients] = useState<string | null>(null);
+
+  if (isLoading || !schedule) {
+    return (
+      <div className="flex items-center justify-center h-40 text-muted-foreground">
+        <Loader2 className="h-5 w-5 animate-spin mr-2" /> Loading...
+      </div>
+    );
+  }
+
+  const recipients = localRecipients !== null ? localRecipients : schedule.recipients;
+
+  const handleSaveRecipients = () => {
+    if (localRecipients === null) return;
+    updateMutation.mutate({ recipients: localRecipients });
+    setLocalRecipients(null);
+  };
+
+  const handleToggle = (enabled: boolean) => {
+    updateMutation.mutate({ enabled });
+  };
+
+  const handleDayChange = (dayOfWeek: number) => {
+    updateMutation.mutate({ dayOfWeek });
+  };
+
+  const handleHourChange = (hour: number) => {
+    updateMutation.mutate({ hour });
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-start gap-3 p-4 border rounded-lg bg-muted/20">
+        <Mail className="h-5 w-5 mt-0.5 text-muted-foreground shrink-0" />
+        <div>
+          <p className="text-sm font-medium">Weekly Portfolio Reports</p>
+          <p className="text-xs text-muted-foreground mt-1">
+            Automatically send a portfolio summary email with a CSV attachment every week.
+            Configure the day, time, and recipient list below.
+          </p>
+          {!import.meta.env.VITE_RESEND_CONFIGURED && (
+            <p className="text-xs text-amber-600 mt-2">
+              To enable sending, a <code className="bg-muted px-1 rounded">RESEND_API_KEY</code> environment variable must be set on the API server.
+            </p>
+          )}
+        </div>
+      </div>
+
+      <div className="space-y-4 p-4 border rounded-lg">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium">Enable weekly reports</p>
+            <p className="text-xs text-muted-foreground">Send a report email on the configured schedule</p>
+          </div>
+          <Switch
+            checked={schedule.enabled}
+            onCheckedChange={handleToggle}
+            disabled={updateMutation.isPending}
+            data-testid="email-reports-enabled-toggle"
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-1">
+            <label className="text-xs font-medium">Send on</label>
+            <select
+              className="flex h-9 w-full items-center rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
+              value={schedule.dayOfWeek}
+              onChange={e => handleDayChange(Number(e.target.value))}
+              disabled={updateMutation.isPending}
+              data-testid="email-reports-day-select"
+            >
+              {DAY_NAMES.map((day, i) => (
+                <option key={i} value={i}>{day}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs font-medium">At (hour, UTC)</label>
+            <select
+              className="flex h-9 w-full items-center rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
+              value={schedule.hour}
+              onChange={e => handleHourChange(Number(e.target.value))}
+              disabled={updateMutation.isPending}
+              data-testid="email-reports-hour-select"
+            >
+              {Array.from({ length: 24 }, (_, h) => (
+                <option key={h} value={h}>
+                  {String(h).padStart(2, "0")}:00 UTC
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="space-y-1">
+          <label className="text-xs font-medium">Recipients</label>
+          <p className="text-xs text-muted-foreground">Enter email addresses separated by commas</p>
+          <div className="flex gap-2">
+            <Input
+              value={recipients}
+              onChange={e => setLocalRecipients(e.target.value)}
+              placeholder="alice@example.com, bob@example.com"
+              className="flex-1 font-mono text-sm"
+              data-testid="email-reports-recipients-input"
+            />
+            {localRecipients !== null && (
+              <Button
+                onClick={handleSaveRecipients}
+                disabled={updateMutation.isPending}
+                size="sm"
+                data-testid="email-reports-save-recipients"
+              >
+                <Check className="h-4 w-4 mr-1" /> Save
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {schedule.lastSentAt && (
+          <p className="text-xs text-muted-foreground">
+            Last sent: {format(new Date(schedule.lastSentAt), "MMM d, yyyy 'at' h:mm a")}
+          </p>
+        )}
+      </div>
+
+      <div className="p-4 border rounded-lg space-y-2">
+        <p className="text-sm font-medium">Send test report</p>
+        <p className="text-xs text-muted-foreground">
+          Send a report immediately to all configured recipients regardless of schedule.
+        </p>
+        <Button
+          onClick={() => sendNowMutation.mutate()}
+          disabled={sendNowMutation.isPending || !schedule.recipients.trim()}
+          variant="outline"
+          data-testid="email-reports-send-now"
+        >
+          {sendNowMutation.isPending ? (
+            <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Sending...</>
+          ) : (
+            <><Send className="h-4 w-4 mr-2" /> Send Now</>
+          )}
+        </Button>
+      </div>
+    </div>
   );
 }
 

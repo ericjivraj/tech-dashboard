@@ -4,3 +4,4 @@ export * from "./goals";
 export * from "./projects";
 export * from "./projectGoals";
 export * from "./projectUpdates";
+export * from "./emailSchedule";

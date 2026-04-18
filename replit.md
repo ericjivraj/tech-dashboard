@@ -40,6 +40,7 @@ pnpm workspace monorepo using TypeScript. This is a full-stack engineering depar
 - `projects.ts` — Projects with status, confidence, storyPoints, sponsor, team, blockedReason, cycleId, sprintId
 - `projectGoals.ts` — Many-to-many join between projects and goals
 - `projectUpdates.ts` — Timestamped update history for each project
+- `emailSchedule.ts` — Single-row config for weekly email reports (enabled, dayOfWeek, hour, recipients, lastSentAt)
 
 ## API Routes (`artifacts/api-server/src/routes/`)
 
@@ -59,6 +60,9 @@ All routes are under `/api`:
 - `GET|POST /projects/:projectId/updates` — list / create updates (POST requires auth)
 - `DELETE /projects/:projectId/updates/:updateId` — delete update (requires auth)
 - `GET /summary` — dashboard summary: counts by status, story points, capacity, active cycle
+- `GET /email-schedule` — get email report schedule settings (requires auth)
+- `PATCH /email-schedule` — update email schedule (enabled, dayOfWeek, hour, recipients) (requires auth)
+- `POST /email-schedule/send-now` — trigger immediate report email to all configured recipients (requires auth)
 
 ## Auth Pattern
 
@@ -91,7 +95,7 @@ Database includes:
 - **Timeline** — SVG Gantt chart, full 12-month range with project bars
 - **List/Pipeline** — information-dense scrollable list of all projects
 - **Project Modal** — full project detail, update history, edit form (editor only)
-- **Admin Panel** — manage cycles, sprints, goals (editor only, accessible from header)
+- **Admin Panel** — manage cycles, sprints, goals, and email report schedule (editor only, accessible from header)
 - `/sign-in` — Clerk-styled sign-in page
 - `/sign-up` — Clerk sign-up page
 
