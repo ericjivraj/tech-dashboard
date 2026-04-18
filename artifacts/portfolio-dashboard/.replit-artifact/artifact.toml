@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Software Portfolio Dashboard"
+version = "1.0.0"
+id = "artifacts/portfolio-dashboard"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 22127
+
+[services.development]
+run = "pnpm --filter @workspace/portfolio-dashboard run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/portfolio-dashboard", "run", "build" ]
+publicDir = "artifacts/portfolio-dashboard/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "22127"
+BASE_PATH = "/"

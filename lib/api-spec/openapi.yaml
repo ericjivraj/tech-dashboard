@@ -3,20 +3,33 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Software Department Portfolio Dashboard API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Authentication
+  - name: cycles
+    description: Cycle management
+  - name: sprints
+    description: Sprint management
+  - name: goals
+    description: Business goal management
+  - name: projects
+    description: Project management
+  - name: updates
+    description: Project updates
+  - name: summary
+    description: Dashboard summary and analytics
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +37,620 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Get current authenticated user
+      responses:
+        "200":
+          description: Current user info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthUser"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /cycles:
+    get:
+      operationId: listCycles
+      tags: [cycles]
+      summary: List all cycles
+      responses:
+        "200":
+          description: List of cycles
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Cycle"
+    post:
+      operationId: createCycle
+      tags: [cycles]
+      summary: Create a cycle (editor only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCycleBody"
+      responses:
+        "201":
+          description: Created cycle
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Cycle"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /cycles/{id}:
+    patch:
+      operationId: updateCycle
+      tags: [cycles]
+      summary: Update a cycle (editor only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateCycleBody"
+      responses:
+        "200":
+          description: Updated cycle
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Cycle"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteCycle
+      tags: [cycles]
+      summary: Delete a cycle (editor only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /sprints:
+    get:
+      operationId: listSprints
+      tags: [sprints]
+      summary: List sprints, optionally filtered by cycle
+      parameters:
+        - name: cycleId
+          in: query
+          required: false
+          schema:
+            type: ["integer", "null"]
+      responses:
+        "200":
+          description: List of sprints
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Sprint"
+    post:
+      operationId: createSprint
+      tags: [sprints]
+      summary: Create a sprint (editor only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSprintBody"
+      responses:
+        "201":
+          description: Created sprint
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Sprint"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /sprints/{id}:
+    patch:
+      operationId: updateSprint
+      tags: [sprints]
+      summary: Update a sprint (editor only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateSprintBody"
+      responses:
+        "200":
+          description: Updated sprint
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Sprint"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteSprint
+      tags: [sprints]
+      summary: Delete a sprint (editor only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /goals:
+    get:
+      operationId: listGoals
+      tags: [goals]
+      summary: List all business goals
+      responses:
+        "200":
+          description: List of business goals
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Goal"
+    post:
+      operationId: createGoal
+      tags: [goals]
+      summary: Create a business goal (editor only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateGoalBody"
+      responses:
+        "201":
+          description: Created goal
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Goal"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /goals/{id}:
+    patch:
+      operationId: updateGoal
+      tags: [goals]
+      summary: Update a business goal (editor only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateGoalBody"
+      responses:
+        "200":
+          description: Updated goal
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Goal"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteGoal
+      tags: [goals]
+      summary: Delete a business goal (editor only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /projects:
+    get:
+      operationId: listProjects
+      tags: [projects]
+      summary: List all projects, optionally filtered by status
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: ["string", "null"]
+            enum: [done, in_progress, up_next, backlog, blocked, new_request, null]
+      responses:
+        "200":
+          description: List of projects with goal tags
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProjectWithDetails"
+    post:
+      operationId: createProject
+      tags: [projects]
+      summary: Create a project (editor only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateProjectBody"
+      responses:
+        "201":
+          description: Created project
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectWithDetails"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /projects/{id}:
+    get:
+      operationId: getProject
+      tags: [projects]
+      summary: Get a single project with full details
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Project with full details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectWithDetails"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      operationId: updateProject
+      tags: [projects]
+      summary: Update a project (editor only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProjectBody"
+      responses:
+        "200":
+          description: Updated project
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectWithDetails"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteProject
+      tags: [projects]
+      summary: Delete a project (editor only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /projects/{projectId}/updates:
+    get:
+      operationId: listProjectUpdates
+      tags: [updates]
+      summary: List updates for a project
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of project updates
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProjectUpdate"
+        "404":
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      operationId: createProjectUpdate
+      tags: [updates]
+      summary: Post an update for a project (editor only)
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateProjectUpdateBody"
+      responses:
+        "201":
+          description: Created update
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectUpdate"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /projects/{projectId}/updates/{updateId}:
+    delete:
+      operationId: deleteProjectUpdate
+      tags: [updates]
+      summary: Delete a project update (editor only)
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: updateId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /summary:
+    get:
+      operationId: getDashboardSummary
+      tags: [summary]
+      summary: Get dashboard summary metrics
+      responses:
+        "200":
+          description: Summary metrics for the dashboard header
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+
+  /projects/timeline:
+    get:
+      operationId: getProjectsTimeline
+      tags: [summary]
+      summary: Get all projects with cycle/sprint info for the Gantt chart
+      parameters:
+        - name: year
+          in: query
+          required: false
+          schema:
+            type: ["integer", "null"]
+      responses:
+        "200":
+          description: Projects with timeline details
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProjectTimeline"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +661,540 @@ components:
       required:
         - status
 
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    AuthUser:
+      type: object
+      properties:
+        userId:
+          type: ["string", "null"]
+        isAuthenticated:
+          type: boolean
+        email:
+          type: ["string", "null"]
+        firstName:
+          type: ["string", "null"]
+        lastName:
+          type: ["string", "null"]
+      required:
+        - isAuthenticated
+        - userId
+        - email
+        - firstName
+        - lastName
+
+    Cycle:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - startDate
+        - endDate
+        - createdAt
+
+    CreateCycleBody:
+      type: object
+      properties:
+        name:
+          type: string
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+      required:
+        - name
+        - startDate
+        - endDate
+
+    UpdateCycleBody:
+      type: object
+      properties:
+        name:
+          type: ["string", "null"]
+        startDate:
+          type: ["string", "null"]
+          format: date
+        endDate:
+          type: ["string", "null"]
+          format: date
+
+    Sprint:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        cycleId:
+          type: integer
+        sprintNumber:
+          type: integer
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - cycleId
+        - sprintNumber
+        - startDate
+        - endDate
+        - createdAt
+
+    CreateSprintBody:
+      type: object
+      properties:
+        name:
+          type: string
+        cycleId:
+          type: integer
+        sprintNumber:
+          type: integer
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+      required:
+        - name
+        - cycleId
+        - sprintNumber
+        - startDate
+        - endDate
+
+    UpdateSprintBody:
+      type: object
+      properties:
+        name:
+          type: ["string", "null"]
+        cycleId:
+          type: ["integer", "null"]
+        sprintNumber:
+          type: ["integer", "null"]
+        startDate:
+          type: ["string", "null"]
+          format: date
+        endDate:
+          type: ["string", "null"]
+          format: date
+
+    Goal:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        color:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - color
+        - createdAt
+
+    CreateGoalBody:
+      type: object
+      properties:
+        name:
+          type: string
+        color:
+          type: string
+      required:
+        - name
+        - color
+
+    UpdateGoalBody:
+      type: object
+      properties:
+        name:
+          type: ["string", "null"]
+        color:
+          type: ["string", "null"]
+
+    Project:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: ["string", "null"]
+        sponsor:
+          type: ["string", "null"]
+        team:
+          type: ["string", "null"]
+        status:
+          type: string
+          enum: [done, in_progress, up_next, backlog, blocked, new_request]
+        confidence:
+          type: ["string", "null"]
+          enum: [high, medium, low, at_risk, null]
+        storyPoints:
+          type: ["integer", "null"]
+        startDate:
+          type: ["string", "null"]
+          format: date
+        endDate:
+          type: ["string", "null"]
+          format: date
+        impact:
+          type: ["string", "null"]
+        blockedReason:
+          type: ["string", "null"]
+        cycleId:
+          type: ["integer", "null"]
+        sprintId:
+          type: ["integer", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - title
+        - status
+        - description
+        - sponsor
+        - team
+        - confidence
+        - storyPoints
+        - startDate
+        - endDate
+        - impact
+        - blockedReason
+        - cycleId
+        - sprintId
+        - createdAt
+        - updatedAt
+
+    ProjectWithDetails:
+      allOf:
+        - $ref: "#/components/schemas/Project"
+        - type: object
+          properties:
+            goals:
+              type: array
+              items:
+                $ref: "#/components/schemas/Goal"
+            latestUpdate:
+              type: ["object", "null"]
+              properties:
+                id:
+                  type: integer
+                content:
+                  type: string
+                authorName:
+                  type: ["string", "null"]
+                createdAt:
+                  type: string
+                  format: date-time
+              required:
+                - id
+                - content
+                - authorName
+                - createdAt
+            cycle:
+              type: ["object", "null"]
+              properties:
+                id:
+                  type: integer
+                name:
+                  type: string
+              required:
+                - id
+                - name
+            sprint:
+              type: ["object", "null"]
+              properties:
+                id:
+                  type: integer
+                name:
+                  type: string
+                sprintNumber:
+                  type: integer
+              required:
+                - id
+                - name
+                - sprintNumber
+          required:
+            - goals
+            - latestUpdate
+            - cycle
+            - sprint
+
+    CreateProjectBody:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: ["string", "null"]
+        sponsor:
+          type: ["string", "null"]
+        team:
+          type: ["string", "null"]
+        status:
+          type: string
+          enum: [done, in_progress, up_next, backlog, blocked, new_request]
+        confidence:
+          type: ["string", "null"]
+          enum: [high, medium, low, at_risk, null]
+        storyPoints:
+          type: ["integer", "null"]
+        startDate:
+          type: ["string", "null"]
+          format: date
+        endDate:
+          type: ["string", "null"]
+          format: date
+        impact:
+          type: ["string", "null"]
+        blockedReason:
+          type: ["string", "null"]
+        cycleId:
+          type: ["integer", "null"]
+        sprintId:
+          type: ["integer", "null"]
+        goalIds:
+          type: array
+          items:
+            type: integer
+      required:
+        - title
+        - status
+
+    UpdateProjectBody:
+      type: object
+      properties:
+        title:
+          type: ["string", "null"]
+        description:
+          type: ["string", "null"]
+        sponsor:
+          type: ["string", "null"]
+        team:
+          type: ["string", "null"]
+        status:
+          type: ["string", "null"]
+          enum: [done, in_progress, up_next, backlog, blocked, new_request, null]
+        confidence:
+          type: ["string", "null"]
+          enum: [high, medium, low, at_risk, null]
+        storyPoints:
+          type: ["integer", "null"]
+        startDate:
+          type: ["string", "null"]
+          format: date
+        endDate:
+          type: ["string", "null"]
+          format: date
+        impact:
+          type: ["string", "null"]
+        blockedReason:
+          type: ["string", "null"]
+        cycleId:
+          type: ["integer", "null"]
+        sprintId:
+          type: ["integer", "null"]
+        goalIds:
+          type: ["array", "null"]
+          items:
+            type: integer
+
+    ProjectUpdate:
+      type: object
+      properties:
+        id:
+          type: integer
+        projectId:
+          type: integer
+        content:
+          type: string
+        authorName:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - projectId
+        - content
+        - authorName
+        - createdAt
+
+    CreateProjectUpdateBody:
+      type: object
+      properties:
+        content:
+          type: string
+        authorName:
+          type: ["string", "null"]
+      required:
+        - content
+
+    DashboardSummary:
+      type: object
+      properties:
+        totalProjects:
+          type: integer
+        totalStoryPoints:
+          type: integer
+        pointsByStatus:
+          type: object
+          properties:
+            done:
+              type: integer
+            in_progress:
+              type: integer
+            up_next:
+              type: integer
+            backlog:
+              type: integer
+            blocked:
+              type: integer
+            new_request:
+              type: integer
+          required:
+            - done
+            - in_progress
+            - up_next
+            - backlog
+            - blocked
+            - new_request
+        countByStatus:
+          type: object
+          properties:
+            done:
+              type: integer
+            in_progress:
+              type: integer
+            up_next:
+              type: integer
+            backlog:
+              type: integer
+            blocked:
+              type: integer
+            new_request:
+              type: integer
+          required:
+            - done
+            - in_progress
+            - up_next
+            - backlog
+            - blocked
+            - new_request
+        capacityPercentage:
+          type: integer
+        activeCycle:
+          type: ["object", "null"]
+          properties:
+            id:
+              type: integer
+            name:
+              type: string
+            startDate:
+              type: string
+            endDate:
+              type: string
+          required:
+            - id
+            - name
+            - startDate
+            - endDate
+      required:
+        - totalProjects
+        - totalStoryPoints
+        - pointsByStatus
+        - countByStatus
+        - capacityPercentage
+        - activeCycle
+
+    ProjectTimeline:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        status:
+          type: string
+          enum: [done, in_progress, up_next, backlog, blocked, new_request]
+        confidence:
+          type: ["string", "null"]
+          enum: [high, medium, low, at_risk, null]
+        storyPoints:
+          type: ["integer", "null"]
+        startDate:
+          type: ["string", "null"]
+        endDate:
+          type: ["string", "null"]
+        team:
+          type: ["string", "null"]
+        sponsor:
+          type: ["string", "null"]
+        cycleName:
+          type: ["string", "null"]
+        cycleStartDate:
+          type: ["string", "null"]
+        cycleEndDate:
+          type: ["string", "null"]
+        sprintName:
+          type: ["string", "null"]
+        sprintNumber:
+          type: ["integer", "null"]
+        goals:
+          type: array
+          items:
+            $ref: "#/components/schemas/Goal"
+      required:
+        - id
+        - title
+        - status
+        - confidence
+        - storyPoints
+        - startDate
+        - endDate
+        - team
+        - sponsor
+        - cycleName
+        - cycleStartDate
+        - cycleEndDate
+        - sprintName
+        - sprintNumber
+        - goals

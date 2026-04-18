@@ -1,0 +1,105 @@
+import { Router, type IRouter } from "express";
+import { eq } from "drizzle-orm";
+import { db } from "@workspace/db";
+import { sprintsTable } from "@workspace/db";
+import {
+  CreateSprintBody,
+  UpdateSprintBody,
+  UpdateSprintParams,
+  DeleteSprintParams,
+  ListSprintsQueryParams,
+} from "@workspace/api-zod";
+import { requireAuth } from "../middlewares/requireAuth";
+
+const router: IRouter = Router();
+
+router.get("/sprints", async (req, res): Promise<void> => {
+  const query = ListSprintsQueryParams.safeParse(req.query);
+  if (!query.success) {
+    res.status(400).json({ error: query.error.message });
+    return;
+  }
+  const cycleId = query.data.cycleId;
+  let sprints;
+  if (cycleId != null) {
+    sprints = await db
+      .select()
+      .from(sprintsTable)
+      .where(eq(sprintsTable.cycleId, cycleId))
+      .orderBy(sprintsTable.sprintNumber);
+  } else {
+    sprints = await db.select().from(sprintsTable).orderBy(sprintsTable.startDate);
+  }
+  res.json(sprints);
+});
+
+router.post("/sprints", requireAuth, async (req, res): Promise<void> => {
+  const parsed = CreateSprintBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+  const { name, cycleId, sprintNumber, startDate, endDate } = parsed.data;
+  const [sprint] = await db
+    .insert(sprintsTable)
+    .values({
+      name,
+      cycleId,
+      sprintNumber,
+      startDate: startDate instanceof Date ? startDate.toISOString().split("T")[0] : String(startDate),
+      endDate: endDate instanceof Date ? endDate.toISOString().split("T")[0] : String(endDate),
+    })
+    .returning();
+  res.status(201).json(sprint);
+});
+
+router.patch("/sprints/:id", requireAuth, async (req, res): Promise<void> => {
+  const params = UpdateSprintParams.safeParse(req.params);
+  if (!params.success) {
+    res.status(400).json({ error: params.error.message });
+    return;
+  }
+  const parsed = UpdateSprintBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+  const updates: Record<string, unknown> = {};
+  if (parsed.data.name != null) updates.name = parsed.data.name;
+  if (parsed.data.cycleId != null) updates.cycleId = parsed.data.cycleId;
+  if (parsed.data.sprintNumber != null) updates.sprintNumber = parsed.data.sprintNumber;
+  if (parsed.data.startDate != null) {
+    const d = parsed.data.startDate;
+    updates.startDate = d instanceof Date ? d.toISOString().split("T")[0] : String(d);
+  }
+  if (parsed.data.endDate != null) {
+    const d = parsed.data.endDate;
+    updates.endDate = d instanceof Date ? d.toISOString().split("T")[0] : String(d);
+  }
+  const [sprint] = await db
+    .update(sprintsTable)
+    .set(updates)
+    .where(eq(sprintsTable.id, params.data.id))
+    .returning();
+  if (!sprint) {
+    res.status(404).json({ error: "Sprint not found" });
+    return;
+  }
+  res.json(sprint);
+});
+
+router.delete("/sprints/:id", requireAuth, async (req, res): Promise<void> => {
+  const params = DeleteSprintParams.safeParse(req.params);
+  if (!params.success) {
+    res.status(400).json({ error: params.error.message });
+    return;
+  }
+  const [sprint] = await db.delete(sprintsTable).where(eq(sprintsTable.id, params.data.id)).returning();
+  if (!sprint) {
+    res.status(404).json({ error: "Sprint not found" });
+    return;
+  }
+  res.sendStatus(204);
+});
+
+export default router;

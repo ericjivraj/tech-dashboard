@@ -1,0 +1,58 @@
+import { useEffect } from "react";
+import { useGetMe } from "@workspace/api-client-react";
+import { Link, useLocation } from "wouter";
+import { Button } from "@/components/ui/button";
+import { Loader2 } from "lucide-react";
+import { useClerk } from "@clerk/react";
+
+export default function Layout({ children }: { children: React.ReactNode }) {
+  const { data: user, isLoading } = useGetMe();
+  const { signOut } = useClerk();
+  const [location] = useLocation();
+
+  return (
+    <div className="min-h-[100dvh] flex flex-col bg-background text-foreground">
+      <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container flex h-14 max-w-screen-2xl items-center">
+          <div className="mr-4 flex">
+            <Link href="/" className="mr-6 flex items-center space-x-2">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-primary">
+                <rect width="24" height="24" rx="4" fill="currentColor" />
+                <rect x="6" y="6" width="4" height="12" rx="1" fill="white" />
+                <rect x="14" y="6" width="4" height="12" rx="1" fill="white" />
+              </svg>
+              <span className="hidden font-bold sm:inline-block tracking-tight text-lg">
+                Portco<span className="text-muted-foreground font-normal">Dash</span>
+              </span>
+            </Link>
+          </div>
+          <div className="flex flex-1 items-center justify-end space-x-4">
+            <nav className="flex items-center space-x-2">
+              {isLoading ? (
+                <div className="h-8 w-8 animate-pulse rounded-full bg-muted" />
+              ) : user?.isAuthenticated ? (
+                <div className="flex items-center gap-4">
+                  <span className="text-sm text-muted-foreground font-medium hidden sm:inline-block">
+                    {user.firstName ? `Editor: ${user.firstName}` : 'Editor Mode'}
+                  </span>
+                  <Button variant="outline" size="sm" onClick={() => signOut()}>
+                    Sign out
+                  </Button>
+                </div>
+              ) : (
+                location !== "/sign-in" && location !== "/sign-up" && (
+                  <Button asChild variant="outline" size="sm">
+                    <Link href="/sign-in">Sign in as editor</Link>
+                  </Button>
+                )
+              )}
+            </nav>
+          </div>
+        </div>
+      </header>
+      <main className="flex-1 flex flex-col">
+        {children}
+      </main>
+    </div>
+  );
+}
