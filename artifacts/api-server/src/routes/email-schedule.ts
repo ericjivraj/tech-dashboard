@@ -2,7 +2,7 @@ import { Router, type IRouter } from "express";
 import { eq } from "drizzle-orm";
 import { db, emailScheduleTable } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
-import { refreshSchedule, sendWeeklyReport } from "../lib/emailScheduler";
+import { refreshSchedule, sendWeeklyReport, fetchProjectsForReport, buildHtmlSummary } from "../lib/emailScheduler";
 import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
@@ -57,6 +57,18 @@ router.patch("/email-schedule", requireAuth, async (req, res): Promise<void> => 
     res.json(updated);
   } catch (err) {
     logger.error({ err }, "Failed to update email schedule");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.get("/email-schedule/preview", requireAuth, async (_req, res): Promise<void> => {
+  try {
+    const projects = await fetchProjectsForReport();
+    const html = buildHtmlSummary(projects);
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
+    res.send(html);
+  } catch (err) {
+    logger.error({ err }, "Failed to generate email preview");
     res.status(500).json({ error: "Internal server error" });
   }
 });

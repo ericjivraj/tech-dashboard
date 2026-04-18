@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Switch } from "@/components/ui/switch";
 import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query";
-import { Trash2, Plus, Pencil, Check, X, Mail, Send, Loader2 } from "lucide-react";
+import { Trash2, Plus, Pencil, Check, X, Mail, Send, Loader2, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format, parseISO } from "date-fns";
 
@@ -93,13 +93,28 @@ async function sendReportNow(): Promise<void> {
   }
 }
 
+async function fetchEmailPreview(): Promise<string> {
+  const res = await fetch("/api/email-schedule/preview", { credentials: "include" });
+  if (!res.ok) throw new Error("Failed to fetch email preview");
+  return res.text();
+}
+
 function EmailReportsTab() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   const { data: schedule, isLoading } = useQuery({
     queryKey: ["email-schedule"],
     queryFn: fetchEmailSchedule,
+  });
+
+  const { data: previewHtml, isFetching: previewLoading, isError: previewError } = useQuery({
+    queryKey: ["email-preview"],
+    queryFn: fetchEmailPreview,
+    enabled: previewOpen,
+    staleTime: 0,
+    retry: false,
   });
 
   const updateMutation = useMutation({
@@ -252,23 +267,62 @@ function EmailReportsTab() {
       </div>
 
       <div className="p-4 border rounded-lg space-y-2">
-        <p className="text-sm font-medium">Send test report</p>
+        <p className="text-sm font-medium">Preview &amp; send</p>
         <p className="text-xs text-muted-foreground">
-          Send a report immediately to all configured recipients regardless of schedule.
+          Preview the email report or send it immediately to all configured recipients.
         </p>
-        <Button
-          onClick={() => sendNowMutation.mutate()}
-          disabled={sendNowMutation.isPending || !schedule.recipients.trim()}
-          variant="outline"
-          data-testid="email-reports-send-now"
-        >
-          {sendNowMutation.isPending ? (
-            <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Sending...</>
-          ) : (
-            <><Send className="h-4 w-4 mr-2" /> Send Now</>
-          )}
-        </Button>
+        <div className="flex gap-2 flex-wrap">
+          <Button
+            onClick={() => {
+              queryClient.removeQueries({ queryKey: ["email-preview"] });
+              setPreviewOpen(true);
+            }}
+            variant="outline"
+            data-testid="email-reports-preview"
+          >
+            <Eye className="h-4 w-4 mr-2" /> Preview
+          </Button>
+          <Button
+            onClick={() => sendNowMutation.mutate()}
+            disabled={sendNowMutation.isPending || !schedule.recipients.trim()}
+            variant="outline"
+            data-testid="email-reports-send-now"
+          >
+            {sendNowMutation.isPending ? (
+              <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Sending...</>
+            ) : (
+              <><Send className="h-4 w-4 mr-2" /> Send Now</>
+            )}
+          </Button>
+        </div>
       </div>
+
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Email Report Preview</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 min-h-0 overflow-hidden rounded border bg-white">
+            {previewLoading ? (
+              <div className="flex items-center justify-center h-64 text-muted-foreground">
+                <Loader2 className="h-5 w-5 animate-spin mr-2" /> Generating preview...
+              </div>
+            ) : previewError ? (
+              <div className="flex items-center justify-center h-64 text-destructive text-sm">
+                Failed to load preview. Please try again.
+              </div>
+            ) : previewHtml ? (
+              <iframe
+                srcDoc={previewHtml}
+                className="w-full h-[60vh] border-0"
+                title="Email report preview"
+                sandbox="allow-same-origin"
+                data-testid="email-preview-iframe"
+              />
+            ) : null}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
