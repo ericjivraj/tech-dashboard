@@ -12,6 +12,7 @@ import ProjectModal from "@/components/project-modal";
 import ProjectForm from "@/components/project-form";
 import AdminPanel from "@/components/admin-panel";
 import { DEFAULT_FILTERS, type FilterState } from "@/lib/filter-types";
+import ExportButton from "@/components/export-button";
 
 export default function Dashboard() {
   const { data: summary, isLoading: isLoadingSummary } = useGetDashboardSummary();
@@ -55,17 +56,20 @@ export default function Dashboard() {
           <h1 className="text-3xl font-bold tracking-tight">Portfolio Overview</h1>
           <p className="text-muted-foreground mt-1">Command center for engineering operations and delivery.</p>
         </div>
-        {isEditor && (
-          <div className="flex items-center gap-2">
-            <Button size="sm" variant="outline" onClick={() => setAdminPanelOpen(true)}>
-              Admin Settings
-            </Button>
-            <Button size="sm" className="gap-1" onClick={() => setProjectFormOpen(true)}>
-              <Plus className="h-4 w-4" />
-              New Project
-            </Button>
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          <ExportButton />
+          {isEditor && (
+            <>
+              <Button size="sm" variant="outline" onClick={() => setAdminPanelOpen(true)}>
+                Admin Settings
+              </Button>
+              <Button size="sm" className="gap-1" onClick={() => setProjectFormOpen(true)}>
+                <Plus className="h-4 w-4" />
+                New Project
+              </Button>
+            </>
+          )}
+        </div>
       </div>
 
       {isLoadingSummary || !summary ? (

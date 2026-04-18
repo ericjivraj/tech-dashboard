@@ -257,6 +257,104 @@ router.get("/projects/timeline", async (req, res): Promise<void> => {
   res.json(result);
 });
 
+router.get("/projects/export", async (req, res): Promise<void> => {
+  const status = typeof req.query.status === "string" ? req.query.status : undefined;
+  const validStatuses = ["done", "in_progress", "up_next", "backlog", "blocked", "new_request"];
+
+  let projects;
+  if (status && validStatuses.includes(status)) {
+    projects = await db
+      .select()
+      .from(projectsTable)
+      .where(eq(projectsTable.status, status as typeof projectsTable.$inferSelect.status))
+      .orderBy(projectsTable.createdAt);
+  } else {
+    projects = await db.select().from(projectsTable).orderBy(projectsTable.createdAt);
+  }
+
+  if (projects.length === 0) {
+    res.setHeader("Content-Type", "text/csv");
+    res.setHeader("Content-Disposition", `attachment; filename="portfolio-export.csv"`);
+    res.send("Title,Status,Confidence,Sponsor,Team,Story Points,Cycle,Goals,Latest Update,Start Date,End Date\n");
+    return;
+  }
+
+  const projectIds = projects.map((p) => p.id);
+
+  const goalRows = await db
+    .select({ projectId: projectGoalsTable.projectId, goal: goalsTable })
+    .from(projectGoalsTable)
+    .innerJoin(goalsTable, eq(projectGoalsTable.goalId, goalsTable.id))
+    .where(inArray(projectGoalsTable.projectId, projectIds));
+
+  const updateRows = await db
+    .select()
+    .from(projectUpdatesTable)
+    .where(inArray(projectUpdatesTable.projectId, projectIds))
+    .orderBy(projectUpdatesTable.createdAt);
+
+  const cycleIds = [...new Set(projects.filter((p) => p.cycleId).map((p) => p.cycleId as number))];
+  const cycles = cycleIds.length > 0 ? await db.select().from(cyclesTable).where(inArray(cyclesTable.id, cycleIds)) : [];
+  const cycleMap = new Map(cycles.map((c) => [c.id, c]));
+
+  const goalsByProject = new Map<number, typeof goalsTable.$inferSelect[]>();
+  for (const r of goalRows) {
+    const existing = goalsByProject.get(r.projectId) ?? [];
+    existing.push(r.goal);
+    goalsByProject.set(r.projectId, existing);
+  }
+
+  const latestUpdateByProject = new Map<number, typeof projectUpdatesTable.$inferSelect>();
+  for (const u of updateRows) {
+    latestUpdateByProject.set(u.projectId, u);
+  }
+
+  const statusLabels: Record<string, string> = {
+    new_request: "New Request",
+    backlog: "Backlog",
+    up_next: "Up Next",
+    in_progress: "In Progress",
+    blocked: "Blocked",
+    done: "Done",
+  };
+
+  function csvCell(value: string | null | undefined): string {
+    const str = value ?? "";
+    if (str.includes('"') || str.includes(",") || str.includes("\n")) {
+      return `"${str.replace(/"/g, '""')}"`;
+    }
+    return str;
+  }
+
+  const headers = ["Title", "Status", "Confidence", "Sponsor", "Team", "Story Points", "Cycle", "Goals", "Latest Update", "Start Date", "End Date"];
+
+  const rows = projects.map((p) => {
+    const cycle = p.cycleId ? cycleMap.get(p.cycleId) : undefined;
+    const goals = goalsByProject.get(p.id) ?? [];
+    const latestUpdate = latestUpdateByProject.get(p.id) ?? null;
+    return [
+      csvCell(p.title),
+      csvCell(statusLabels[p.status] ?? p.status),
+      csvCell(p.confidence?.replace(/_/g, " ") ?? ""),
+      csvCell(p.sponsor ?? ""),
+      csvCell(p.team ?? ""),
+      csvCell(p.storyPoints?.toString() ?? ""),
+      csvCell(cycle?.name ?? ""),
+      csvCell(goals.map((g) => g.name).join("; ")),
+      csvCell(latestUpdate?.content ?? ""),
+      csvCell(p.startDate ?? ""),
+      csvCell(p.endDate ?? ""),
+    ].join(",");
+  });
+
+  const csvContent = [headers.map(csvCell).join(","), ...rows].join("\n");
+  const date = new Date().toISOString().split("T")[0];
+
+  res.setHeader("Content-Type", "text/csv;charset=utf-8");
+  res.setHeader("Content-Disposition", `attachment; filename="portfolio-${date}.csv"`);
+  res.send(csvContent);
+});
+
 router.get("/projects/:id", async (req, res): Promise<void> => {
   const params = GetProjectParams.safeParse(req.params);
   if (!params.success) {
