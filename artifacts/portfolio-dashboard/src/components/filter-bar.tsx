@@ -1,10 +1,14 @@
+import { useState } from "react";
 import { useListGoals, useListCycles } from "@workspace/api-client-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Search, X } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Search, X, Bookmark, BookmarkCheck, ChevronDown, Trash2 } from "lucide-react";
 import type { FilterState } from "@/lib/filter-types";
+import { useFilterPresets } from "@/lib/use-filter-presets";
 
 const STATUS_LABELS: Record<string, string> = {
   new_request: "New Request",
@@ -25,6 +29,10 @@ interface FilterBarProps {
 export default function FilterBar({ filters, onFiltersChange, teams, sponsors }: FilterBarProps) {
   const { data: goals } = useListGoals();
   const { data: cycles } = useListCycles();
+  const { presets, savePreset, deletePreset } = useFilterPresets();
+
+  const [savePopoverOpen, setSavePopoverOpen] = useState(false);
+  const [presetName, setPresetName] = useState("");
 
   function update(patch: Partial<FilterState>) {
     onFiltersChange({ ...filters, ...patch });
@@ -53,6 +61,17 @@ export default function FilterBar({ filters, onFiltersChange, teams, sponsors }:
 
   function clearAll() {
     onFiltersChange({ search: "", status: "all", team: "all", sponsor: "all", goalId: "all", cycleId: "all" });
+  }
+
+  function handleSavePreset() {
+    if (!presetName.trim()) return;
+    savePreset(presetName, filters);
+    setPresetName("");
+    setSavePopoverOpen(false);
+  }
+
+  function handleApplyPreset(presetFilters: FilterState) {
+    onFiltersChange(presetFilters);
   }
 
   return (
@@ -146,6 +165,86 @@ export default function FilterBar({ filters, onFiltersChange, teams, sponsors }:
           <Button variant="ghost" size="sm" className="h-8 text-xs text-muted-foreground" onClick={clearAll} data-testid="filter-clear-all">
             Clear all
           </Button>
+        )}
+
+        {presets.length > 0 && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="h-8 gap-1 text-xs" data-testid="presets-dropdown">
+                <BookmarkCheck className="h-3.5 w-3.5" />
+                Presets
+                <ChevronDown className="h-3 w-3 text-muted-foreground" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56" data-testid="presets-menu">
+              {presets.map((preset, index) => (
+                <div key={preset.id}>
+                  {index > 0 && <DropdownMenuSeparator />}
+                  <DropdownMenuItem
+                    className="flex items-center justify-between gap-2 cursor-pointer pr-1"
+                    onSelect={(e) => e.preventDefault()}
+                    data-testid={`preset-item-${preset.id}`}
+                  >
+                    <button
+                      className="flex-1 text-left text-sm truncate"
+                      onClick={() => handleApplyPreset(preset.filters)}
+                      data-testid={`preset-apply-${preset.id}`}
+                    >
+                      {preset.name}
+                    </button>
+                    <button
+                      className="shrink-0 rounded p-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deletePreset(preset.id);
+                      }}
+                      aria-label={`Delete preset ${preset.name}`}
+                      data-testid={`preset-delete-${preset.id}`}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </DropdownMenuItem>
+                </div>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+
+        {hasActiveFilters && (
+          <Popover open={savePopoverOpen} onOpenChange={setSavePopoverOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className="h-8 gap-1 text-xs" data-testid="save-preset-button">
+                <Bookmark className="h-3.5 w-3.5" />
+                Save as preset
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-64 p-3" align="end" data-testid="save-preset-popover">
+              <p className="text-sm font-medium mb-2">Save filter preset</p>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Preset name..."
+                  value={presetName}
+                  onChange={(e) => setPresetName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleSavePreset();
+                    if (e.key === "Escape") setSavePopoverOpen(false);
+                  }}
+                  className="h-8 text-sm"
+                  autoFocus
+                  data-testid="preset-name-input"
+                />
+                <Button
+                  size="sm"
+                  className="h-8 shrink-0"
+                  onClick={handleSavePreset}
+                  disabled={!presetName.trim()}
+                  data-testid="preset-save-confirm"
+                >
+                  Save
+                </Button>
+              </div>
+            </PopoverContent>
+          </Popover>
         )}
       </div>
 
