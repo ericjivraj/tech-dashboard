@@ -182,7 +182,7 @@ export const DeleteGoalParams = zod.object({
 });
 
 /**
- * @summary List all projects, optionally filtered by status
+ * @summary List all projects, optionally filtered by status, team, sponsor, goalId, or cycleId
  */
 export const ListProjectsQueryParams = zod.object({
   status: zod
@@ -196,6 +196,10 @@ export const ListProjectsQueryParams = zod.object({
       zod.literal(null),
     ])
     .nullish(),
+  team: zod.coerce.string().nullish(),
+  sponsor: zod.coerce.string().nullish(),
+  goalId: zod.coerce.number().nullish(),
+  cycleId: zod.coerce.number().nullish(),
 });
 
 export const ListProjectsResponseItem = zod

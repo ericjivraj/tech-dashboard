@@ -385,7 +385,7 @@ paths:
     get:
       operationId: listProjects
       tags: [projects]
-      summary: List all projects, optionally filtered by status
+      summary: List all projects, optionally filtered by status, team, sponsor, goalId, or cycleId
       parameters:
         - name: status
           in: query
@@ -393,6 +393,26 @@ paths:
           schema:
             type: ["string", "null"]
             enum: [done, in_progress, up_next, backlog, blocked, new_request, null]
+        - name: team
+          in: query
+          required: false
+          schema:
+            type: ["string", "null"]
+        - name: sponsor
+          in: query
+          required: false
+          schema:
+            type: ["string", "null"]
+        - name: goalId
+          in: query
+          required: false
+          schema:
+            type: ["integer", "null"]
+        - name: cycleId
+          in: query
+          required: false
+          schema:
+            type: ["integer", "null"]
       responses:
         "200":
           description: List of projects with goal tags

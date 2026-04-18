@@ -4,6 +4,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { format, parseISO, startOfYear, endOfYear, eachMonthOfInterval, differenceInDays, startOfQuarter, endOfQuarter } from "date-fns";
+import type { FilterState } from "@/lib/filter-types";
 
 const STATUS_COLORS: Record<string, string> = {
   done: "#10b981",
@@ -28,7 +29,11 @@ function getQuarterBounds(year: number, quarter: number): { start: Date; end: Da
   return { start, end };
 }
 
-export default function GanttView() {
+interface GanttViewProps {
+  filters: FilterState;
+}
+
+export default function GanttView({ filters }: GanttViewProps) {
   const currentYear = new Date().getFullYear();
   const [selectedQuarter, setSelectedQuarter] = useState<string>("all");
   const [selectedCycleId, setSelectedCycleId] = useState<string>("all");
@@ -91,6 +96,29 @@ export default function GanttView() {
     });
   }
 
+  if (filters.search) {
+    const q = filters.search.toLowerCase();
+    filteredProjects = filteredProjects.filter((p) => p.title.toLowerCase().includes(q));
+  }
+  if (filters.status !== "all") {
+    filteredProjects = filteredProjects.filter((p) => p.status === filters.status);
+  }
+  if (filters.team !== "all") {
+    filteredProjects = filteredProjects.filter((p) => p.team === filters.team);
+  }
+  if (filters.sponsor !== "all") {
+    filteredProjects = filteredProjects.filter((p) => p.sponsor === filters.sponsor);
+  }
+  if (filters.goalId !== "all") {
+    filteredProjects = filteredProjects.filter((p) => p.goals.some((g) => g.id.toString() === filters.goalId));
+  }
+  if (filters.cycleId !== "all" && cycles) {
+    const cycle = cycles.find((c) => c.id.toString() === filters.cycleId);
+    if (cycle) {
+      filteredProjects = filteredProjects.filter((p) => p.cycleName === cycle.name);
+    }
+  }
+
   const visibleProjects = filteredProjects.filter((p) => {
     const pos = getBarPosition(p.startDate!, p.endDate!);
     return pos !== null;
@@ -136,7 +164,7 @@ export default function GanttView() {
             onClick={() => { setSelectedQuarter("all"); setSelectedCycleId("all"); }}
             data-testid="gantt-clear-filters"
           >
-            Clear filters
+            Clear view filters
           </Button>
         )}
 
@@ -157,7 +185,7 @@ export default function GanttView() {
 
           {visibleProjects.length === 0 ? (
             <div className="flex h-40 items-center justify-center">
-              <p className="text-muted-foreground text-sm">No projects with scheduled dates in this period</p>
+              <p className="text-muted-foreground text-sm">No projects match the current filters in this period</p>
             </div>
           ) : (
             <div className="space-y-3">

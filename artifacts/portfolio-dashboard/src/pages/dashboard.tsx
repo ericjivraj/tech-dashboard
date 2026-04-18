@@ -1,25 +1,52 @@
-import { useState } from "react";
-import { useGetDashboardSummary, useGetMe } from "@workspace/api-client-react";
+import { useMemo, useState } from "react";
+import { useGetDashboardSummary, useGetMe, useListProjects } from "@workspace/api-client-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import KanbanView from "@/components/kanban-view";
 import PipelineView from "@/components/pipeline-view";
 import GanttView from "@/components/gantt-view";
+import FilterBar from "@/components/filter-bar";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import ProjectModal from "@/components/project-modal";
 import ProjectForm from "@/components/project-form";
 import AdminPanel from "@/components/admin-panel";
+import { DEFAULT_FILTERS, type FilterState } from "@/lib/filter-types";
 
 export default function Dashboard() {
   const { data: summary, isLoading: isLoadingSummary } = useGetDashboardSummary();
   const { data: user } = useGetMe();
+  const { data: allProjects, isLoading: isLoadingProjects } = useListProjects();
   const [view, setView] = useState("kanban");
-  
+  const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
+
   const [projectFormOpen, setProjectFormOpen] = useState(false);
   const [adminPanelOpen, setAdminPanelOpen] = useState(false);
-  
+
   const isEditor = user?.isEditor === true;
+
+  const teams = useMemo(() => {
+    if (!allProjects) return [];
+    return [...new Set(allProjects.map((p) => p.team).filter(Boolean) as string[])].sort();
+  }, [allProjects]);
+
+  const sponsors = useMemo(() => {
+    if (!allProjects) return [];
+    return [...new Set(allProjects.map((p) => p.sponsor).filter(Boolean) as string[])].sort();
+  }, [allProjects]);
+
+  const filteredProjects = useMemo(() => {
+    if (!allProjects) return [];
+    return allProjects.filter((p) => {
+      if (filters.search && !p.title.toLowerCase().includes(filters.search.toLowerCase())) return false;
+      if (filters.status !== "all" && p.status !== filters.status) return false;
+      if (filters.team !== "all" && p.team !== filters.team) return false;
+      if (filters.sponsor !== "all" && p.sponsor !== filters.sponsor) return false;
+      if (filters.goalId !== "all" && !p.goals.some((g) => g.id.toString() === filters.goalId)) return false;
+      if (filters.cycleId !== "all" && p.cycleId?.toString() !== filters.cycleId) return false;
+      return true;
+    });
+  }, [allProjects, filters]);
 
   return (
     <div className="container max-w-screen-2xl py-6 flex flex-col gap-6">
@@ -103,23 +130,49 @@ export default function Dashboard() {
 
       <div className="flex flex-col h-full space-y-4">
         <Tabs value={view} onValueChange={setView} className="w-full">
-          <div className="flex items-center justify-between border-b pb-4">
-            <TabsList className="grid w-full max-w-[400px] grid-cols-3">
-              <TabsTrigger value="kanban" data-testid="tab-kanban">Kanban</TabsTrigger>
-              <TabsTrigger value="gantt" data-testid="tab-gantt">Timeline</TabsTrigger>
-              <TabsTrigger value="pipeline" data-testid="tab-pipeline">List</TabsTrigger>
-            </TabsList>
+          <div className="flex flex-col gap-4 border-b pb-4">
+            <div className="flex items-center justify-between">
+              <TabsList className="grid w-full max-w-[400px] grid-cols-3">
+                <TabsTrigger value="kanban" data-testid="tab-kanban">Kanban</TabsTrigger>
+                <TabsTrigger value="gantt" data-testid="tab-gantt">Timeline</TabsTrigger>
+                <TabsTrigger value="pipeline" data-testid="tab-pipeline">List</TabsTrigger>
+              </TabsList>
+            </div>
+            <FilterBar
+              filters={filters}
+              onFiltersChange={setFilters}
+              teams={teams}
+              sponsors={sponsors}
+            />
           </div>
-          
+
           <div className="mt-4 flex-1">
             <TabsContent value="kanban" className="m-0 h-full border-0 p-0">
-              <KanbanView />
+              {isLoadingProjects ? (
+                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 h-full">
+                  {[...Array(6)].map((_, i) => (
+                    <div key={i} className="flex flex-col gap-2 rounded-xl bg-muted/50 p-2 min-h-[500px]">
+                      <Skeleton className="h-5 w-24" />
+                      <Skeleton className="h-32 w-full rounded-lg" />
+                      <Skeleton className="h-32 w-full rounded-lg" />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <KanbanView projects={filteredProjects} />
+              )}
             </TabsContent>
             <TabsContent value="gantt" className="m-0 h-full border-0 p-0">
-              <GanttView />
+              <GanttView filters={filters} />
             </TabsContent>
             <TabsContent value="pipeline" className="m-0 h-full border-0 p-0">
-              <PipelineView />
+              {isLoadingProjects ? (
+                <div className="rounded-md border">
+                  <Skeleton className="h-64 w-full" />
+                </div>
+              ) : (
+                <PipelineView projects={filteredProjects} />
+              )}
             </TabsContent>
           </div>
         </Tabs>

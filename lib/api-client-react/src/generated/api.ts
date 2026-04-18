@@ -1192,7 +1192,7 @@ export const useDeleteGoal = <
 };
 
 /**
- * @summary List all projects, optionally filtered by status
+ * @summary List all projects, optionally filtered by status, team, sponsor, goalId, or cycleId
  */
 export const getListProjectsUrl = (params?: ListProjectsParams) => {
   const normalizedParams = new URLSearchParams();
@@ -1259,7 +1259,7 @@ export type ListProjectsQueryResult = NonNullable<
 export type ListProjectsQueryError = ErrorType<unknown>;
 
 /**
- * @summary List all projects, optionally filtered by status
+ * @summary List all projects, optionally filtered by status, team, sponsor, goalId, or cycleId
  */
 
 export function useListProjects<

@@ -427,6 +427,22 @@ export type ListProjectsParams = {
    * @nullable
    */
   status?: ListProjectsStatus;
+  /**
+   * @nullable
+   */
+  team?: string | null;
+  /**
+   * @nullable
+   */
+  sponsor?: string | null;
+  /**
+   * @nullable
+   */
+  goalId?: number | null;
+  /**
+   * @nullable
+   */
+  cycleId?: number | null;
 };
 
 export type ListProjectsStatus =

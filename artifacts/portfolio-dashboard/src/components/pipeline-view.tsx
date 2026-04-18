@@ -1,9 +1,7 @@
-import { useState } from "react";
-import { useListProjects, ProjectWithDetails, ProjectStatus } from "@workspace/api-client-react";
+import { ProjectWithDetails, ProjectStatus } from "@workspace/api-client-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { format, parseISO } from "date-fns";
-import { Skeleton } from "@/components/ui/skeleton";
 
 const CONFIDENCE_COLORS: Record<string, string> = {
   high: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-100",
@@ -21,36 +19,11 @@ const STATUS_LABELS: Record<ProjectStatus, string> = {
   done: "Done"
 };
 
-export default function PipelineView() {
-  const { data: projects, isLoading } = useListProjects();
+interface PipelineViewProps {
+  projects: ProjectWithDetails[];
+}
 
-  if (isLoading) {
-    return (
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Project</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Team</TableHead>
-              <TableHead>Confidence</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {[1, 2, 3, 4, 5].map((i) => (
-              <TableRow key={i}>
-                <TableCell><Skeleton className="h-4 w-48" /></TableCell>
-                <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-    );
-  }
-
+export default function PipelineView({ projects }: PipelineViewProps) {
   return (
     <div className="rounded-md border bg-card overflow-hidden">
       <Table>
@@ -67,7 +40,7 @@ export default function PipelineView() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {projects?.map((project) => (
+          {projects.map((project) => (
             <TableRow key={project.id} className="group cursor-pointer hover:bg-muted/30">
               <TableCell>
                 <div className="font-medium text-sm">{project.title}</div>
@@ -130,10 +103,10 @@ export default function PipelineView() {
               </TableCell>
             </TableRow>
           ))}
-          {projects?.length === 0 && (
+          {projects.length === 0 && (
             <TableRow>
               <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                No projects found.
+                No projects match the current filters.
               </TableCell>
             </TableRow>
           )}

@@ -78,16 +78,33 @@ router.get("/projects", async (req, res): Promise<void> => {
     return;
   }
 
-  const status = query.data.status;
+  const { status, team, sponsor, goalId, cycleId } = query.data;
+
+  const conditions = [];
+  if (status) conditions.push(eq(projectsTable.status, status));
+  if (team) conditions.push(eq(projectsTable.team, team));
+  if (sponsor) conditions.push(eq(projectsTable.sponsor, sponsor));
+  if (cycleId) conditions.push(eq(projectsTable.cycleId, cycleId));
+
   let projects;
-  if (status) {
+  if (conditions.length > 0) {
     projects = await db
       .select()
       .from(projectsTable)
-      .where(eq(projectsTable.status, status))
+      .where(and(...conditions))
       .orderBy(projectsTable.createdAt);
   } else {
     projects = await db.select().from(projectsTable).orderBy(projectsTable.createdAt);
+  }
+
+  if (goalId && projects.length > 0) {
+    const projectIds = projects.map((p) => p.id);
+    const goalProjectIds = await db
+      .select({ projectId: projectGoalsTable.projectId })
+      .from(projectGoalsTable)
+      .where(and(inArray(projectGoalsTable.projectId, projectIds), eq(projectGoalsTable.goalId, goalId)));
+    const goalProjectIdSet = new Set(goalProjectIds.map((r) => r.projectId));
+    projects = projects.filter((p) => goalProjectIdSet.has(p.id));
   }
 
   if (projects.length === 0) {

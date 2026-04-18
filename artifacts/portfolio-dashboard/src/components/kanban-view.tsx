@@ -1,9 +1,7 @@
 import { useState } from "react";
-import { useListProjects, ProjectWithDetails, ProjectStatus, useGetMe } from "@workspace/api-client-react";
+import { ProjectWithDetails, ProjectStatus, useGetMe } from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
-import { format } from "date-fns";
 import ProjectModal from "./project-modal";
 import ProjectForm from "./project-form";
 
@@ -23,27 +21,16 @@ const CONFIDENCE_COLORS: Record<string, string> = {
   at_risk: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100",
 };
 
-export default function KanbanView() {
-  const { data: projects, isLoading } = useListProjects();
+interface KanbanViewProps {
+  projects: ProjectWithDetails[];
+}
+
+export default function KanbanView({ projects }: KanbanViewProps) {
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
   const [projectToEdit, setProjectToEdit] = useState<ProjectWithDetails | null>(null);
 
-  if (isLoading) {
-    return (
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 h-full">
-        {COLUMNS.map((col) => (
-          <div key={col.id} className="flex flex-col gap-2 rounded-xl bg-muted/50 p-2 min-h-[500px]">
-            <div className="font-semibold text-sm px-2 py-1">{col.label}</div>
-            <Skeleton className="h-32 w-full rounded-lg" />
-            <Skeleton className="h-32 w-full rounded-lg" />
-          </div>
-        ))}
-      </div>
-    );
-  }
-
   const projectsByStatus = COLUMNS.reduce((acc, col) => {
-    acc[col.id] = projects?.filter((p) => p.status === col.id) || [];
+    acc[col.id] = projects.filter((p) => p.status === col.id);
     return acc;
   }, {} as Record<ProjectStatus, ProjectWithDetails[]>);
 
@@ -60,10 +47,10 @@ export default function KanbanView() {
             </div>
             <div className="flex flex-col gap-3">
               {projectsByStatus[col.id].map((project) => (
-                <ProjectCard 
-                  key={project.id} 
-                  project={project} 
-                  onClick={() => setSelectedProjectId(project.id)} 
+                <ProjectCard
+                  key={project.id}
+                  project={project}
+                  onClick={() => setSelectedProjectId(project.id)}
                 />
               ))}
               {projectsByStatus[col.id].length === 0 && (
@@ -75,12 +62,12 @@ export default function KanbanView() {
           </div>
         ))}
       </div>
-      
+
       {selectedProjectId && (
-        <ProjectModal 
-          projectId={selectedProjectId} 
-          open={!!selectedProjectId} 
-          onOpenChange={(open) => !open && setSelectedProjectId(null)} 
+        <ProjectModal
+          projectId={selectedProjectId}
+          open={!!selectedProjectId}
+          onOpenChange={(open) => !open && setSelectedProjectId(null)}
           onEdit={(project) => {
             setSelectedProjectId(null);
             setProjectToEdit(project);
@@ -100,9 +87,9 @@ export default function KanbanView() {
 
 function ProjectCard({ project, onClick }: { project: ProjectWithDetails; onClick: () => void }) {
   const isBlocked = project.status === "blocked";
-  
+
   return (
-    <Card 
+    <Card
       className={`cursor-pointer transition-all hover:shadow-md border-l-4 ${isBlocked ? 'border-l-destructive shadow-sm shadow-destructive/10' : 'border-l-primary/40'} hover:border-l-primary bg-card relative group`}
       onClick={onClick}
       data-testid={`card-project-${project.id}`}
