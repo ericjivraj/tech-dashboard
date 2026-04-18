@@ -373,12 +373,19 @@ router.delete("/projects/:projectId/updates/:updateId", requireAuth, async (req,
     res.status(400).json({ error: params.error.message });
     return;
   }
+  const { projectId, updateId } = params.data;
   const [update] = await db
     .delete(projectUpdatesTable)
-    .where(eq(projectUpdatesTable.id, params.data.updateId))
+    .where(
+      eq(projectUpdatesTable.id, updateId),
+    )
     .returning();
   if (!update) {
     res.status(404).json({ error: "Update not found" });
+    return;
+  }
+  if (update.projectId !== projectId) {
+    res.status(403).json({ error: "Update does not belong to this project" });
     return;
   }
   res.sendStatus(204);

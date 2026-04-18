@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -365,6 +366,51 @@ export default function ProjectForm({
                   <FormControl>
                     <Textarea className="min-h-[80px]" {...field} value={field.value || ""} />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="goalIds"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Business Goals</FormLabel>
+                  <div className="grid grid-cols-2 gap-2 mt-1" data-testid="goal-selection">
+                    {goals?.map((goal) => {
+                      const checked = (field.value ?? []).includes(goal.id);
+                      return (
+                        <label
+                          key={goal.id}
+                          className="flex items-center gap-2 rounded-md border border-border px-3 py-2 cursor-pointer hover:bg-muted/40 transition-colors"
+                        >
+                          <Checkbox
+                            checked={checked}
+                            onCheckedChange={(val) => {
+                              const current = field.value ?? [];
+                              if (val) {
+                                field.onChange([...current, goal.id]);
+                              } else {
+                                field.onChange(current.filter((id: number) => id !== goal.id));
+                              }
+                            }}
+                            data-testid={`goal-checkbox-${goal.id}`}
+                          />
+                          <span
+                            className="h-2.5 w-2.5 rounded-full shrink-0"
+                            style={{ backgroundColor: goal.color }}
+                          />
+                          <span className="text-sm">{goal.name}</span>
+                        </label>
+                      );
+                    })}
+                    {(!goals || goals.length === 0) && (
+                      <p className="text-sm text-muted-foreground col-span-2">
+                        No business goals defined. Add them via Admin Settings.
+                      </p>
+                    )}
+                  </div>
                   <FormMessage />
                 </FormItem>
               )}

@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
-import { ClerkProvider, SignIn, SignUp, Show, useClerk } from "@clerk/react";
-import { Switch, Route, useLocation, Router as WouterRouter, Redirect } from "wouter";
+import { ClerkProvider, SignIn, useClerk } from "@clerk/react";
+import { Switch, Route, useLocation, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -59,18 +59,42 @@ const clerkAppearance = {
   },
 };
 
+const signInAppearance = {
+  ...clerkAppearance,
+  elements: {
+    ...clerkAppearance.elements,
+    footerAction__signIn: { display: "none" },
+    footerAction__signUp: { display: "none" },
+  },
+};
+
 function SignInPage() {
   return (
     <div className="flex min-h-[100dvh] items-center justify-center bg-muted/30 px-4">
-      <SignIn routing="path" path={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} />
+      <SignIn routing="path" path={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} appearance={signInAppearance} />
     </div>
   );
 }
 
 function SignUpPage() {
+  const [, setLocation] = useLocation();
+  useEffect(() => {
+    setLocation("/sign-in");
+  }, [setLocation]);
   return (
     <div className="flex min-h-[100dvh] items-center justify-center bg-muted/30 px-4">
-      <SignUp routing="path" path={`${basePath}/sign-up`} signInUrl={`${basePath}/sign-in`} />
+      <div className="rounded-xl border bg-card shadow-md p-8 max-w-sm w-full text-center space-y-4">
+        <h2 className="text-xl font-semibold">Access Restricted</h2>
+        <p className="text-sm text-muted-foreground">
+          Editor accounts are managed by your administrator. If you need access, contact your system administrator to have your account provisioned.
+        </p>
+        <button
+          className="text-sm font-medium underline underline-offset-2"
+          onClick={() => setLocation("/sign-in")}
+        >
+          Back to Sign In
+        </button>
+      </div>
     </div>
   );
 }

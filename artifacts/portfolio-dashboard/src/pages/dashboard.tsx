@@ -42,31 +42,61 @@ export default function Dashboard() {
       </div>
 
       {isLoadingSummary || !summary ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Skeleton className="h-24 w-full rounded-xl" />
-          <Skeleton className="h-24 w-full rounded-xl" />
-          <Skeleton className="h-24 w-full rounded-xl" />
-          <Skeleton className="h-24 w-full rounded-xl" />
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Skeleton className="h-24 w-full rounded-xl" />
+            <Skeleton className="h-24 w-full rounded-xl" />
+            <Skeleton className="h-24 w-full rounded-xl" />
+            <Skeleton className="h-24 w-full rounded-xl" />
+          </div>
+          <Skeleton className="h-14 w-full rounded-xl" />
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="rounded-xl border bg-card text-card-foreground shadow-sm p-6 flex flex-col gap-1">
-            <p className="text-sm font-medium text-muted-foreground">Total Projects</p>
-            <p className="text-3xl font-bold">{summary.totalProjects}</p>
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="rounded-xl border bg-card text-card-foreground shadow-sm p-6 flex flex-col gap-1" data-testid="metric-total-projects">
+              <p className="text-sm font-medium text-muted-foreground">Total Projects</p>
+              <p className="text-3xl font-bold">{summary.totalProjects}</p>
+            </div>
+            <div className="rounded-xl border bg-card text-card-foreground shadow-sm p-6 flex flex-col gap-1" data-testid="metric-story-points">
+              <p className="text-sm font-medium text-muted-foreground">Total Story Points</p>
+              <p className="text-3xl font-bold">{summary.totalStoryPoints}</p>
+            </div>
+            <div className="rounded-xl border bg-card text-card-foreground shadow-sm p-6 flex flex-col gap-1" data-testid="metric-capacity">
+              <p className="text-sm font-medium text-muted-foreground">Capacity</p>
+              <p className="text-3xl font-bold">{summary.capacityPercentage}%</p>
+            </div>
+            <div className="rounded-xl border bg-card text-card-foreground shadow-sm p-6 flex flex-col gap-1" data-testid="metric-active-cycle">
+              <p className="text-sm font-medium text-muted-foreground">Active Cycle</p>
+              <p className="text-xl font-semibold truncate" title={summary.activeCycle?.name || "None"}>
+                {summary.activeCycle?.name || "None"}
+              </p>
+            </div>
           </div>
-          <div className="rounded-xl border bg-card text-card-foreground shadow-sm p-6 flex flex-col gap-1">
-            <p className="text-sm font-medium text-muted-foreground">Total Story Points</p>
-            <p className="text-3xl font-bold">{summary.totalStoryPoints}</p>
-          </div>
-          <div className="rounded-xl border bg-card text-card-foreground shadow-sm p-6 flex flex-col gap-1">
-            <p className="text-sm font-medium text-muted-foreground">Capacity</p>
-            <p className="text-3xl font-bold">{summary.capacityPercentage}%</p>
-          </div>
-          <div className="rounded-xl border bg-card text-card-foreground shadow-sm p-6 flex flex-col gap-1">
-            <p className="text-sm font-medium text-muted-foreground">Active Cycle</p>
-            <p className="text-xl font-semibold truncate" title={summary.activeCycle?.name || "None"}>
-              {summary.activeCycle?.name || "None"}
-            </p>
+
+          <div className="rounded-xl border bg-card text-card-foreground shadow-sm px-6 py-4" data-testid="status-breakdown">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Projects by Status</p>
+            <div className="grid grid-cols-3 sm:grid-cols-6 gap-4">
+              {[
+                { key: "in_progress", label: "In Progress", color: "bg-blue-500" },
+                { key: "up_next", label: "Up Next", color: "bg-indigo-400" },
+                { key: "blocked", label: "Blocked", color: "bg-red-500" },
+                { key: "new_request", label: "New Request", color: "bg-purple-400" },
+                { key: "backlog", label: "Backlog", color: "bg-slate-400" },
+                { key: "done", label: "Done", color: "bg-emerald-500" },
+              ].map(({ key, label, color }) => {
+                const count = (summary.countByStatus as Record<string, number>)[key] ?? 0;
+                return (
+                  <div key={key} className="flex flex-col gap-1" data-testid={`status-count-${key}`}>
+                    <div className="flex items-center gap-1.5">
+                      <span className={`h-2 w-2 rounded-full ${color}`} />
+                      <span className="text-xs text-muted-foreground">{label}</span>
+                    </div>
+                    <span className="text-xl font-bold">{count}</span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       )}
