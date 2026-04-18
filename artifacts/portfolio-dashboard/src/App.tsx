@@ -67,10 +67,10 @@ const signInAppearance = {
   },
 };
 
-function SignInPage() {
+function AdminSignInPage() {
   return (
     <div className="flex min-h-[100dvh] items-center justify-center bg-muted/30 px-4">
-      <SignIn routing="path" path={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} appearance={signInAppearance} />
+      <SignIn routing="path" path={`${basePath}/admin`} signUpUrl={`${basePath}/sign-up`} appearance={signInAppearance} />
     </div>
   );
 }
@@ -78,7 +78,7 @@ function SignInPage() {
 function SignUpPage() {
   const [, setLocation] = useLocation();
   useEffect(() => {
-    setLocation("/sign-in");
+    setLocation("/admin");
   }, [setLocation]);
   return (
     <div className="flex min-h-[100dvh] items-center justify-center bg-muted/30 px-4">
@@ -89,7 +89,7 @@ function SignUpPage() {
         </p>
         <button
           className="text-sm font-medium underline underline-offset-2"
-          onClick={() => setLocation("/sign-in")}
+          onClick={() => setLocation("/admin")}
         >
           Back to Sign In
         </button>
@@ -127,7 +127,7 @@ function ClerkRoutes() {
     <Layout onSignOut={handleSignOut}>
       <Switch>
         <Route path="/" component={Dashboard} />
-        <Route path="/sign-in/*?" component={SignInPage} />
+        <Route path="/admin/*?" component={AdminSignInPage} />
         <Route path="/sign-up/*?" component={SignUpPage} />
         <Route component={NotFound} />
       </Switch>

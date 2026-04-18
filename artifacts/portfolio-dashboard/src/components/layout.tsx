@@ -1,10 +1,9 @@
 import { useGetMe } from "@workspace/api-client-react";
-import { Link, useLocation } from "wouter";
+import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 
 export default function Layout({ children, onSignOut }: { children: React.ReactNode; onSignOut?: () => void }) {
   const { data: user, isLoading } = useGetMe();
-  const [location] = useLocation();
 
   return (
     <div className="min-h-[100dvh] flex flex-col bg-background text-foreground">
@@ -24,9 +23,7 @@ export default function Layout({ children, onSignOut }: { children: React.ReactN
           </div>
           <div className="flex flex-1 items-center justify-end space-x-4">
             <nav className="flex items-center space-x-2">
-              {isLoading ? (
-                <div className="h-8 w-8 animate-pulse rounded-full bg-muted" />
-              ) : user?.isAuthenticated ? (
+              {!isLoading && user?.isAuthenticated && (
                 <div className="flex items-center gap-4">
                   <span className="text-sm text-muted-foreground font-medium hidden sm:inline-block">
                     {user.firstName ? `Editor: ${user.firstName}` : 'Editor Mode'}
@@ -37,14 +34,6 @@ export default function Layout({ children, onSignOut }: { children: React.ReactN
                     </Button>
                   )}
                 </div>
-              ) : (
-                onSignOut !== undefined &&
-                location !== "/sign-in" &&
-                location !== "/sign-up" && (
-                  <Button asChild variant="outline" size="sm">
-                    <Link href="/sign-in">Sign in as editor</Link>
-                  </Button>
-                )
               )}
             </nav>
           </div>
