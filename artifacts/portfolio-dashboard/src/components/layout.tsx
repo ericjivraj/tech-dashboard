@@ -17,7 +17,7 @@ export default function Layout({ children, onSignOut }: { children: React.ReactN
                 <rect x="14" y="6" width="4" height="12" rx="1" fill="white" />
               </svg>
               <span className="hidden font-bold sm:inline-block tracking-tight text-lg">
-                Portco<span className="text-muted-foreground font-normal">Dash</span>
+                Delivery <span className="text-muted-foreground font-normal">Dashboard</span>
               </span>
             </Link>
           </div>
