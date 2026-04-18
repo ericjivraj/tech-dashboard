@@ -147,6 +147,8 @@ export default function Dashboard() {
               onFiltersChange={setFilters}
               teams={teams}
               sponsors={sponsors}
+              filteredCount={filteredProjects.length}
+              totalCount={allProjects?.length ?? 0}
             />
           </div>
 

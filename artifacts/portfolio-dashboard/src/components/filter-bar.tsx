@@ -24,9 +24,11 @@ interface FilterBarProps {
   onFiltersChange: (filters: FilterState) => void;
   teams: string[];
   sponsors: string[];
+  filteredCount?: number;
+  totalCount?: number;
 }
 
-export default function FilterBar({ filters, onFiltersChange, teams, sponsors }: FilterBarProps) {
+export default function FilterBar({ filters, onFiltersChange, teams, sponsors, filteredCount, totalCount }: FilterBarProps) {
   const { data: goals } = useListGoals();
   const { data: cycles } = useListCycles();
   const { presets, savePreset, deletePreset } = useFilterPresets();
@@ -245,6 +247,12 @@ export default function FilterBar({ filters, onFiltersChange, teams, sponsors }:
               </div>
             </PopoverContent>
           </Popover>
+        )}
+
+        {hasActiveFilters && filteredCount !== undefined && totalCount !== undefined && (
+          <span className="text-xs text-muted-foreground ml-auto" data-testid="filter-result-count">
+            Showing {filteredCount} of {totalCount} projects
+          </span>
         )}
       </div>
 
