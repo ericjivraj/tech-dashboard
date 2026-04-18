@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { db } from "@workspace/db";
 import {
   projectsTable,
@@ -377,15 +377,14 @@ router.delete("/projects/:projectId/updates/:updateId", requireAuth, async (req,
   const [update] = await db
     .delete(projectUpdatesTable)
     .where(
-      eq(projectUpdatesTable.id, updateId),
+      and(
+        eq(projectUpdatesTable.id, updateId),
+        eq(projectUpdatesTable.projectId, projectId),
+      ),
     )
     .returning();
   if (!update) {
-    res.status(404).json({ error: "Update not found" });
-    return;
-  }
-  if (update.projectId !== projectId) {
-    res.status(403).json({ error: "Update does not belong to this project" });
+    res.status(404).json({ error: "Update not found or does not belong to this project" });
     return;
   }
   res.sendStatus(204);
