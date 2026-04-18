@@ -45,7 +45,7 @@ pnpm workspace monorepo using TypeScript. This is a full-stack engineering depar
 
 All routes are under `/api`:
 - `GET /health` — health check
-- `GET /auth/me` — returns Clerk user info (isAuthenticated, userId, email, firstName, lastName)
+- `GET /auth/me` — returns Clerk user info (isAuthenticated, isEditor, userId, email, firstName, lastName). `isEditor` is true if EDITOR_EMAILS env var is unset in dev (any auth user), or if the user's email is in the EDITOR_EMAILS allowlist.
 - `GET|POST /cycles` — list / create cycles (POST requires auth)
 - `PATCH|DELETE /cycles/:id` — update / delete cycle (requires auth)
 - `GET|POST /sprints` — list (with optional ?cycleId filter) / create (requires auth)

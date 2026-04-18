@@ -20,6 +20,7 @@ export const HealthCheckResponse = zod.object({
 export const GetMeResponse = zod.object({
   userId: zod.string().nullable(),
   isAuthenticated: zod.boolean(),
+  isEditor: zod.boolean(),
   email: zod.string().nullable(),
   firstName: zod.string().nullable(),
   lastName: zod.string().nullable(),

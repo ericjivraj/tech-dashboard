@@ -19,7 +19,7 @@ export default function Dashboard() {
   const [projectFormOpen, setProjectFormOpen] = useState(false);
   const [adminPanelOpen, setAdminPanelOpen] = useState(false);
   
-  const isEditor = user?.isAuthenticated;
+  const isEditor = user?.isEditor === true;
 
   return (
     <div className="container max-w-screen-2xl py-6 flex flex-col gap-6">

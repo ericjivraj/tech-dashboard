@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { 
-  useGetProject, useUpdateProject, useDeleteProject, getGetProjectQueryKey, getListProjectsQueryKey,
-  useListProjectUpdates, useCreateProjectUpdate, getListProjectUpdatesQueryKey, getGetDashboardSummaryQueryKey,
+  useGetProject, useDeleteProject, getGetProjectQueryKey, getListProjectsQueryKey,
+  useListProjectUpdates, useCreateProjectUpdate, useDeleteProjectUpdate, getListProjectUpdatesQueryKey, getGetDashboardSummaryQueryKey,
   useGetMe,
   ProjectConfidence,
   ProjectStatus,
@@ -14,7 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { format, parseISO } from "date-fns";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { AlertCircle, Edit, Trash2, Clock, Send } from "lucide-react";
+import { AlertCircle, Edit, Trash2, Clock, Send, X } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 
 const CONFIDENCE_COLORS: Record<string, string> = {
@@ -47,9 +47,10 @@ export default function ProjectModal({
   const { data: project, isLoading } = useGetProject(projectId, { query: { enabled: open && !!projectId, queryKey: getGetProjectQueryKey(projectId) } });
   const { data: updates } = useListProjectUpdates(projectId, { query: { enabled: open && !!projectId, queryKey: getListProjectUpdatesQueryKey(projectId) } });
   const { data: user } = useGetMe();
-  const isEditor = user?.isAuthenticated;
-  
+  const isEditor = user?.isEditor === true;
+
   const createUpdate = useCreateProjectUpdate();
+  const deleteUpdate = useDeleteProjectUpdate();
   const deleteProject = useDeleteProject();
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -76,6 +77,17 @@ export default function ProjectModal({
         queryClient.invalidateQueries({ queryKey: getListProjectsQueryKey() });
         queryClient.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey() });
         toast({ title: "Project deleted" });
+      }
+    });
+  };
+
+  const handleDeleteUpdate = (updateId: number) => {
+    if (!confirm("Delete this update?")) return;
+    deleteUpdate.mutate({ projectId, updateId }, {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getListProjectUpdatesQueryKey(projectId) });
+        queryClient.invalidateQueries({ queryKey: getListProjectsQueryKey() });
+        toast({ title: "Update deleted" });
       }
     });
   };
@@ -206,12 +218,23 @@ export default function ProjectModal({
 
               <div className="space-y-4 mt-4">
                 {updates?.map(update => (
-                  <div key={update.id} className="bg-muted/30 border border-border/50 rounded-lg p-3">
-                    <p className="text-sm whitespace-pre-wrap">{update.content}</p>
+                  <div key={update.id} className="bg-muted/30 border border-border/50 rounded-lg p-3 group relative">
+                    <p className="text-sm whitespace-pre-wrap pr-6">{update.content}</p>
                     <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/50 text-xs text-muted-foreground">
                       <span>{update.authorName || 'Editor'}</span>
                       <span>{format(parseISO(update.createdAt), 'MMM d, yyyy h:mm a')}</span>
                     </div>
+                    {isEditor && (
+                      <button
+                        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-destructive/10 hover:text-destructive text-muted-foreground"
+                        onClick={() => handleDeleteUpdate(update.id)}
+                        disabled={deleteUpdate.isPending}
+                        aria-label="Delete update"
+                        data-testid={`delete-update-${update.id}`}
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    )}
                   </div>
                 ))}
                 {updates?.length === 0 && (

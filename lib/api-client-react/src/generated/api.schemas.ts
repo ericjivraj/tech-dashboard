@@ -17,6 +17,7 @@ export interface AuthUser {
   /** @nullable */
   userId: string | null;
   isAuthenticated: boolean;
+  isEditor: boolean;
   /** @nullable */
   email: string | null;
   /** @nullable */

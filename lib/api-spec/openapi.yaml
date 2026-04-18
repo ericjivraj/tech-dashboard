@@ -676,6 +676,8 @@ components:
           type: ["string", "null"]
         isAuthenticated:
           type: boolean
+        isEditor:
+          type: boolean
         email:
           type: ["string", "null"]
         firstName:
@@ -684,6 +686,7 @@ components:
           type: ["string", "null"]
       required:
         - isAuthenticated
+        - isEditor
         - userId
         - email
         - firstName
