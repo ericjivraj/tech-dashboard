@@ -1,13 +1,9 @@
-import { useEffect } from "react";
 import { useGetMe } from "@workspace/api-client-react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
-import { useClerk } from "@clerk/react";
 
-export default function Layout({ children }: { children: React.ReactNode }) {
+export default function Layout({ children, onSignOut }: { children: React.ReactNode; onSignOut?: () => void }) {
   const { data: user, isLoading } = useGetMe();
-  const { signOut } = useClerk();
   const [location] = useLocation();
 
   return (
@@ -35,12 +31,16 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                   <span className="text-sm text-muted-foreground font-medium hidden sm:inline-block">
                     {user.firstName ? `Editor: ${user.firstName}` : 'Editor Mode'}
                   </span>
-                  <Button variant="outline" size="sm" onClick={() => signOut()}>
-                    Sign out
-                  </Button>
+                  {onSignOut && (
+                    <Button variant="outline" size="sm" onClick={onSignOut}>
+                      Sign out
+                    </Button>
+                  )}
                 </div>
               ) : (
-                location !== "/sign-in" && location !== "/sign-up" && (
+                onSignOut !== undefined &&
+                location !== "/sign-in" &&
+                location !== "/sign-up" && (
                   <Button asChild variant="outline" size="sm">
                     <Link href="/sign-in">Sign in as editor</Link>
                   </Button>

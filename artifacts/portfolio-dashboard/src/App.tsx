@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import { ClerkProvider, SignIn, useClerk } from "@clerk/react";
 import { Switch, Route, useLocation, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
@@ -20,9 +20,8 @@ function stripBase(path: string): string {
     : path;
 }
 
-if (!clerkPubKey) {
-  throw new Error("Missing VITE_CLERK_PUBLISHABLE_KEY in .env file");
-}
+// clerkPubKey may be absent in environments where auth is not configured.
+// In that case the app renders in read-only mode with no editor controls.
 
 const clerkAppearance = {
   options: {
@@ -121,12 +120,27 @@ function ClerkQueryClientCacheInvalidator() {
   return null;
 }
 
+function ClerkRoutes() {
+  const { signOut } = useClerk();
+  const handleSignOut = useCallback(() => signOut(), [signOut]);
+  return (
+    <Layout onSignOut={handleSignOut}>
+      <Switch>
+        <Route path="/" component={Dashboard} />
+        <Route path="/sign-in/*?" component={SignInPage} />
+        <Route path="/sign-up/*?" component={SignUpPage} />
+        <Route component={NotFound} />
+      </Switch>
+    </Layout>
+  );
+}
+
 function ClerkProviderWithRoutes() {
   const [, setLocation] = useLocation();
 
   return (
     <ClerkProvider
-      publishableKey={clerkPubKey}
+      publishableKey={clerkPubKey!}
       proxyUrl={clerkProxyUrl}
       appearance={clerkAppearance}
       routerPush={(to) => setLocation(stripBase(to))}
@@ -134,16 +148,22 @@ function ClerkProviderWithRoutes() {
     >
       <QueryClientProvider client={queryClient}>
         <ClerkQueryClientCacheInvalidator />
-        <Layout>
-          <Switch>
-            <Route path="/" component={Dashboard} />
-            <Route path="/sign-in/*?" component={SignInPage} />
-            <Route path="/sign-up/*?" component={SignUpPage} />
-            <Route component={NotFound} />
-          </Switch>
-        </Layout>
+        <ClerkRoutes />
       </QueryClientProvider>
     </ClerkProvider>
+  );
+}
+
+function ReadOnlyApp() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <Layout>
+        <Switch>
+          <Route path="/" component={Dashboard} />
+          <Route component={NotFound} />
+        </Switch>
+      </Layout>
+    </QueryClientProvider>
   );
 }
 
@@ -151,7 +171,7 @@ function App() {
   return (
     <TooltipProvider>
       <WouterRouter base={basePath}>
-        <ClerkProviderWithRoutes />
+        {clerkPubKey ? <ClerkProviderWithRoutes /> : <ReadOnlyApp />}
       </WouterRouter>
       <Toaster />
     </TooltipProvider>
