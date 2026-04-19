@@ -962,9 +962,17 @@ components:
                   type: integer
                 name:
                   type: string
+                startDate:
+                  type: string
+                  format: date
+                endDate:
+                  type: string
+                  format: date
               required:
                 - id
                 - name
+                - startDate
+                - endDate
             sprint:
               type: ["object", "null"]
               properties:

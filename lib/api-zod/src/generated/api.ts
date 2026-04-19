@@ -259,6 +259,8 @@ export const ListProjectsResponseItem = zod
         .object({
           id: zod.number(),
           name: zod.string(),
+          startDate: zod.coerce.date(),
+          endDate: zod.coerce.date(),
         })
         .nullable(),
       sprint: zod
@@ -372,6 +374,8 @@ export const GetProjectResponse = zod
         .object({
           id: zod.number(),
           name: zod.string(),
+          startDate: zod.coerce.date(),
+          endDate: zod.coerce.date(),
         })
         .nullable(),
       sprint: zod
@@ -484,6 +488,8 @@ export const UpdateProjectResponse = zod
         .object({
           id: zod.number(),
           name: zod.string(),
+          startDate: zod.coerce.date(),
+          endDate: zod.coerce.date(),
         })
         .nullable(),
       sprint: zod

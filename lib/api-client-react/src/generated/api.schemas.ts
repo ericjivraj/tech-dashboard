@@ -173,6 +173,8 @@ export type ProjectWithDetailsLatestUpdate = {
 export type ProjectWithDetailsCycle = {
   id: number;
   name: string;
+  startDate: string;
+  endDate: string;
 } | null;
 
 /**

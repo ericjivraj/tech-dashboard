@@ -46,7 +46,7 @@ async function getProjectWithDetails(projectId: number) {
   let cycle = null;
   if (project.cycleId) {
     const [c] = await db.select().from(cyclesTable).where(eq(cyclesTable.id, project.cycleId));
-    if (c) cycle = { id: c.id, name: c.name };
+    if (c) cycle = { id: c.id, name: c.name, startDate: c.startDate, endDate: c.endDate };
   }
 
   let sprint = null;
@@ -166,7 +166,7 @@ router.get("/projects", async (req, res): Promise<void> => {
             createdAt: latestUpdate.createdAt,
           }
         : null,
-      cycle: cycle ? { id: cycle.id, name: cycle.name } : null,
+      cycle: cycle ? { id: cycle.id, name: cycle.name, startDate: cycle.startDate, endDate: cycle.endDate } : null,
       sprint: sprint ? { id: sprint.id, name: sprint.name, sprintNumber: sprint.sprintNumber } : null,
     };
   });

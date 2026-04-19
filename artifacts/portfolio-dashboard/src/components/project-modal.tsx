@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { formatConfidence } from "@/lib/utils";
+import { formatConfidence, storyPointsToTShirt } from "@/lib/utils";
 import { 
   useGetProject, useDeleteProject, getGetProjectQueryKey, getListProjectsQueryKey,
   useListProjectUpdates, useCreateProjectUpdate, useDeleteProjectUpdate, getListProjectUpdatesQueryKey, getGetDashboardSummaryQueryKey,
@@ -102,6 +102,14 @@ export default function ProjectModal({
                         {formatConfidence(project.confidence)}
                       </Badge>
                     )}
+                    {project.storyPoints != null && (() => {
+                      const { label, tooltip } = storyPointsToTShirt(project.storyPoints);
+                      return (
+                        <Badge variant="outline" className="text-xs font-semibold bg-muted/50" title={tooltip}>
+                          {label}
+                        </Badge>
+                      );
+                    })()}
                   </div>
                 </div>
                 {isEditor && (
@@ -149,28 +157,26 @@ export default function ProjectModal({
                     <span className="text-xs text-muted-foreground block mb-1">Sponsor</span>
                     <span className="text-sm font-medium">{project.sponsor || "—"}</span>
                   </div>
-                  {project.stakeholder && (
-                    <div className="col-span-2">
-                      <span className="text-xs text-muted-foreground block mb-1">Stakeholder</span>
-                      <span className="text-sm font-medium">{project.stakeholder}</span>
-                    </div>
-                  )}
+                  <div className="col-span-2">
+                    <span className="text-xs text-muted-foreground block mb-1">Stakeholder</span>
+                    <span className="text-sm font-medium">{project.stakeholder || "—"}</span>
+                  </div>
                   <div>
-                    <span className="text-xs text-muted-foreground block mb-1">Timing</span>
+                    <span className="text-xs text-muted-foreground block mb-1">Cycle</span>
                     <span className="text-sm font-medium">{project.cycle?.name || "—"}</span>
                   </div>
                   <div>
                     <span className="text-xs text-muted-foreground block mb-1">Story Points</span>
-                    <span className="text-sm font-mono bg-muted px-1.5 py-0.5 rounded">{project.storyPoints || "—"}</span>
+                    <span className="text-sm font-mono bg-muted px-1.5 py-0.5 rounded">{project.storyPoints ?? "—"}</span>
                   </div>
-                  {project.startDate && project.endDate && (
-                    <div className="col-span-2">
-                      <span className="text-xs text-muted-foreground block mb-1">Dates</span>
-                      <span className="text-sm font-medium">
-                        {format(parseISO(project.startDate), 'MMM d, yyyy')} - {format(parseISO(project.endDate), 'MMM d, yyyy')}
-                      </span>
-                    </div>
-                  )}
+                  <div className="col-span-2">
+                    <span className="text-xs text-muted-foreground block mb-1">Dates</span>
+                    <span className="text-sm font-medium">
+                      {project.cycle?.startDate && project.cycle?.endDate
+                        ? `${format(parseISO(project.cycle.startDate), 'MMM d, yyyy')} – ${format(parseISO(project.cycle.endDate), 'MMM d, yyyy')}`
+                        : "—"}
+                    </span>
+                  </div>
                 </div>
                 
                 {project.goals && project.goals.length > 0 && (
