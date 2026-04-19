@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { ProjectWithDetails, ProjectStatus } from "@workspace/api-client-react";
 import { formatConfidence, storyPointsToTShirt } from "@/lib/utils";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { format, parseISO } from "date-fns";
+import { ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import ProjectModal from "./project-modal";
 import ProjectForm from "./project-form";
 import { CONFIDENCE_COLORS, STATUS_LABELS } from "@/lib/constants";
@@ -19,6 +20,8 @@ const COLUMN_TOOLTIPS: Record<string, string> = {
   "Latest Update": "Most recent project update",
 };
 
+type SortOrder = "asc" | "desc" | null;
+
 interface PipelineViewProps {
   projects: ProjectWithDetails[];
 }
@@ -26,6 +29,29 @@ interface PipelineViewProps {
 export default function PipelineView({ projects }: PipelineViewProps) {
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
   const [projectToEdit, setProjectToEdit] = useState<ProjectWithDetails | null>(null);
+  const [pointsSortOrder, setPointsSortOrder] = useState<SortOrder>(null);
+
+  function cyclePointsSort() {
+    setPointsSortOrder((prev) => {
+      if (prev === null) return "asc";
+      if (prev === "asc") return "desc";
+      return null;
+    });
+  }
+
+  const sortedProjects = useMemo(() => {
+    if (pointsSortOrder === null) return projects;
+    return [...projects].sort((a, b) => {
+      const aHas = a.storyPoints != null;
+      const bHas = b.storyPoints != null;
+      if (!aHas && !bHas) return 0;
+      if (!aHas) return 1;
+      if (!bHas) return -1;
+      return pointsSortOrder === "asc"
+        ? a.storyPoints! - b.storyPoints!
+        : b.storyPoints! - a.storyPoints!;
+    });
+  }, [projects, pointsSortOrder]);
 
   return (
     <>
@@ -33,15 +59,37 @@ export default function PipelineView({ projects }: PipelineViewProps) {
         <Table>
           <TableHeader className="bg-muted/50">
             <TableRow>
-              {Object.entries(COLUMN_TOOLTIPS).map(([col, tip]) => (
-                <TableHead key={col} title={tip} className={col === "Project Name" ? "w-[300px]" : col === "Latest Update" ? "w-[200px]" : undefined}>
-                  {col}
-                </TableHead>
-              ))}
+              {Object.entries(COLUMN_TOOLTIPS).map(([col, tip]) => {
+                if (col === "Points") {
+                  return (
+                    <TableHead
+                      key={col}
+                      title={tip}
+                      aria-sort={pointsSortOrder === "asc" ? "ascending" : pointsSortOrder === "desc" ? "descending" : "none"}
+                    >
+                      <button
+                        onClick={cyclePointsSort}
+                        className="flex items-center gap-1 hover:text-foreground transition-colors text-inherit font-medium select-none"
+                        aria-label={`Sort by Points ${pointsSortOrder === "asc" ? "(ascending)" : pointsSortOrder === "desc" ? "(descending)" : "(unsorted)"}`}
+                      >
+                        Points
+                        {pointsSortOrder === "asc" && <ArrowUp className="h-3.5 w-3.5 text-foreground" />}
+                        {pointsSortOrder === "desc" && <ArrowDown className="h-3.5 w-3.5 text-foreground" />}
+                        {pointsSortOrder === null && <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground/60" />}
+                      </button>
+                    </TableHead>
+                  );
+                }
+                return (
+                  <TableHead key={col} title={tip} className={col === "Project Name" ? "w-[300px]" : col === "Latest Update" ? "w-[200px]" : undefined}>
+                    {col}
+                  </TableHead>
+                );
+              })}
             </TableRow>
           </TableHeader>
           <TableBody>
-            {projects.map((project) => (
+            {sortedProjects.map((project) => (
               <TableRow
                 key={project.id}
                 className="group cursor-pointer hover:bg-muted/30"
@@ -117,7 +165,7 @@ export default function PipelineView({ projects }: PipelineViewProps) {
                 </TableCell>
               </TableRow>
             ))}
-            {projects.length === 0 && (
+            {sortedProjects.length === 0 && (
               <TableRow>
                 <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                   No projects match the current filters.
