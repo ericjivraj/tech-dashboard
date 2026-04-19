@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { format, parseISO } from "date-fns";
 import { useGetDashboardSummary, useGetMe, useListProjects } from "@workspace/api-client-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -95,6 +96,11 @@ export default function Dashboard() {
               <p className="text-xl font-semibold truncate" title={summary.activeCycle?.name || "None"}>
                 {summary.activeCycle?.name || "None"}
               </p>
+              {summary.activeCycle?.startDate && summary.activeCycle?.endDate && (
+                <p className="text-sm text-muted-foreground">
+                  {format(parseISO(summary.activeCycle.startDate), 'MMM d')} – {format(parseISO(summary.activeCycle.endDate), 'MMM d, yyyy')}
+                </p>
+              )}
             </div>
           </div>
 
