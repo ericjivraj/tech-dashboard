@@ -176,21 +176,35 @@ export default function FilterBar({ filters, onFiltersChange, teams, sponsors, f
           );
         })()}
 
-        {sprints && sprints.length > 0 && (
-          <Select value={filters.sprintId} onValueChange={(v) => update({ sprintId: v })} data-testid="filter-sprint">
-            <SelectTrigger className="h-8 w-[150px] text-sm">
-              <SelectValue placeholder="Sprint" />
-            </SelectTrigger>
-            <SelectContent className="max-h-60 overflow-y-auto">
-              <SelectItem value="all">All Sprints</SelectItem>
-              {sprints
-                .filter((s) => filters.cycleId === "all" || s.cycleId.toString() === filters.cycleId)
-                .map((s) => (
-                  <SelectItem key={s.id} value={s.id.toString()}>{s.name}</SelectItem>
+        {sprints && sprints.length > 0 && (() => {
+          const today = new Date().toISOString().split("T")[0];
+          const visibleSprints = sprints.filter((s) => filters.cycleId === "all" || s.cycleId.toString() === filters.cycleId);
+          const activeSprintId = visibleSprints.find((s) => s.startDate <= today && s.endDate >= today)?.id ?? null;
+          const nextSprintId = visibleSprints.find((s) => s.startDate > today)?.id ?? null;
+          return (
+            <Select value={filters.sprintId} onValueChange={(v) => update({ sprintId: v })} data-testid="filter-sprint">
+              <SelectTrigger className="h-8 w-[150px] text-sm">
+                <SelectValue placeholder="Sprint" />
+              </SelectTrigger>
+              <SelectContent className="max-h-60 overflow-y-auto">
+                <SelectItem value="all">All Sprints</SelectItem>
+                {visibleSprints.map((s) => (
+                  <SelectItem key={s.id} value={s.id.toString()}>
+                    <span className="flex items-center gap-1.5">
+                      {s.name}
+                      {s.id === activeSprintId && (
+                        <span className="inline-flex items-center rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300 leading-none">Active</span>
+                      )}
+                      {s.id === nextSprintId && (
+                        <span className="inline-flex items-center rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground leading-none">Next</span>
+                      )}
+                    </span>
+                  </SelectItem>
                 ))}
-            </SelectContent>
-          </Select>
-        )}
+              </SelectContent>
+            </Select>
+          );
+        })()}
 
         {hasActiveFilters && (
           <Button variant="ghost" size="sm" className="h-8 text-xs text-muted-foreground" onClick={clearAll} data-testid="filter-clear-all">
