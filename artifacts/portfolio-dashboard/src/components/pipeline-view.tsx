@@ -7,7 +7,7 @@ import { format, parseISO } from "date-fns";
 import { ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import ProjectModal from "./project-modal";
 import ProjectForm from "./project-form";
-import { CONFIDENCE_COLORS, STATUS_LABELS } from "@/lib/constants";
+import { CONFIDENCE_COLORS, STATUS_LABELS, STATUS_ORDER } from "@/lib/constants";
 
 const COLUMN_TOOLTIPS: Record<string, string> = {
   "Project Name": "The name and any blocked reason for the project",
@@ -20,7 +20,22 @@ const COLUMN_TOOLTIPS: Record<string, string> = {
   "Latest Update": "Most recent project update",
 };
 
+const SORTABLE_COLUMNS = new Set(["Status", "Confidence", "Team / Sponsor", "Points"]);
+
+const CONFIDENCE_ORDER: Record<string, number> = {
+  high: 3,
+  medium: 2,
+  low: 1,
+  at_risk: 0,
+};
+
 type SortOrder = "asc" | "desc" | null;
+type SortColumn = "Status" | "Confidence" | "Team / Sponsor" | "Points" | null;
+
+interface SortState {
+  column: SortColumn;
+  order: SortOrder;
+}
 
 interface PipelineViewProps {
   projects: ProjectWithDetails[];
@@ -29,29 +44,98 @@ interface PipelineViewProps {
 export default function PipelineView({ projects }: PipelineViewProps) {
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
   const [projectToEdit, setProjectToEdit] = useState<ProjectWithDetails | null>(null);
-  const [pointsSortOrder, setPointsSortOrder] = useState<SortOrder>(null);
+  const [sort, setSort] = useState<SortState>({ column: null, order: null });
 
-  function cyclePointsSort() {
-    setPointsSortOrder((prev) => {
-      if (prev === null) return "asc";
-      if (prev === "asc") return "desc";
-      return null;
+  function cycleSort(column: SortColumn) {
+    setSort((prev) => {
+      if (prev.column !== column) return { column, order: "asc" };
+      if (prev.order === "asc") return { column, order: "desc" };
+      return { column: null, order: null };
     });
   }
 
   const sortedProjects = useMemo(() => {
-    if (pointsSortOrder === null) return projects;
+    if (sort.column === null || sort.order === null) return projects;
+
     return [...projects].sort((a, b) => {
-      const aHas = a.storyPoints != null;
-      const bHas = b.storyPoints != null;
-      if (!aHas && !bHas) return 0;
-      if (!aHas) return 1;
-      if (!bHas) return -1;
-      return pointsSortOrder === "asc"
-        ? a.storyPoints! - b.storyPoints!
-        : b.storyPoints! - a.storyPoints!;
+      const dir = sort.order === "asc" ? 1 : -1;
+
+      if (sort.column === "Points") {
+        const aHas = a.storyPoints != null;
+        const bHas = b.storyPoints != null;
+        if (!aHas && !bHas) return 0;
+        if (!aHas) return 1;
+        if (!bHas) return -1;
+        return dir * (a.storyPoints! - b.storyPoints!);
+      }
+
+      if (sort.column === "Status") {
+        const aIdx = STATUS_ORDER.indexOf(a.status as ProjectStatus);
+        const bIdx = STATUS_ORDER.indexOf(b.status as ProjectStatus);
+        return dir * (aIdx - bIdx);
+      }
+
+      if (sort.column === "Confidence") {
+        const aScore = a.confidence ? (CONFIDENCE_ORDER[a.confidence] ?? -1) : -1;
+        const bScore = b.confidence ? (CONFIDENCE_ORDER[b.confidence] ?? -1) : -1;
+        if (aScore === -1 && bScore === -1) return 0;
+        if (aScore === -1) return 1;
+        if (bScore === -1) return -1;
+        return dir * (aScore - bScore);
+      }
+
+      if (sort.column === "Team / Sponsor") {
+        const aTeam = (a.team ?? "").toLowerCase();
+        const bTeam = (b.team ?? "").toLowerCase();
+        if (!aTeam && !bTeam) return 0;
+        if (!aTeam) return 1;
+        if (!bTeam) return -1;
+        return dir * aTeam.localeCompare(bTeam);
+      }
+
+      return 0;
     });
-  }, [projects, pointsSortOrder]);
+  }, [projects, sort]);
+
+  function SortIcon({ column }: { column: SortColumn }) {
+    const isActive = sort.column === column;
+    if (isActive && sort.order === "asc") return <ArrowUp className="h-3.5 w-3.5 text-foreground" />;
+    if (isActive && sort.order === "desc") return <ArrowDown className="h-3.5 w-3.5 text-foreground" />;
+    return <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground/60" />;
+  }
+
+  function renderHeader(col: string, tip: string) {
+    if (!SORTABLE_COLUMNS.has(col)) {
+      return (
+        <TableHead
+          key={col}
+          title={tip}
+          className={col === "Project Name" ? "w-[300px]" : col === "Latest Update" ? "w-[200px]" : undefined}
+        >
+          {col}
+        </TableHead>
+      );
+    }
+
+    const sortCol = col as SortColumn;
+    const isActive = sort.column === sortCol;
+    const ariaSort = isActive
+      ? sort.order === "asc" ? "ascending" : "descending"
+      : "none";
+
+    return (
+      <TableHead key={col} title={tip} aria-sort={ariaSort}>
+        <button
+          onClick={() => cycleSort(sortCol)}
+          className="flex items-center gap-1 hover:text-foreground transition-colors text-inherit font-medium select-none"
+          aria-label={`Sort by ${col}${isActive ? ` (${sort.order === "asc" ? "ascending" : "descending"})` : " (unsorted)"}`}
+        >
+          {col}
+          <SortIcon column={sortCol} />
+        </button>
+      </TableHead>
+    );
+  }
 
   return (
     <>
@@ -59,33 +143,7 @@ export default function PipelineView({ projects }: PipelineViewProps) {
         <Table>
           <TableHeader className="bg-muted/50">
             <TableRow>
-              {Object.entries(COLUMN_TOOLTIPS).map(([col, tip]) => {
-                if (col === "Points") {
-                  return (
-                    <TableHead
-                      key={col}
-                      title={tip}
-                      aria-sort={pointsSortOrder === "asc" ? "ascending" : pointsSortOrder === "desc" ? "descending" : "none"}
-                    >
-                      <button
-                        onClick={cyclePointsSort}
-                        className="flex items-center gap-1 hover:text-foreground transition-colors text-inherit font-medium select-none"
-                        aria-label={`Sort by Points ${pointsSortOrder === "asc" ? "(ascending)" : pointsSortOrder === "desc" ? "(descending)" : "(unsorted)"}`}
-                      >
-                        Points
-                        {pointsSortOrder === "asc" && <ArrowUp className="h-3.5 w-3.5 text-foreground" />}
-                        {pointsSortOrder === "desc" && <ArrowDown className="h-3.5 w-3.5 text-foreground" />}
-                        {pointsSortOrder === null && <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground/60" />}
-                      </button>
-                    </TableHead>
-                  );
-                }
-                return (
-                  <TableHead key={col} title={tip} className={col === "Project Name" ? "w-[300px]" : col === "Latest Update" ? "w-[200px]" : undefined}>
-                    {col}
-                  </TableHead>
-                );
-              })}
+              {Object.entries(COLUMN_TOOLTIPS).map(([col, tip]) => renderHeader(col, tip))}
             </TableRow>
           </TableHeader>
           <TableBody>
