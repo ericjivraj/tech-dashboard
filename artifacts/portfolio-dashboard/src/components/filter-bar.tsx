@@ -180,7 +180,9 @@ export default function FilterBar({ filters, onFiltersChange, teams, sponsors, f
           const today = new Date().toISOString().split("T")[0];
           const visibleSprints = sprints.filter((s) => filters.cycleId === "all" || s.cycleId.toString() === filters.cycleId);
           const activeSprintId = visibleSprints.find((s) => s.startDate <= today && s.endDate >= today)?.id ?? null;
-          const nextSprintId = visibleSprints.find((s) => s.startDate > today)?.id ?? null;
+          const nextSprintId = visibleSprints
+            .filter((s) => s.startDate > today)
+            .reduce<typeof visibleSprints[number] | null>((earliest, s) => earliest === null || s.startDate < earliest.startDate ? s : earliest, null)?.id ?? null;
           return (
             <Select value={filters.sprintId} onValueChange={(v) => update({ sprintId: v })} data-testid="filter-sprint">
               <SelectTrigger className="h-8 w-[150px] text-sm">
