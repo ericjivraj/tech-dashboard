@@ -58,29 +58,106 @@ export function exportProjectsToCSV(
   URL.revokeObjectURL(url);
 }
 
-export function exportProjectsToPDF(projects: ProjectWithDetails[]) {
-  const statusCounts: Record<string, number> = {};
-  for (const p of projects) {
-    statusCounts[p.status] = (statusCounts[p.status] ?? 0) + 1;
-  }
+export interface PdfColumn {
+  key: string;
+  label: string;
+  width: number;
+  getValue: (p: ProjectWithDetails) => string;
+}
+
+export const PDF_COLUMNS: PdfColumn[] = [
+  {
+    key: "title",
+    label: "Title",
+    width: 17,
+    getValue: (p) => p.title,
+  },
+  {
+    key: "status",
+    label: "Status",
+    width: 8,
+    getValue: (p) => STATUS_LABELS[p.status] ?? p.status,
+  },
+  {
+    key: "confidence",
+    label: "Confidence",
+    width: 8,
+    getValue: (p) => p.confidence?.replace(/_/g, " ") ?? "—",
+  },
+  {
+    key: "sponsor",
+    label: "Sponsor",
+    width: 9,
+    getValue: (p) => p.sponsor ?? "—",
+  },
+  {
+    key: "team",
+    label: "Team",
+    width: 9,
+    getValue: (p) => p.team ?? "—",
+  },
+  {
+    key: "stakeholder",
+    label: "Stakeholder",
+    width: 9,
+    getValue: (p) => p.stakeholder ?? "—",
+  },
+  {
+    key: "storyPoints",
+    label: "Points",
+    width: 5,
+    getValue: (p) => (p.storyPoints != null ? String(p.storyPoints) : "—"),
+  },
+  {
+    key: "cycle",
+    label: "Cycle",
+    width: 8,
+    getValue: (p) => p.cycle?.name ?? "Unscheduled",
+  },
+  {
+    key: "goals",
+    label: "Goals",
+    width: 10,
+    getValue: (p) => p.goals?.map((g) => g.name).join(", ") ?? "—",
+  },
+  {
+    key: "latestUpdate",
+    label: "Latest Update",
+    width: 17,
+    getValue: (p) => p.latestUpdate?.content ?? "—",
+  },
+];
+
+export const DEFAULT_PDF_COLUMN_KEYS = PDF_COLUMNS.map((c) => c.key);
+
+export function exportProjectsToPDF(
+  projects: ProjectWithDetails[],
+  selectedColumnKeys: string[] = DEFAULT_PDF_COLUMN_KEYS
+) {
+  const columns = PDF_COLUMNS.filter((c) => selectedColumnKeys.includes(c.key));
+
+  if (columns.length === 0) return;
+
+  const totalDefinedWidth = columns.reduce((sum, c) => sum + c.width, 0);
+
+  const colWidths = columns.map(
+    (c) => `${((c.width / totalDefinedWidth) * 100).toFixed(2)}%`
+  );
+
+  const colGroupHtml = columns
+    .map((c, i) => `<col style="width:${colWidths[i]}" />`)
+    .join("\n      ");
+
+  const theadHtml = columns.map((c) => `<th>${c.label}</th>`).join("");
 
   const rows = projects
-    .map(
-      (p) => `
-    <tr>
-      <td>${escapeHtml(p.title)}</td>
-      <td>${escapeHtml(STATUS_LABELS[p.status] ?? p.status)}</td>
-      <td>${escapeHtml(p.confidence?.replace(/_/g, " ") ?? "—")}</td>
-      <td>${escapeHtml(p.sponsor ?? "—")}</td>
-      <td>${escapeHtml(p.team ?? "—")}</td>
-      <td>${escapeHtml(p.stakeholder ?? "—")}</td>
-      <td>${p.storyPoints ?? "—"}</td>
-      <td>${escapeHtml(p.cycle?.name ?? "Unscheduled")}</td>
-      <td>${escapeHtml(p.goals?.map((g) => g.name).join(", ") ?? "—")}</td>
-      <td>${escapeHtml(p.latestUpdate?.content ?? "—")}</td>
-    </tr>`
-    )
-    .join("");
+    .map((p) => {
+      const cells = columns
+        .map((c) => `<td>${escapeHtml(c.getValue(p))}</td>`)
+        .join("");
+      return `<tr>${cells}</tr>`;
+    })
+    .join("\n    ");
 
   const html = `<!DOCTYPE html>
 <html>
@@ -93,16 +170,6 @@ export function exportProjectsToPDF(projects: ProjectWithDetails[]) {
     h1 { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
     .subtitle { color: #555; margin-bottom: 20px; font-size: 12px; }
     table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-    col.col-title { width: 17%; }
-    col.col-status { width: 8%; }
-    col.col-confidence { width: 8%; }
-    col.col-sponsor { width: 9%; }
-    col.col-team { width: 9%; }
-    col.col-stakeholder { width: 9%; }
-    col.col-points { width: 5%; }
-    col.col-cycle { width: 8%; }
-    col.col-goals { width: 10%; }
-    col.col-update { width: 17%; }
     th { background: #1e293b; color: #fff; text-align: left; padding: 5px 6px; font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em; }
     td { padding: 5px 6px; border-bottom: 1px solid #e2e8f0; vertical-align: top; word-wrap: break-word; overflow-wrap: break-word; }
     tr:nth-child(even) td { background: #f8fafc; }
@@ -119,32 +186,14 @@ export function exportProjectsToPDF(projects: ProjectWithDetails[]) {
   <p class="subtitle">Generated on ${new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })} · ${projects.length} project${projects.length !== 1 ? "s" : ""}</p>
   <table>
     <colgroup>
-      <col class="col-title" />
-      <col class="col-status" />
-      <col class="col-confidence" />
-      <col class="col-sponsor" />
-      <col class="col-team" />
-      <col class="col-stakeholder" />
-      <col class="col-points" />
-      <col class="col-cycle" />
-      <col class="col-goals" />
-      <col class="col-update" />
+      ${colGroupHtml}
     </colgroup>
     <thead>
-      <tr>
-        <th>Title</th>
-        <th>Status</th>
-        <th>Confidence</th>
-        <th>Sponsor</th>
-        <th>Team</th>
-        <th>Stakeholder</th>
-        <th>Points</th>
-        <th>Cycle</th>
-        <th>Goals</th>
-        <th>Latest Update</th>
-      </tr>
+      <tr>${theadHtml}</tr>
     </thead>
-    <tbody>${rows}</tbody>
+    <tbody>
+    ${rows}
+    </tbody>
   </table>
 </body>
 </html>`;
