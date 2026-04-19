@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { ProjectWithDetails, ProjectStatus, useGetMe } from "@workspace/api-client-react";
+import { formatConfidence } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import ProjectModal from "./project-modal";
@@ -106,7 +107,7 @@ function ProjectCard({ project, onClick }: { project: ProjectWithDetails; onClic
         <div className="flex items-center gap-1 flex-wrap">
           {project.confidence && (
             <Badge variant="secondary" className={`text-[10px] px-1.5 font-medium border-0 ${CONFIDENCE_COLORS[project.confidence]}`}>
-              {project.confidence.replace('_', ' ').replace(/^\w/, c => c.toUpperCase())}
+              {formatConfidence(project.confidence)}
             </Badge>
           )}
           {project.team && (

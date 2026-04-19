@@ -1,4 +1,5 @@
 import { ProjectWithDetails, ProjectStatus } from "@workspace/api-client-react";
+import { formatConfidence } from "@/lib/utils";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { format, parseISO } from "date-fns";
@@ -72,7 +73,7 @@ export default function PipelineView({ projects }: PipelineViewProps) {
               <TableCell>
                 {project.confidence ? (
                   <Badge variant="secondary" className={`text-xs font-medium border-0 ${CONFIDENCE_COLORS[project.confidence]}`}>
-                    {project.confidence.replace('_', ' ').replace(/^\w/, c => c.toUpperCase())}
+                    {formatConfidence(project.confidence)}
                   </Badge>
                 ) : <span className="text-muted-foreground text-xs">—</span>}
               </TableCell>

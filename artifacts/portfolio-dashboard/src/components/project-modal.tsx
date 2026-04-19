@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { formatConfidence } from "@/lib/utils";
 import { 
   useGetProject, useDeleteProject, getGetProjectQueryKey, getListProjectsQueryKey,
   useListProjectUpdates, useCreateProjectUpdate, useDeleteProjectUpdate, getListProjectUpdatesQueryKey, getGetDashboardSummaryQueryKey,
@@ -113,7 +114,7 @@ export default function ProjectModal({
                     </Badge>
                     {project.confidence && (
                       <Badge variant="secondary" className={`text-xs font-medium border-0 ${CONFIDENCE_COLORS[project.confidence]}`}>
-                        {project.confidence.replace('_', ' ').replace(/^\w/, c => c.toUpperCase())}
+                        {formatConfidence(project.confidence)}
                       </Badge>
                     )}
                   </div>
