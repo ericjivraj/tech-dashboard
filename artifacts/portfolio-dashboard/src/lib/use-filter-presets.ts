@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import type { FilterState } from "./filter-types";
+import { DEFAULT_FILTERS, type FilterState } from "./filter-types";
 
 export interface FilterPreset {
   id: string;
@@ -10,11 +10,16 @@ export interface FilterPreset {
 
 const STORAGE_KEY = "portfolio-filter-presets";
 
+function migrateFilters(raw: Partial<FilterState>): FilterState {
+  return { ...DEFAULT_FILTERS, ...raw };
+}
+
 function loadPresets(): FilterPreset[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
-    return JSON.parse(raw) as FilterPreset[];
+    const parsed = JSON.parse(raw) as Array<Omit<FilterPreset, "filters"> & { filters: Partial<FilterState> }>;
+    return parsed.map((p) => ({ ...p, filters: migrateFilters(p.filters) }));
   } catch {
     return [];
   }

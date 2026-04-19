@@ -127,6 +127,9 @@ export default function GanttView({ filters }: GanttViewProps) {
   if ((filters.sprintId ?? "all") !== "all") {
     filteredProjects = filteredProjects.filter((p) => p.sprintId?.toString() === filters.sprintId);
   }
+  if ((filters.size ?? "all") !== "all") {
+    filteredProjects = filteredProjects.filter((p) => p.storyPoints != null && storyPointsToTShirt(p.storyPoints).label === filters.size);
+  }
 
   const visibleProjects = filteredProjects.filter((p) => {
     const pos = getBarPosition(p.startDate!, p.endDate!);

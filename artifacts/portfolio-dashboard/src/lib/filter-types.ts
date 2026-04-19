@@ -6,6 +6,7 @@ export interface FilterState {
   goalId: string;
   cycleId: string;
   sprintId: string;
+  size: string;
 }
 
 export const DEFAULT_FILTERS: FilterState = {
@@ -16,4 +17,5 @@ export const DEFAULT_FILTERS: FilterState = {
   goalId: "all",
   cycleId: "all",
   sprintId: "all",
+  size: "all",
 };

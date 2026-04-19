@@ -51,16 +51,17 @@ export default function FilterBar({ filters, onFiltersChange, teams, sponsors, f
     const sprint = sprints?.find((s) => s.id.toString() === filters.sprintId);
     activeFilters.push({ key: "sprintId", label: sprint?.name ?? "Sprint" });
   }
+  if ((filters.size ?? "all") !== "all") activeFilters.push({ key: "size", label: filters.size });
 
   const hasActiveFilters = activeFilters.length > 0;
 
   function clearFilter(key: keyof FilterState) {
-    const defaults: FilterState = { search: "", status: "all", team: "all", sponsor: "all", goalId: "all", cycleId: "all", sprintId: "all" };
+    const defaults: FilterState = { search: "", status: "all", team: "all", sponsor: "all", goalId: "all", cycleId: "all", sprintId: "all", size: "all" };
     update({ [key]: defaults[key] });
   }
 
   function clearAll() {
-    onFiltersChange({ search: "", status: "all", team: "all", sponsor: "all", goalId: "all", cycleId: "all", sprintId: "all" });
+    onFiltersChange({ search: "", status: "all", team: "all", sponsor: "all", goalId: "all", cycleId: "all", sprintId: "all", size: "all" });
   }
 
   function handleSavePreset() {
@@ -127,6 +128,18 @@ export default function FilterBar({ filters, onFiltersChange, teams, sponsors, f
             </SelectContent>
           </Select>
         )}
+
+        <Select value={filters.size ?? "all"} onValueChange={(v) => update({ size: v })} data-testid="filter-size">
+          <SelectTrigger className="h-8 w-[130px] text-sm">
+            <SelectValue placeholder="Size" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Sizes</SelectItem>
+            {["XS", "S", "M", "L", "XL", "XXL"].map((size) => (
+              <SelectItem key={size} value={size}>{size}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
         {goals && goals.length > 0 && (
           <Select value={filters.goalId} onValueChange={(v) => update({ goalId: v })} data-testid="filter-goal">
