@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, lte, gte } from "drizzle-orm";
 import { db } from "@workspace/db";
 import {
   projectsTable,
@@ -24,6 +24,16 @@ import {
 import { requireAuth } from "../middlewares/requireAuth";
 
 const router: IRouter = Router();
+
+async function getActiveCycleId(): Promise<number | null> {
+  const today = new Date().toISOString().split("T")[0];
+  const [cycle] = await db
+    .select({ id: cyclesTable.id })
+    .from(cyclesTable)
+    .where(and(lte(cyclesTable.startDate, today), gte(cyclesTable.endDate, today)))
+    .limit(1);
+  return cycle?.id ?? null;
+}
 
 async function getProjectWithDetails(projectId: number) {
   const [project] = await db.select().from(projectsTable).where(eq(projectsTable.id, projectId));
@@ -182,6 +192,11 @@ router.post("/projects", requireAuth, async (req, res): Promise<void> => {
   }
 
   const { goalIds, startDate, endDate, ...fields } = parsed.data;
+
+  if (fields.status === "in_progress" && !fields.cycleId) {
+    const activeCycleId = await getActiveCycleId();
+    if (activeCycleId) fields.cycleId = activeCycleId;
+  }
 
   const [project] = await db
     .insert(projectsTable)
@@ -396,6 +411,11 @@ router.patch("/projects/:id", requireAuth, async (req, res): Promise<void> => {
   }
   if (endDate !== undefined) {
     updates.endDate = endDate ? (endDate instanceof Date ? endDate.toISOString().split("T")[0] : String(endDate)) : null;
+  }
+
+  if (updates.status === "in_progress" && !updates.cycleId) {
+    const activeCycleId = await getActiveCycleId();
+    if (activeCycleId) updates.cycleId = activeCycleId;
   }
 
   if (Object.keys(updates).length > 0) {
