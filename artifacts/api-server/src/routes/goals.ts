@@ -15,6 +15,7 @@ const router: IRouter = Router();
 router.get("/goals", async (_req, res): Promise<void> => {
   const goals = await db.select().from(goalsTable).orderBy(
     sql`CASE WHEN ${goalsTable.name} LIKE 'Strategic:%' THEN 0 ELSE 1 END`,
+    sql`CASE ${goalsTable.id} WHEN 9 THEN 1 WHEN 10 THEN 2 WHEN 11 THEN 3 WHEN 12 THEN 4 ELSE 999 END`,
     goalsTable.name,
   );
   res.json(goals);
