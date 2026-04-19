@@ -142,12 +142,19 @@ export default function PipelineView({ projects }: PipelineViewProps) {
                   })() : <span className="text-muted-foreground text-sm">—</span>}
                 </TableCell>
                 <TableCell>
-                  <div className="flex flex-col gap-0.5 text-xs">
-                    <span className="font-medium text-foreground">{project.cycle?.name || "Unscheduled"}</span>
-                    {project.startDate && project.endDate && (
-                      <span className="text-muted-foreground">
-                        {format(parseISO(project.startDate), 'MMM d')} - {format(parseISO(project.endDate), 'MMM d')}
+                  <div className="text-xs">
+                    {project.cycle ? (
+                      <span className="font-medium text-foreground">
+                        {project.cycle.name}
+                        {project.cycle.startDate && project.cycle.endDate && (
+                          <span className="text-muted-foreground font-normal">
+                            {" · "}
+                            {format(parseISO(project.cycle.startDate), 'MMM d')} – {format(parseISO(project.cycle.endDate), 'MMM d')}
+                          </span>
+                        )}
                       </span>
+                    ) : (
+                      <span className="text-muted-foreground">Unscheduled</span>
                     )}
                   </div>
                 </TableCell>
