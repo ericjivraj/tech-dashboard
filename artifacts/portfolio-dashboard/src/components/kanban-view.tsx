@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ProjectWithDetails, ProjectStatus, useGetMe } from "@workspace/api-client-react";
-import { formatConfidence } from "@/lib/utils";
+import { formatConfidence, storyPointsToTShirt } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import ProjectModal from "./project-modal";
@@ -92,11 +92,14 @@ function ProjectCard({ project, onClick }: { project: ProjectWithDetails; onClic
       <CardHeader className="p-3 pb-2 space-y-1">
         <div className="flex justify-between items-start gap-2">
           <CardTitle className="text-sm leading-tight line-clamp-2">{project.title}</CardTitle>
-          {project.storyPoints && (
-            <Badge variant="outline" className="text-[10px] px-1 font-mono shrink-0 bg-muted/50">
-              {project.storyPoints} pts
-            </Badge>
-          )}
+          {project.storyPoints != null && (() => {
+            const { label, tooltip } = storyPointsToTShirt(project.storyPoints);
+            return (
+              <Badge variant="outline" className="text-[10px] px-1.5 font-semibold shrink-0 bg-muted/50" title={tooltip}>
+                {label}
+              </Badge>
+            );
+          })()}
         </div>
         <div className="flex items-center gap-1 flex-wrap">
           {project.confidence && (
