@@ -50,7 +50,7 @@ export default function Dashboard() {
   }, [allProjects, filters]);
 
   return (
-    <div className="container mx-auto px-6 py-6 flex flex-col gap-6">
+    <div className="w-full px-6 py-6 flex flex-col gap-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Portfolio Overview</h1>
