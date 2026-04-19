@@ -103,10 +103,10 @@ export default function ProjectModal({
                       </Badge>
                     )}
                     {project.storyPoints != null && (() => {
-                      const { label, tooltip } = storyPointsToTShirt(project.storyPoints);
+                      const tshirt = storyPointsToTShirt(project.storyPoints);
                       return (
-                        <Badge variant="outline" className="text-xs font-semibold bg-muted/50" title={tooltip}>
-                          {label}
+                        <Badge variant="outline" className="text-xs font-semibold bg-muted/50" title={tshirt.tooltip}>
+                          {tshirt.label}
                         </Badge>
                       );
                     })()}
@@ -173,7 +173,7 @@ export default function ProjectModal({
                     <span className="text-xs text-muted-foreground block mb-1">Dates</span>
                     <span className="text-sm font-medium">
                       {project.cycle?.startDate && project.cycle?.endDate
-                        ? `${format(parseISO(project.cycle.startDate), 'MMM d, yyyy')} – ${format(parseISO(project.cycle.endDate), 'MMM d, yyyy')}`
+                        ? `${format(parseISO(project.cycle.startDate), 'MMM d')} – ${format(parseISO(project.cycle.endDate), 'MMM d, yyyy')}`
                         : "—"}
                     </span>
                   </div>
