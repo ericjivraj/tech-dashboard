@@ -1,8 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-echo "Running codegen..."
-pnpm --filter @workspace/api-spec run codegen
+echo "Running Orval to check for codegen drift..."
+
+# Run only Orval (no TypeScript build, no typecheck) against the real output dirs.
+# This is fast (a few seconds) and still catches any drift between openapi.yaml
+# and the generated source files.
+(cd lib/api-spec && pnpm exec orval --config ./orval.config.ts)
+
+# Also regenerate the api-zod barrel export (mirrors what full codegen does)
+node -e "require('fs').writeFileSync('lib/api-zod/src/index.ts', 'export * from \"./generated/api\";\n')"
 
 echo ""
 echo "Checking for drift in generated files..."
@@ -11,8 +18,8 @@ DRIFT_FOUND=0
 
 declare -a DIRS=(
   "lib/api-client-react/src/generated/"
-  "lib/api-client-react/dist/"
   "lib/api-zod/src/generated/"
+  "lib/api-zod/src/index.ts"
 )
 
 for dir in "${DIRS[@]}"; do
