@@ -14,12 +14,13 @@ jobs:
       administration: write
 
     steps:
-      - name: Add check-codegen-drift to required status checks on main
+      - name: Add required status checks to branch protection on main
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # The check run name as it appears in GitHub (job `name` field in codegen-drift.yml)
-          CHECK_NAME="Check generated files are in sync with openapi.yaml"
+          # The check run names as they appear in GitHub (job `name` fields in their respective workflow files)
+          CODEGEN_CHECK="Check generated files are in sync with openapi.yaml"
+          CI_CHECK="Build and test all workspace packages"
 
           # Fetch current protection settings (empty object if none exist yet)
           CURRENT=$(gh api \
@@ -28,23 +29,24 @@ jobs:
             2>/dev/null || echo "{}")
 
           # Build a PUT payload that:
-          #   - Adds $CHECK_NAME to required_status_checks.contexts (deduped)
+          #   - Adds both required checks to required_status_checks.contexts (deduped)
           #   - Preserves strict mode, enforce_admins, review requirements,
           #     and push restrictions exactly as they are today
           PAYLOAD=$(echo "$CURRENT" | jq -c \
-            --arg check "$CHECK_NAME" '
+            --arg codegen "$CODEGEN_CHECK" \
+            --arg ci "$CI_CHECK" '
             {
               required_status_checks: (
                 if .required_status_checks then {
                   strict: (.required_status_checks.strict // false),
                   contexts: (
                     (.required_status_checks.contexts // [])
-                    | map(select(. != $check))
-                    | . + [$check]
+                    | map(select(. != $codegen and . != $ci))
+                    | . + [$codegen, $ci]
                   )
                 } else {
                   strict: false,
-                  contexts: [$check]
+                  contexts: [$codegen, $ci]
                 } end
               ),
 
