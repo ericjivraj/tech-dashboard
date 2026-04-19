@@ -14,6 +14,7 @@ import ProjectForm from "@/components/project-form";
 import AdminPanel from "@/components/admin-panel";
 import { DEFAULT_FILTERS, type FilterState } from "@/lib/filter-types";
 import ExportButton from "@/components/export-button";
+import { STATUS_LABELS } from "@/lib/constants";
 
 export default function Dashboard() {
   const { data: summary, isLoading: isLoadingSummary } = useGetDashboardSummary();
@@ -107,14 +108,17 @@ export default function Dashboard() {
           <div className="rounded-xl border bg-card text-card-foreground shadow-sm px-6 py-4" data-testid="status-breakdown">
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Projects by Status</p>
             <div className="grid grid-cols-3 sm:grid-cols-6 gap-4">
-              {[
-                { key: "new_request", label: "New Request", color: "bg-purple-400" },
-                { key: "backlog", label: "Priorities", color: "bg-slate-400" },
-                { key: "up_next", label: "Priorities for Next Dev", color: "bg-indigo-400" },
-                { key: "in_progress", label: "In Progress", color: "bg-blue-500" },
-                { key: "blocked", label: "Blocked", color: "bg-red-500" },
-                { key: "done", label: "Done", color: "bg-emerald-500" },
-              ].map(({ key, label, color }) => {
+              {(
+                [
+                  { key: "new_request", color: "bg-purple-400" },
+                  { key: "backlog", color: "bg-slate-400" },
+                  { key: "up_next", color: "bg-indigo-400" },
+                  { key: "in_progress", color: "bg-blue-500" },
+                  { key: "blocked", color: "bg-red-500" },
+                  { key: "done", color: "bg-emerald-500" },
+                ] as const
+              ).map(({ key, color }) => {
+                const label = STATUS_LABELS[key];
                 const count = (summary.countByStatus as Record<string, number>)[key] ?? 0;
                 return (
                   <div key={key} className="flex flex-col gap-1" data-testid={`status-count-${key}`}>

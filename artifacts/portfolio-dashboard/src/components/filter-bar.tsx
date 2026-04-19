@@ -9,15 +9,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Search, X, Bookmark, BookmarkCheck, ChevronDown, Trash2 } from "lucide-react";
 import type { FilterState } from "@/lib/filter-types";
 import { useFilterPresets } from "@/lib/use-filter-presets";
-
-const STATUS_LABELS: Record<string, string> = {
-  new_request: "New Request",
-  backlog: "Priorities",
-  up_next: "Priorities for Next Dev",
-  in_progress: "In Progress",
-  blocked: "Blocked",
-  done: "Done",
-};
+import { STATUS_LABELS } from "@/lib/constants";
+import type { ProjectStatus } from "@workspace/api-client-react";
 
 interface FilterBarProps {
   filters: FilterState;
@@ -43,7 +36,7 @@ export default function FilterBar({ filters, onFiltersChange, teams, sponsors, f
 
   const activeFilters: { key: keyof FilterState; label: string }[] = [];
   if (filters.search) activeFilters.push({ key: "search", label: `"${filters.search}"` });
-  if (filters.status !== "all") activeFilters.push({ key: "status", label: STATUS_LABELS[filters.status] ?? filters.status });
+  if (filters.status !== "all") activeFilters.push({ key: "status", label: STATUS_LABELS[filters.status as ProjectStatus] ?? filters.status });
   if (filters.team !== "all") activeFilters.push({ key: "team", label: filters.team });
   if (filters.sponsor !== "all") activeFilters.push({ key: "sponsor", label: filters.sponsor });
   if (filters.goalId !== "all") {

@@ -1,13 +1,5 @@
 import type { ProjectWithDetails } from "@workspace/api-client-react";
-
-const STATUS_LABELS: Record<string, string> = {
-  new_request: "New Request",
-  backlog: "Backlog",
-  up_next: "Up Next",
-  in_progress: "In Progress",
-  blocked: "Blocked",
-  done: "Done",
-};
+import { STATUS_LABELS } from "./constants";
 
 function escapeCSV(value: string | null | undefined): string {
   const str = value ?? "";

@@ -5,22 +5,16 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/componen
 import { Badge } from "@/components/ui/badge";
 import ProjectModal from "./project-modal";
 import ProjectForm from "./project-form";
+import { CONFIDENCE_COLORS, STATUS_LABELS } from "@/lib/constants";
 
 const COLUMNS: { id: ProjectStatus; label: string }[] = [
-  { id: "new_request", label: "New Requests" },
-  { id: "backlog", label: "Priorities" },
-  { id: "up_next", label: "Priorities for Next Dev" },
-  { id: "in_progress", label: "In Progress" },
-  { id: "blocked", label: "Blocked" },
-  { id: "done", label: "Done" },
+  { id: "new_request", label: STATUS_LABELS.new_request },
+  { id: "backlog", label: STATUS_LABELS.backlog },
+  { id: "up_next", label: STATUS_LABELS.up_next },
+  { id: "in_progress", label: STATUS_LABELS.in_progress },
+  { id: "blocked", label: STATUS_LABELS.blocked },
+  { id: "done", label: STATUS_LABELS.done },
 ];
-
-const CONFIDENCE_COLORS: Record<string, string> = {
-  high: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-100",
-  medium: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100",
-  low: "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-100",
-  at_risk: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100",
-};
 
 interface KanbanViewProps {
   projects: ProjectWithDetails[];

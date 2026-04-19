@@ -17,9 +17,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-
-const TEAMS = ["Development", "Data", "Infrastructure", "Cybersecurity", "SysOps"];
-const SPONSORS = ["Leadership", "Finance", "Operations", "Business Development", "Marketing", "Tech", "Cars", "Legal & Compliance", "Departments"];
+import { TEAMS, SPONSORS, STATUS_LABELS, STATUS_ORDER } from "@/lib/constants";
 
 const formSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -174,12 +172,11 @@ export default function ProjectForm({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="new_request">New Request</SelectItem>
-                        <SelectItem value="backlog">Backlog</SelectItem>
-                        <SelectItem value="up_next">Up Next</SelectItem>
-                        <SelectItem value="in_progress">In Progress</SelectItem>
-                        <SelectItem value="blocked">Blocked</SelectItem>
-                        <SelectItem value="done">Done</SelectItem>
+                        {STATUS_ORDER.map((status) => (
+                          <SelectItem key={status} value={status}>
+                            {STATUS_LABELS[status]}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                     <FormMessage />

@@ -17,22 +17,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { AlertCircle, Edit, Trash2, Clock, Send, X } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
-
-const CONFIDENCE_COLORS: Record<string, string> = {
-  high: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-100",
-  medium: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100",
-  low: "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-100",
-  at_risk: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100",
-};
-
-const STATUS_LABELS: Record<ProjectStatus, string> = {
-  new_request: "New Request",
-  backlog: "Priorities",
-  up_next: "Priorities for Next Dev",
-  in_progress: "In Progress",
-  blocked: "Blocked",
-  done: "Done"
-};
+import { CONFIDENCE_COLORS, STATUS_LABELS } from "@/lib/constants";
 
 export default function ProjectModal({ 
   projectId, 
