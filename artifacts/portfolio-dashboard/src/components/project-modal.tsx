@@ -162,18 +162,14 @@ export default function ProjectModal({
                     <span className="text-sm font-medium">{project.stakeholder || "—"}</span>
                   </div>
                   <div>
-                    <span className="text-xs text-muted-foreground block mb-1">Cycle</span>
-                    <span className="text-sm font-medium">{project.cycle?.name || "—"}</span>
-                  </div>
-                  <div>
                     <span className="text-xs text-muted-foreground block mb-1">Story Points</span>
                     <span className="text-sm font-mono bg-muted px-1.5 py-0.5 rounded">{project.storyPoints ?? "—"}</span>
                   </div>
                   <div className="col-span-2">
-                    <span className="text-xs text-muted-foreground block mb-1">Dates</span>
+                    <span className="text-xs text-muted-foreground block mb-1">Cycle</span>
                     <span className="text-sm font-medium">
-                      {project.cycle?.startDate && project.cycle?.endDate
-                        ? `${format(parseISO(project.cycle.startDate), 'MMM d')} – ${format(parseISO(project.cycle.endDate), 'MMM d, yyyy')}`
+                      {project.cycle
+                        ? `${project.cycle.name}${project.cycle.startDate && project.cycle.endDate ? ` · ${format(parseISO(project.cycle.startDate), 'MMM d')} – ${format(parseISO(project.cycle.endDate), 'MMM d, yyyy')}` : ""}`
                         : "—"}
                     </span>
                   </div>
