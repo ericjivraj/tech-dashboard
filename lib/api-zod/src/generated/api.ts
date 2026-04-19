@@ -229,6 +229,7 @@ export const ListProjectsResponseItem = zod
     storyPoints: zod.number().nullable(),
     startDate: zod.coerce.date().nullable(),
     endDate: zod.coerce.date().nullable(),
+    stakeholder: zod.string().nullable(),
     impact: zod.string().nullable(),
     blockedReason: zod.string().nullable(),
     cycleId: zod.number().nullable(),
@@ -279,6 +280,7 @@ export const CreateProjectBody = zod.object({
   description: zod.string().nullish(),
   sponsor: zod.string().nullish(),
   team: zod.string().nullish(),
+  stakeholder: zod.string().nullish(),
   status: zod.enum([
     "done",
     "in_progress",
@@ -340,6 +342,7 @@ export const GetProjectResponse = zod
     storyPoints: zod.number().nullable(),
     startDate: zod.coerce.date().nullable(),
     endDate: zod.coerce.date().nullable(),
+    stakeholder: zod.string().nullable(),
     impact: zod.string().nullable(),
     blockedReason: zod.string().nullable(),
     cycleId: zod.number().nullable(),
@@ -393,6 +396,7 @@ export const UpdateProjectBody = zod.object({
   description: zod.string().nullish(),
   sponsor: zod.string().nullish(),
   team: zod.string().nullish(),
+  stakeholder: zod.string().nullish(),
   status: zod
     .union([
       zod.literal("done"),
@@ -450,6 +454,7 @@ export const UpdateProjectResponse = zod
     storyPoints: zod.number().nullable(),
     startDate: zod.coerce.date().nullable(),
     endDate: zod.coerce.date().nullable(),
+    stakeholder: zod.string().nullable(),
     impact: zod.string().nullable(),
     blockedReason: zod.string().nullable(),
     cycleId: zod.number().nullable(),
@@ -604,6 +609,8 @@ export const GetProjectsTimelineResponseItem = zod.object({
   cycleName: zod.string().nullable(),
   cycleStartDate: zod.string().nullable(),
   cycleEndDate: zod.string().nullable(),
+  cycleId: zod.number().nullable(),
+  sprintId: zod.number().nullable(),
   sprintName: zod.string().nullable(),
   sprintNumber: zod.number().nullable(),
   goals: zod.array(
