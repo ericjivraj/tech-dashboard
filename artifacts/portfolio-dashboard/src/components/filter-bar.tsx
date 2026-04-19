@@ -166,7 +166,7 @@ export default function FilterBar({ filters, onFiltersChange, teams, sponsors, f
             <SelectTrigger className="h-8 w-[150px] text-sm">
               <SelectValue placeholder="Sprint" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="max-h-60 overflow-y-auto">
               <SelectItem value="all">All Sprints</SelectItem>
               {sprints
                 .filter((s) => filters.cycleId === "all" || s.cycleId.toString() === filters.cycleId)

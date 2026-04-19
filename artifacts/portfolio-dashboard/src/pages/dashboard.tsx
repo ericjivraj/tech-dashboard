@@ -14,7 +14,7 @@ import ProjectForm from "@/components/project-form";
 import AdminPanel from "@/components/admin-panel";
 import { DEFAULT_FILTERS, type FilterState } from "@/lib/filter-types";
 import ExportButton from "@/components/export-button";
-import { STATUS_LABELS } from "@/lib/constants";
+import { STATUS_LABELS, TEAMS, SPONSORS } from "@/lib/constants";
 
 export default function Dashboard() {
   const { data: summary, isLoading: isLoadingSummary } = useGetDashboardSummary();
@@ -28,15 +28,8 @@ export default function Dashboard() {
 
   const isEditor = user?.isEditor === true;
 
-  const teams = useMemo(() => {
-    if (!allProjects) return [];
-    return [...new Set(allProjects.map((p) => p.team).filter(Boolean) as string[])].sort();
-  }, [allProjects]);
-
-  const sponsors = useMemo(() => {
-    if (!allProjects) return [];
-    return [...new Set(allProjects.map((p) => p.sponsor).filter(Boolean) as string[])].sort();
-  }, [allProjects]);
+  const teams = TEAMS;
+  const sponsors = SPONSORS;
 
   const filteredProjects = useMemo(() => {
     if (!allProjects) return [];
