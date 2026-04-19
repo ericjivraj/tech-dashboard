@@ -147,19 +147,34 @@ export default function FilterBar({ filters, onFiltersChange, teams, sponsors, f
           </Select>
         )}
 
-        {cycles && cycles.length > 0 && (
-          <Select value={filters.cycleId} onValueChange={(v) => update({ cycleId: v, sprintId: "all" })} data-testid="filter-cycle">
-            <SelectTrigger className="h-8 w-[150px] text-sm">
-              <SelectValue placeholder="Cycle" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Cycles</SelectItem>
-              {cycles.map((c) => (
-                <SelectItem key={c.id} value={c.id.toString()}>{c.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
+        {cycles && cycles.length > 0 && (() => {
+          const today = new Date().toISOString().split("T")[0];
+          const activeCycleId = cycles.find((c) => c.startDate <= today && c.endDate >= today)?.id ?? null;
+          const nextCycleId = cycles.find((c) => c.startDate > today)?.id ?? null;
+          return (
+            <Select value={filters.cycleId} onValueChange={(v) => update({ cycleId: v, sprintId: "all" })} data-testid="filter-cycle">
+              <SelectTrigger className="h-8 w-[150px] text-sm">
+                <SelectValue placeholder="Cycle" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Cycles</SelectItem>
+                {cycles.map((c) => (
+                  <SelectItem key={c.id} value={c.id.toString()}>
+                    <span className="flex items-center gap-1.5">
+                      {c.name}
+                      {c.id === activeCycleId && (
+                        <span className="inline-flex items-center rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300 leading-none">Active</span>
+                      )}
+                      {c.id === nextCycleId && (
+                        <span className="inline-flex items-center rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground leading-none">Next</span>
+                      )}
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          );
+        })()}
 
         {sprints && sprints.length > 0 && (
           <Select value={filters.sprintId} onValueChange={(v) => update({ sprintId: v })} data-testid="filter-sprint">
