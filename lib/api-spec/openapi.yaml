@@ -1206,6 +1206,8 @@ components:
           type: ["string", "null"]
         sponsor:
           type: ["string", "null"]
+        stakeholder:
+          type: ["string", "null"]
         cycleName:
           type: ["string", "null"]
         cycleStartDate:
@@ -1234,6 +1236,7 @@ components:
         - endDate
         - team
         - sponsor
+        - stakeholder
         - cycleName
         - cycleStartDate
         - cycleEndDate

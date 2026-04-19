@@ -12,7 +12,7 @@ import { CONFIDENCE_COLORS, STATUS_LABELS, STATUS_ORDER } from "@/lib/constants"
 const COLUMN_TOOLTIPS: Record<string, string> = {
   "Project Name": "The name and any blocked reason for the project",
   "Status": "Current workflow status of the project",
-  "Team / Sponsor": "The team responsible and the business sponsor",
+  "Team / Sponsor": "The team responsible, business sponsor, and stakeholder",
   "Goals": "Business goals this project contributes to",
   "Confidence": "Team's confidence in delivery",
   "Points": "Estimated story points for scope",
@@ -170,7 +170,8 @@ export default function PipelineView({ projects }: PipelineViewProps) {
                 <TableCell>
                   <div className="flex flex-col gap-0.5">
                     <span className="text-sm font-medium">{project.team || "—"}</span>
-                    <span className="text-xs text-muted-foreground">{project.sponsor || "—"}</span>
+                    {project.sponsor && <span className="text-xs text-muted-foreground">Sponsor: {project.sponsor}</span>}
+                    {project.stakeholder && <span className="text-xs text-muted-foreground">Stakeholder: {project.stakeholder}</span>}
                   </div>
                 </TableCell>
                 <TableCell>

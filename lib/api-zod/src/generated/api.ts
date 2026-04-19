@@ -612,6 +612,7 @@ export const GetProjectsTimelineResponseItem = zod.object({
   endDate: zod.string().nullable(),
   team: zod.string().nullable(),
   sponsor: zod.string().nullable(),
+  stakeholder: zod.string().nullable(),
   cycleName: zod.string().nullable(),
   cycleStartDate: zod.string().nullable(),
   cycleEndDate: zod.string().nullable(),

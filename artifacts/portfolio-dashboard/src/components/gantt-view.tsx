@@ -227,6 +227,16 @@ export default function GanttView({ filters }: GanttViewProps) {
                           );
                         })() : null}
                       </div>
+                      {project.sponsor && (
+                        <div className="text-[10px] text-muted-foreground/70 truncate mt-0.5">
+                          Sponsor: {project.sponsor}
+                        </div>
+                      )}
+                      {project.stakeholder && (
+                        <div className="text-[10px] text-muted-foreground/70 truncate mt-0.5">
+                          Stakeholder: {project.stakeholder}
+                        </div>
+                      )}
                       {project.cycleName && project.cycleStartDate && project.cycleEndDate && (
                         <div className="text-[10px] text-muted-foreground/70 truncate mt-0.5">
                           {project.cycleName} · {format(parseISO(project.cycleStartDate), 'MMM d')} – {format(parseISO(project.cycleEndDate), 'MMM d')}

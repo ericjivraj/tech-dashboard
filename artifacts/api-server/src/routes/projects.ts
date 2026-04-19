@@ -260,6 +260,7 @@ router.get("/projects/timeline", async (req, res): Promise<void> => {
       endDate: p.endDate,
       team: p.team,
       sponsor: p.sponsor,
+      stakeholder: p.stakeholder,
       cycleName: cycle?.name ?? null,
       cycleStartDate: cycle?.startDate ?? null,
       cycleEndDate: cycle?.endDate ?? null,

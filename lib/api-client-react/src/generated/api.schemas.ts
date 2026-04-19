@@ -411,6 +411,8 @@ export interface ProjectTimeline {
   /** @nullable */
   sponsor: string | null;
   /** @nullable */
+  stakeholder: string | null;
+  /** @nullable */
   cycleName: string | null;
   /** @nullable */
   cycleStartDate: string | null;
