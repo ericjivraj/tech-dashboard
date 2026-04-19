@@ -5,6 +5,10 @@ on:
 
 jobs:
   check-codegen-drift:
+    # NOTE: This job's `name` is used as the required status check context in
+    # .github/workflows/enforce-branch-protection.yml. If you rename this job,
+    # update CHECK_NAME in that workflow to match, otherwise branch protection
+    # will point to a stale (non-existent) context.
     name: Check generated files are in sync with openapi.yaml
     runs-on: ubuntu-latest
 

@@ -1,0 +1,81 @@
+name: Enforce Branch Protection
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  enforce-branch-protection:
+    name: Require drift check in branch protection
+    runs-on: ubuntu-latest
+    permissions:
+      administration: write
+
+    steps:
+      - name: Add check-codegen-drift to required status checks on main
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # The check run name as it appears in GitHub (job `name` field in codegen-drift.yml)
+          CHECK_NAME="Check generated files are in sync with openapi.yaml"
+
+          # Fetch current protection settings (empty object if none exist yet)
+          CURRENT=$(gh api \
+            -H "Accept: application/vnd.github+json" \
+            /repos/${{ github.repository }}/branches/main/protection \
+            2>/dev/null || echo "{}")
+
+          # Build a PUT payload that:
+          #   - Adds $CHECK_NAME to required_status_checks.contexts (deduped)
+          #   - Preserves strict mode, enforce_admins, review requirements,
+          #     and push restrictions exactly as they are today
+          PAYLOAD=$(echo "$CURRENT" | jq -c \
+            --arg check "$CHECK_NAME" '
+            {
+              required_status_checks: (
+                if .required_status_checks then {
+                  strict: (.required_status_checks.strict // false),
+                  contexts: (
+                    (.required_status_checks.contexts // [])
+                    | map(select(. != $check))
+                    | . + [$check]
+                  )
+                } else {
+                  strict: false,
+                  contexts: [$check]
+                } end
+              ),
+
+              enforce_admins: (
+                if .enforce_admins then .enforce_admins.enabled else false end
+              ),
+
+              required_pull_request_reviews: (
+                if .required_pull_request_reviews then {
+                  dismiss_stale_reviews:
+                    (.required_pull_request_reviews.dismiss_stale_reviews // false),
+                  require_code_owner_reviews:
+                    (.required_pull_request_reviews.require_code_owner_reviews // false),
+                  required_approving_review_count:
+                    (.required_pull_request_reviews.required_approving_review_count // 0),
+                  require_last_push_approval:
+                    (.required_pull_request_reviews.require_last_push_approval // false)
+                } else null end
+              ),
+
+              restrictions: (
+                if .restrictions then {
+                  users: [.restrictions.users[].login],
+                  teams: [.restrictions.teams[].slug],
+                  apps:  [.restrictions.apps[].slug]
+                } else null end
+              )
+            }
+          ')
+
+          gh api \
+            --method PUT \
+            -H "Accept: application/vnd.github+json" \
+            /repos/${{ github.repository }}/branches/main/protection \
+            --input - <<< "$PAYLOAD"
