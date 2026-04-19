@@ -27,8 +27,8 @@ const CONFIDENCE_COLORS: Record<string, string> = {
 
 const STATUS_LABELS: Record<ProjectStatus, string> = {
   new_request: "New Request",
-  backlog: "Backlog",
-  up_next: "Up Next",
+  backlog: "Priorities",
+  up_next: "Priorities for Next Dev",
   in_progress: "In Progress",
   blocked: "Blocked",
   done: "Done"
@@ -164,6 +164,12 @@ export default function ProjectModal({
                     <span className="text-xs text-muted-foreground block mb-1">Sponsor</span>
                     <span className="text-sm font-medium">{project.sponsor || "—"}</span>
                   </div>
+                  {project.stakeholder && (
+                    <div className="col-span-2">
+                      <span className="text-xs text-muted-foreground block mb-1">Stakeholder</span>
+                      <span className="text-sm font-medium">{project.stakeholder}</span>
+                    </div>
+                  )}
                   <div>
                     <span className="text-xs text-muted-foreground block mb-1">Timing</span>
                     <span className="text-sm font-medium">{project.cycle?.name || "—"}</span>

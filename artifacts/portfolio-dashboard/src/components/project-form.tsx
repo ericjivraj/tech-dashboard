@@ -18,11 +18,15 @@ import * as z from "zod";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 
+const TEAMS = ["Development", "Data", "Infrastructure", "Cybersecurity", "SysOps"];
+const SPONSORS = ["Leadership", "Finance", "Operations", "Business Development", "Marketing", "Tech", "Cars", "Legal & Compliance", "Departments"];
+
 const formSchema = z.object({
   title: z.string().min(1, "Title is required"),
   description: z.string().optional().nullable(),
   sponsor: z.string().optional().nullable(),
   team: z.string().optional().nullable(),
+  stakeholder: z.string().optional().nullable(),
   status: z.enum(["done", "in_progress", "up_next", "backlog", "blocked", "new_request"]),
   confidence: z.enum(["high", "medium", "low", "at_risk"]).optional().nullable(),
   storyPoints: z.coerce.number().optional().nullable(),
@@ -60,6 +64,7 @@ export default function ProjectForm({
       description: "",
       sponsor: "",
       team: "",
+      stakeholder: "",
       status: "new_request",
       confidence: "medium",
       storyPoints: null,
@@ -80,6 +85,7 @@ export default function ProjectForm({
         description: projectToEdit.description,
         sponsor: projectToEdit.sponsor,
         team: projectToEdit.team,
+        stakeholder: projectToEdit.stakeholder || "",
         status: projectToEdit.status as "done" | "in_progress" | "up_next" | "backlog" | "blocked" | "new_request",
         confidence: projectToEdit.confidence as "high" | "medium" | "low" | "at_risk" | null,
         storyPoints: projectToEdit.storyPoints,
@@ -229,9 +235,18 @@ export default function ProjectForm({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Team</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g. Core Services" {...field} value={field.value || ""} />
-                    </FormControl>
+                    <Select onValueChange={field.onChange} value={field.value || ""}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select team" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {TEAMS.map(t => (
+                          <SelectItem key={t} value={t}>{t}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -243,14 +258,37 @@ export default function ProjectForm({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Sponsor</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g. Jane Doe" {...field} value={field.value || ""} />
-                    </FormControl>
+                    <Select onValueChange={field.onChange} value={field.value || ""}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select sponsor" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {SPONSORS.map(s => (
+                          <SelectItem key={s} value={s}>{s}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
               />
             </div>
+
+            <FormField
+              control={form.control}
+              name="stakeholder"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Stakeholder</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Primary stakeholder contact" {...field} value={field.value || ""} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <div className="grid grid-cols-3 gap-4">
               <FormField

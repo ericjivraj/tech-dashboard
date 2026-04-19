@@ -8,8 +8,8 @@ import ProjectForm from "./project-form";
 
 const COLUMNS: { id: ProjectStatus; label: string }[] = [
   { id: "new_request", label: "New Requests" },
-  { id: "backlog", label: "Backlog" },
-  { id: "up_next", label: "Up Next" },
+  { id: "backlog", label: "Priorities" },
+  { id: "up_next", label: "Priorities for Next Dev" },
   { id: "in_progress", label: "In Progress" },
   { id: "blocked", label: "Blocked" },
   { id: "done", label: "Done" },

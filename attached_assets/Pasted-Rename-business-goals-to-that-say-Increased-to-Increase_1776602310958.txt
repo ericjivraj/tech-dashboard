@@ -1,0 +1,37 @@
+Rename business goals to that say "Increased" to "Increase"
+Rename backlog to "Priorities" and rename "Up Next" to "Priorities for Next Dev"
+The only teams we have are these:
+Development
+Data
+Infrastructure
+Cybersecurity
+SysOps
+In Sponsors, I'd like to have:
+Leadership
+Finance
+Operations
+Business Development
+Marketing
+Tech
+Cars
+Legal & Compliance
+Departments
+There should be a new field inside each modal card that opens with the name of the stakeholder, should be called "Stakeholder", so this is an additional field
+The top view that says "Project by Status" has the statuses in different order to the Kanban view, see screenshot to understand what I mean, I'd like the order of the statuses from left to right to match
+Here's the Cycles and dates for context:
+Cycle B: 7 Jan 2026 - 18 Feb 2026
+Cycle C: 18 Feb 2026 - 1 Apr 2026
+Cycle D: 1 Apr 2026 - 13 May 2026
+Cycle E: 13 May 2026 - 24 Jun 2026
+Cycle F: 24 Jun 2026 - 5 Aug 2026
+Cycle G: 5 Aug 2026 - Wed 16 Sep 2026
+Cycle H: 16 Sep 2026 - 28 Oct 2026
+Cycle I: 28 Oct 2026 - 9 Dec 2026
+Cycle J: 9 Dec 2026 - 6 Jan 2027
+Please note every Cycle is comprised of 3 development sprints, and each sprint follows the naming convention, i.e D/1, D/2, D/3
+In the cycles feature, add the ability to select each sprint as well in that dropdown
+Note each sprint ends and starts on the same day, same for cycles, i.e Sprint D/2 ends on 29th April and sprint D/3 starts on 29th April too. Cycles follow the same pattern. Cycle C ended 1st April, and Cycle D began 1st April
+We should have an on hover in the list view next to each headline of the columns that explains what it is. I.e "Confidence = what is the level of confidence on delivering this according to schedule? High, Medium, Low or At Risk"
+Also rename "At risk" to "At Risk"
+For context, we are currently in Cycle D, and more specifically we are in Sprint D/2 currently
+In timeline and list view, when I click on each row, I should get the same modal with info that opens when I'm in kanban board clicking each card

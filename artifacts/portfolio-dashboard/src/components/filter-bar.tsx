@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useListGoals, useListCycles } from "@workspace/api-client-react";
+import { useListGoals, useListCycles, useListSprints } from "@workspace/api-client-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
@@ -12,8 +12,8 @@ import { useFilterPresets } from "@/lib/use-filter-presets";
 
 const STATUS_LABELS: Record<string, string> = {
   new_request: "New Request",
-  backlog: "Backlog",
-  up_next: "Up Next",
+  backlog: "Priorities",
+  up_next: "Priorities for Next Dev",
   in_progress: "In Progress",
   blocked: "Blocked",
   done: "Done",
@@ -31,6 +31,7 @@ interface FilterBarProps {
 export default function FilterBar({ filters, onFiltersChange, teams, sponsors, filteredCount, totalCount }: FilterBarProps) {
   const { data: goals } = useListGoals();
   const { data: cycles } = useListCycles();
+  const { data: sprints } = useListSprints();
   const { presets, savePreset, deletePreset } = useFilterPresets();
 
   const [savePopoverOpen, setSavePopoverOpen] = useState(false);
@@ -53,16 +54,20 @@ export default function FilterBar({ filters, onFiltersChange, teams, sponsors, f
     const cycle = cycles?.find((c) => c.id.toString() === filters.cycleId);
     activeFilters.push({ key: "cycleId", label: cycle?.name ?? "Cycle" });
   }
+  if (filters.sprintId !== "all") {
+    const sprint = sprints?.find((s) => s.id.toString() === filters.sprintId);
+    activeFilters.push({ key: "sprintId", label: sprint?.name ?? "Sprint" });
+  }
 
   const hasActiveFilters = activeFilters.length > 0;
 
   function clearFilter(key: keyof FilterState) {
-    const defaults: FilterState = { search: "", status: "all", team: "all", sponsor: "all", goalId: "all", cycleId: "all" };
+    const defaults: FilterState = { search: "", status: "all", team: "all", sponsor: "all", goalId: "all", cycleId: "all", sprintId: "all" };
     update({ [key]: defaults[key] });
   }
 
   function clearAll() {
-    onFiltersChange({ search: "", status: "all", team: "all", sponsor: "all", goalId: "all", cycleId: "all" });
+    onFiltersChange({ search: "", status: "all", team: "all", sponsor: "all", goalId: "all", cycleId: "all", sprintId: "all" });
   }
 
   function handleSavePreset() {
@@ -150,7 +155,7 @@ export default function FilterBar({ filters, onFiltersChange, teams, sponsors, f
         )}
 
         {cycles && cycles.length > 0 && (
-          <Select value={filters.cycleId} onValueChange={(v) => update({ cycleId: v })} data-testid="filter-cycle">
+          <Select value={filters.cycleId} onValueChange={(v) => update({ cycleId: v, sprintId: "all" })} data-testid="filter-cycle">
             <SelectTrigger className="h-8 w-[150px] text-sm">
               <SelectValue placeholder="Cycle" />
             </SelectTrigger>
@@ -159,6 +164,22 @@ export default function FilterBar({ filters, onFiltersChange, teams, sponsors, f
               {cycles.map((c) => (
                 <SelectItem key={c.id} value={c.id.toString()}>{c.name}</SelectItem>
               ))}
+            </SelectContent>
+          </Select>
+        )}
+
+        {sprints && sprints.length > 0 && (
+          <Select value={filters.sprintId} onValueChange={(v) => update({ sprintId: v })} data-testid="filter-sprint">
+            <SelectTrigger className="h-8 w-[150px] text-sm">
+              <SelectValue placeholder="Sprint" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Sprints</SelectItem>
+              {sprints
+                .filter((s) => filters.cycleId === "all" || s.cycleId.toString() === filters.cycleId)
+                .map((s) => (
+                  <SelectItem key={s.id} value={s.id.toString()}>{s.name}</SelectItem>
+                ))}
             </SelectContent>
           </Select>
         )}

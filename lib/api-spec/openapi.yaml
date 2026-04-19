@@ -894,6 +894,8 @@ components:
         endDate:
           type: ["string", "null"]
           format: date
+        stakeholder:
+          type: ["string", "null"]
         impact:
           type: ["string", "null"]
         blockedReason:
@@ -915,6 +917,7 @@ components:
         - description
         - sponsor
         - team
+        - stakeholder
         - confidence
         - storyPoints
         - startDate
@@ -1006,6 +1009,8 @@ components:
         endDate:
           type: ["string", "null"]
           format: date
+        stakeholder:
+          type: ["string", "null"]
         impact:
           type: ["string", "null"]
         blockedReason:
@@ -1047,6 +1052,8 @@ components:
         endDate:
           type: ["string", "null"]
           format: date
+        stakeholder:
+          type: ["string", "null"]
         impact:
           type: ["string", "null"]
         blockedReason:
@@ -1197,6 +1204,10 @@ components:
           type: ["string", "null"]
         cycleEndDate:
           type: ["string", "null"]
+        cycleId:
+          type: ["integer", "null"]
+        sprintId:
+          type: ["integer", "null"]
         sprintName:
           type: ["string", "null"]
         sprintNumber:
@@ -1218,6 +1229,8 @@ components:
         - cycleName
         - cycleStartDate
         - cycleEndDate
+        - cycleId
+        - sprintId
         - sprintName
         - sprintNumber
         - goals

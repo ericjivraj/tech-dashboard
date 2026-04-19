@@ -18,6 +18,7 @@ export const projectsTable = pgTable("projects", {
   storyPoints: integer("story_points"),
   startDate: date("start_date"),
   endDate: date("end_date"),
+  stakeholder: text("stakeholder"),
   impact: text("impact"),
   blockedReason: text("blocked_reason"),
   cycleId: integer("cycle_id").references(() => cyclesTable.id, { onDelete: "set null" }),

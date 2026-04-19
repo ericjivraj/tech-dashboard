@@ -143,6 +143,8 @@ export interface Project {
   /** @nullable */
   endDate: string | null;
   /** @nullable */
+  stakeholder: string | null;
+  /** @nullable */
   impact: string | null;
   /** @nullable */
   blockedReason: string | null;
@@ -236,6 +238,8 @@ export interface CreateProjectBody {
   /** @nullable */
   endDate?: string | null;
   /** @nullable */
+  stakeholder?: string | null;
+  /** @nullable */
   impact?: string | null;
   /** @nullable */
   blockedReason?: string | null;
@@ -295,6 +299,8 @@ export interface UpdateProjectBody {
   startDate?: string | null;
   /** @nullable */
   endDate?: string | null;
+  /** @nullable */
+  stakeholder?: string | null;
   /** @nullable */
   impact?: string | null;
   /** @nullable */
@@ -408,6 +414,10 @@ export interface ProjectTimeline {
   cycleStartDate: string | null;
   /** @nullable */
   cycleEndDate: string | null;
+  /** @nullable */
+  cycleId: number | null;
+  /** @nullable */
+  sprintId: number | null;
   /** @nullable */
   sprintName: string | null;
   /** @nullable */

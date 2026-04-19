@@ -248,6 +248,8 @@ router.get("/projects/timeline", async (req, res): Promise<void> => {
       cycleName: cycle?.name ?? null,
       cycleStartDate: cycle?.startDate ?? null,
       cycleEndDate: cycle?.endDate ?? null,
+      cycleId: p.cycleId ?? null,
+      sprintId: p.sprintId ?? null,
       sprintName: sprint?.name ?? null,
       sprintNumber: sprint?.sprintNumber ?? null,
       goals: goalsByProject.get(p.id) ?? [],

@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { useGetProjectsTimeline, useListCycles } from "@workspace/api-client-react";
+import { useGetProjectsTimeline, useListCycles, ProjectWithDetails } from "@workspace/api-client-react";
+import ProjectModal from "./project-modal";
+import ProjectForm from "./project-form";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
@@ -37,6 +39,8 @@ export default function GanttView({ filters }: GanttViewProps) {
   const currentYear = new Date().getFullYear();
   const [selectedQuarter, setSelectedQuarter] = useState<string>("all");
   const [selectedCycleId, setSelectedCycleId] = useState<string>("all");
+  const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
+  const [projectToEdit, setProjectToEdit] = useState<ProjectWithDetails | null>(null);
 
   const { data: projects, isLoading } = useGetProjectsTimeline({ year: currentYear });
   const { data: cycles } = useListCycles();
@@ -118,6 +122,9 @@ export default function GanttView({ filters }: GanttViewProps) {
       filteredProjects = filteredProjects.filter((p) => p.cycleName === cycle.name);
     }
   }
+  if ((filters.sprintId ?? "all") !== "all") {
+    filteredProjects = filteredProjects.filter((p) => p.sprintId?.toString() === filters.sprintId);
+  }
 
   const visibleProjects = filteredProjects.filter((p) => {
     const pos = getBarPosition(p.startDate!, p.endDate!);
@@ -125,6 +132,7 @@ export default function GanttView({ filters }: GanttViewProps) {
   });
 
   return (
+    <>
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-3" data-testid="gantt-filters">
         <div className="flex items-center gap-2">
@@ -197,8 +205,9 @@ export default function GanttView({ filters }: GanttViewProps) {
                 return (
                   <div
                     key={project.id}
-                    className="flex items-center group relative hover:bg-muted/20 -mx-4 px-4 py-1 rounded"
+                    className="flex items-center group relative hover:bg-muted/20 -mx-4 px-4 py-1 rounded cursor-pointer"
                     data-testid={`gantt-row-${project.id}`}
+                    onClick={() => setSelectedProjectId(project.id)}
                   >
                     <div className="w-[230px] shrink-0 pr-4">
                       <div className="text-sm font-medium truncate" title={project.title}>{project.title}</div>
@@ -222,5 +231,23 @@ export default function GanttView({ filters }: GanttViewProps) {
         </div>
       </div>
     </div>
+
+    {selectedProjectId && (
+      <ProjectModal
+        projectId={selectedProjectId}
+        open={!!selectedProjectId}
+        onOpenChange={(open) => { if (!open) setSelectedProjectId(null); }}
+        onEdit={(project) => {
+          setSelectedProjectId(null);
+          setProjectToEdit(project);
+        }}
+      />
+    )}
+    <ProjectForm
+      open={!!projectToEdit}
+      onOpenChange={(open) => { if (!open) setProjectToEdit(null); }}
+      projectToEdit={projectToEdit}
+    />
+    </>
   );
 }

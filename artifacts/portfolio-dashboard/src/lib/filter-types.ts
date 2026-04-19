@@ -5,6 +5,7 @@ export interface FilterState {
   sponsor: string;
   goalId: string;
   cycleId: string;
+  sprintId: string;
 }
 
 export const DEFAULT_FILTERS: FilterState = {
@@ -14,4 +15,5 @@ export const DEFAULT_FILTERS: FilterState = {
   sponsor: "all",
   goalId: "all",
   cycleId: "all",
+  sprintId: "all",
 };

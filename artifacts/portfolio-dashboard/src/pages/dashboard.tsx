@@ -45,6 +45,7 @@ export default function Dashboard() {
       if (filters.sponsor !== "all" && p.sponsor !== filters.sponsor) return false;
       if (filters.goalId !== "all" && !p.goals.some((g) => g.id.toString() === filters.goalId)) return false;
       if (filters.cycleId !== "all" && p.cycleId?.toString() !== filters.cycleId) return false;
+      if ((filters.sprintId ?? "all") !== "all" && p.sprintId?.toString() !== filters.sprintId) return false;
       return true;
     });
   }, [allProjects, filters]);
@@ -101,11 +102,11 @@ export default function Dashboard() {
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Projects by Status</p>
             <div className="grid grid-cols-3 sm:grid-cols-6 gap-4">
               {[
-                { key: "in_progress", label: "In Progress", color: "bg-blue-500" },
-                { key: "up_next", label: "Up Next", color: "bg-indigo-400" },
-                { key: "blocked", label: "Blocked", color: "bg-red-500" },
                 { key: "new_request", label: "New Request", color: "bg-purple-400" },
-                { key: "backlog", label: "Backlog", color: "bg-slate-400" },
+                { key: "backlog", label: "Priorities", color: "bg-slate-400" },
+                { key: "up_next", label: "Priorities for Next Dev", color: "bg-indigo-400" },
+                { key: "in_progress", label: "In Progress", color: "bg-blue-500" },
+                { key: "blocked", label: "Blocked", color: "bg-red-500" },
                 { key: "done", label: "Done", color: "bg-emerald-500" },
               ].map(({ key, label, color }) => {
                 const count = (summary.countByStatus as Record<string, number>)[key] ?? 0;

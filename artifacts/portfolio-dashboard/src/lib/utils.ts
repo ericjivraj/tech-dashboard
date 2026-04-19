@@ -6,6 +6,5 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function formatConfidence(value: string): string {
-  const label = value.replace(/_/g, " ");
-  return label.charAt(0).toUpperCase() + label.slice(1);
+  return value.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
