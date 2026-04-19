@@ -55,8 +55,8 @@ export default function Dashboard() {
     <div className="w-full px-6 py-6 flex flex-col gap-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Portfolio Overview</h1>
-          <p className="text-muted-foreground mt-1">Command center for engineering operations and delivery.</p>
+          <h1 className="text-3xl font-bold tracking-tight">Technology Overview</h1>
+          <p className="text-muted-foreground mt-1">The centralized view for all technology department projects.</p>
         </div>
         <div className="flex items-center gap-2">
           <ExportButton />
