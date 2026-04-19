@@ -57,6 +57,10 @@ The hook is installed automatically when you run `pnpm install` (via the `prepar
 
 **To bypass in an emergency (not recommended):**
 ```
+SKIP_TYPECHECK=1 git commit
+```
+This prints a visible warning and skips the drift check entirely. You can also use the standard Git flag:
+```
 git commit --no-verify
 ```
 
