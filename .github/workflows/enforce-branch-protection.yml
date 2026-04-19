@@ -9,6 +9,7 @@ jobs:
   enforce-branch-protection:
     name: Require drift check in branch protection
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       administration: write
 
