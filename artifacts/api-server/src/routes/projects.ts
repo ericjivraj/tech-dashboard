@@ -277,7 +277,7 @@ router.get("/projects/export", async (req, res): Promise<void> => {
   if (projects.length === 0) {
     res.setHeader("Content-Type", "text/csv");
     res.setHeader("Content-Disposition", `attachment; filename="portfolio-export.csv"`);
-    res.send("Title,Status,Confidence,Sponsor,Team,Story Points,Cycle,Goals,Latest Update,Start Date,End Date\n");
+    res.send("Title,Status,Confidence,Sponsor,Team,Stakeholder,Story Points,Cycle,Goals,Latest Update,Start Date,End Date\n");
     return;
   }
 
@@ -328,7 +328,7 @@ router.get("/projects/export", async (req, res): Promise<void> => {
     return str;
   }
 
-  const headers = ["Title", "Status", "Confidence", "Sponsor", "Team", "Story Points", "Cycle", "Goals", "Latest Update", "Start Date", "End Date"];
+  const headers = ["Title", "Status", "Confidence", "Sponsor", "Team", "Stakeholder", "Story Points", "Cycle", "Goals", "Latest Update", "Start Date", "End Date"];
 
   const rows = projects.map((p) => {
     const cycle = p.cycleId ? cycleMap.get(p.cycleId) : undefined;
@@ -340,6 +340,7 @@ router.get("/projects/export", async (req, res): Promise<void> => {
       csvCell(p.confidence?.replace(/_/g, " ") ?? ""),
       csvCell(p.sponsor ?? ""),
       csvCell(p.team ?? ""),
+      csvCell(p.stakeholder ?? ""),
       csvCell(p.storyPoints?.toString() ?? ""),
       csvCell(cycle?.name ?? ""),
       csvCell(goals.map((g) => g.name).join("; ")),

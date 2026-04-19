@@ -19,6 +19,7 @@ export function exportProjectsToCSV(
     "Confidence",
     "Sponsor",
     "Team",
+    "Stakeholder",
     "Story Points",
     "Cycle",
     "Goals",
@@ -33,6 +34,7 @@ export function exportProjectsToCSV(
     escapeCSV(p.confidence?.replace(/_/g, " ") ?? ""),
     escapeCSV(p.sponsor ?? ""),
     escapeCSV(p.team ?? ""),
+    escapeCSV(p.stakeholder ?? ""),
     escapeCSV(p.storyPoints?.toString() ?? ""),
     escapeCSV(p.cycle?.name ?? ""),
     escapeCSV(p.goals?.map((g) => g.name).join("; ") ?? ""),
@@ -71,6 +73,7 @@ export function exportProjectsToPDF(projects: ProjectWithDetails[]) {
       <td>${escapeHtml(p.confidence?.replace(/_/g, " ") ?? "—")}</td>
       <td>${escapeHtml(p.sponsor ?? "—")}</td>
       <td>${escapeHtml(p.team ?? "—")}</td>
+      <td>${escapeHtml(p.stakeholder ?? "—")}</td>
       <td>${p.storyPoints ?? "—"}</td>
       <td>${escapeHtml(p.cycle?.name ?? "Unscheduled")}</td>
       <td>${escapeHtml(p.goals?.map((g) => g.name).join(", ") ?? "—")}</td>
@@ -113,6 +116,7 @@ export function exportProjectsToPDF(projects: ProjectWithDetails[]) {
         <th>Confidence</th>
         <th>Sponsor</th>
         <th>Team</th>
+        <th>Stakeholder</th>
         <th>Points</th>
         <th>Cycle</th>
         <th>Goals</th>
