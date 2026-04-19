@@ -3,7 +3,7 @@ import type { ProjectStatus } from "@workspace/api-client-react";
 export const STATUS_LABELS: Record<ProjectStatus, string> = {
   new_request: "New Request",
   backlog: "Priorities",
-  up_next: "Priorities for Next Dev",
+  up_next: "Priorities Next Dev",
   in_progress: "In Progress",
   blocked: "Blocked",
   done: "Done",
