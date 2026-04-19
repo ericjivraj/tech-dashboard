@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { db } from "@workspace/db";
 import { goalsTable } from "@workspace/db";
 import {
@@ -13,7 +13,10 @@ import { requireAuth } from "../middlewares/requireAuth";
 const router: IRouter = Router();
 
 router.get("/goals", async (_req, res): Promise<void> => {
-  const goals = await db.select().from(goalsTable).orderBy(goalsTable.name);
+  const goals = await db.select().from(goalsTable).orderBy(
+    sql`CASE WHEN ${goalsTable.name} LIKE 'Strategic:%' THEN 0 ELSE 1 END`,
+    goalsTable.name,
+  );
   res.json(goals);
 });
 
