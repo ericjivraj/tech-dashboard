@@ -106,7 +106,7 @@ function ProjectCard({ project, onClick }: { project: ProjectWithDetails; onClic
         <div className="flex items-center gap-1 flex-wrap">
           {project.confidence && (
             <Badge variant="secondary" className={`text-[10px] px-1.5 font-medium border-0 ${CONFIDENCE_COLORS[project.confidence]}`}>
-              {project.confidence.replace('_', ' ')}
+              {project.confidence.replace('_', ' ').replace(/^\w/, c => c.toUpperCase())}
             </Badge>
           )}
           {project.team && (

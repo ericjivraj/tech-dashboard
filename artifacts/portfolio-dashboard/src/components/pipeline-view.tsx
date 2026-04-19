@@ -72,7 +72,7 @@ export default function PipelineView({ projects }: PipelineViewProps) {
               <TableCell>
                 {project.confidence ? (
                   <Badge variant="secondary" className={`text-xs font-medium border-0 ${CONFIDENCE_COLORS[project.confidence]}`}>
-                    {project.confidence.replace('_', ' ')}
+                    {project.confidence.replace('_', ' ').replace(/^\w/, c => c.toUpperCase())}
                   </Badge>
                 ) : <span className="text-muted-foreground text-xs">—</span>}
               </TableCell>
