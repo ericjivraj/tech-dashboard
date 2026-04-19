@@ -16,7 +16,7 @@ pnpm workspace monorepo using TypeScript. This is a full-stack engineering depar
 - **API codegen**: Orval (from OpenAPI spec)
 - **Build**: esbuild (CJS bundle)
 - **Frontend**: React + Vite + TailwindCSS + shadcn/ui
-- **Auth**: Clerk (editors only; dashboard is public)
+- **Auth**: Clerk (editors only; site protected by optional passcode gate)
 
 ## Artifacts
 
@@ -66,10 +66,17 @@ All routes are under `/api`:
 
 ## Auth Pattern
 
+- **Passcode gate**: `PasscodeGate` component wraps the entire frontend. Reads `VITE_SITE_PASSCODE` env var; if set, shows a passcode prompt before any content. Unlocked state stored in `sessionStorage` (key: `delivery_dashboard_unlocked`). If env var is not set, gate is bypassed entirely.
 - Public: all GET endpoints are public (no auth required)
 - Protected: all write endpoints (POST/PATCH/DELETE) use `requireAuth` middleware
 - Frontend: `useGetMe()` hook checks auth state; edit controls only shown when `isAuthenticated: true`
 - Clerk proxy is set up at `/__clerk` via `clerkProxyMiddleware` in `app.ts`
+
+## Environment Variables (Frontend)
+
+- `VITE_CLERK_PUBLISHABLE_KEY` — Clerk pub key; if absent, app runs in read-only mode
+- `VITE_CLERK_PROXY_URL` — Clerk proxy URL (auto-set by Replit)
+- `VITE_SITE_PASSCODE` — optional site-wide passcode gate; if unset, gate is disabled
 
 ## Project Data Model
 

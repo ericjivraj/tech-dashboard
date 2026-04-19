@@ -7,6 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/dashboard";
 import Layout from "@/components/layout";
+import PasscodeGate from "@/components/passcode-gate";
 
 const queryClient = new QueryClient();
 
@@ -169,12 +170,14 @@ function ReadOnlyApp() {
 
 function App() {
   return (
-    <TooltipProvider>
-      <WouterRouter base={basePath}>
-        {clerkPubKey ? <ClerkProviderWithRoutes /> : <ReadOnlyApp />}
-      </WouterRouter>
-      <Toaster />
-    </TooltipProvider>
+    <PasscodeGate>
+      <TooltipProvider>
+        <WouterRouter base={basePath}>
+          {clerkPubKey ? <ClerkProviderWithRoutes /> : <ReadOnlyApp />}
+        </WouterRouter>
+        <Toaster />
+      </TooltipProvider>
+    </PasscodeGate>
   );
 }
 

@@ -169,6 +169,22 @@
   --ring: 212.7 26.8% 83.9%;
 }
 
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  15%       { transform: translateX(-6px); }
+  30%       { transform: translateX(6px); }
+  45%       { transform: translateX(-6px); }
+  60%       { transform: translateX(6px); }
+  75%       { transform: translateX(-4px); }
+  90%       { transform: translateX(4px); }
+}
+
+@layer utilities {
+  .animate-shake {
+    animation: shake 0.55s ease-in-out;
+  }
+}
+
 @layer base {
   * {
     @apply border-border;
