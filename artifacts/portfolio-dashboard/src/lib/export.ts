@@ -89,14 +89,23 @@ export function exportProjectsToPDF(projects: ProjectWithDetails[]) {
   <title>Portfolio Export – ${new Date().toLocaleDateString()}</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 11px; color: #111; padding: 24px; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 10px; color: #111; padding: 24px; }
     h1 { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
     .subtitle { color: #555; margin-bottom: 20px; font-size: 12px; }
-    table { width: 100%; border-collapse: collapse; }
-    th { background: #1e293b; color: #fff; text-align: left; padding: 6px 8px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; }
-    td { padding: 6px 8px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
+    table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+    col.col-title { width: 17%; }
+    col.col-status { width: 8%; }
+    col.col-confidence { width: 8%; }
+    col.col-sponsor { width: 9%; }
+    col.col-team { width: 9%; }
+    col.col-stakeholder { width: 9%; }
+    col.col-points { width: 5%; }
+    col.col-cycle { width: 8%; }
+    col.col-goals { width: 10%; }
+    col.col-update { width: 17%; }
+    th { background: #1e293b; color: #fff; text-align: left; padding: 5px 6px; font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em; }
+    td { padding: 5px 6px; border-bottom: 1px solid #e2e8f0; vertical-align: top; word-wrap: break-word; overflow-wrap: break-word; }
     tr:nth-child(even) td { background: #f8fafc; }
-    td:last-child { max-width: 200px; overflow: hidden; }
     @media print {
       body { padding: 0; }
       h1 { font-size: 16px; }
@@ -109,6 +118,18 @@ export function exportProjectsToPDF(projects: ProjectWithDetails[]) {
   <h1>Portfolio Report</h1>
   <p class="subtitle">Generated on ${new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })} · ${projects.length} project${projects.length !== 1 ? "s" : ""}</p>
   <table>
+    <colgroup>
+      <col class="col-title" />
+      <col class="col-status" />
+      <col class="col-confidence" />
+      <col class="col-sponsor" />
+      <col class="col-team" />
+      <col class="col-stakeholder" />
+      <col class="col-points" />
+      <col class="col-cycle" />
+      <col class="col-goals" />
+      <col class="col-update" />
+    </colgroup>
     <thead>
       <tr>
         <th>Title</th>
