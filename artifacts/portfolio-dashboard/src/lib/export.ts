@@ -134,7 +134,10 @@ export function exportProjectsToPDF(
   projects: ProjectWithDetails[],
   selectedColumnKeys: string[] = DEFAULT_PDF_COLUMN_KEYS
 ) {
-  const columns = PDF_COLUMNS.filter((c) => selectedColumnKeys.includes(c.key));
+  const columnMap = new Map(PDF_COLUMNS.map((c) => [c.key, c]));
+  const columns = selectedColumnKeys
+    .map((k) => columnMap.get(k))
+    .filter((c): c is PdfColumn => c !== undefined);
 
   if (columns.length === 0) return;
 
