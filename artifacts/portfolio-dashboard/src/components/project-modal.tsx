@@ -157,7 +157,7 @@ export default function ProjectModal({
                     <span className="text-xs text-muted-foreground block mb-1">Sponsor</span>
                     <span className="text-sm font-medium">{project.sponsor || "—"}</span>
                   </div>
-                  <div className="col-span-2">
+                  <div>
                     <span className="text-xs text-muted-foreground block mb-1">Stakeholder</span>
                     <span className="text-sm font-medium">{project.stakeholder || "—"}</span>
                   </div>
