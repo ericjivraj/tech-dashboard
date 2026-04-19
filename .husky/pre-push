@@ -1,1 +1,6 @@
+if [ "$SKIP_TYPECHECK" = "1" ]; then
+  echo "WARNING: SKIP_TYPECHECK=1 is set — skipping pre-push codegen. Use only in emergencies."
+  exit 0
+fi
+
 pnpm --filter @workspace/api-spec run codegen

@@ -32,6 +32,16 @@ pnpm workspace monorepo using TypeScript. This is a full-stack engineering depar
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
 - `pnpm --filter @workspace/api-server run dev` — run API server locally
 
+## Pre-push Hook (Codegen)
+
+A Husky pre-push hook is configured at `.husky/pre-push`. It runs `pnpm --filter @workspace/api-spec run codegen` before every push to ensure generated API client files are up to date with `openapi.yaml`.
+
+**To bypass in an emergency:**
+```
+SKIP_TYPECHECK=1 git push
+```
+This prints a visible warning and skips the codegen step entirely. Use only when strictly necessary (e.g., pushing a WIP branch for remote backup, or an emergency hotfix). Never leave `SKIP_TYPECHECK=1` as a permanent alias — it defeats the safety net.
+
 ## Pre-commit Hook (Codegen Drift Check)
 
 A Husky pre-commit hook is configured at `.husky/pre-commit`. It runs `scripts/check-codegen-drift.sh` before every commit, blocking the commit if generated files are out of sync with `openapi.yaml`.
