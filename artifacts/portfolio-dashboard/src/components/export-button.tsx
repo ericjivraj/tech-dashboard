@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Download, FileText, Sheet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,6 +28,24 @@ import {
 } from "@/lib/export";
 import { useToast } from "@/hooks/use-toast";
 
+const PDF_COLUMN_STORAGE_KEY = "pdf-selected-columns";
+
+function loadStoredColumns(): string[] {
+  try {
+    const stored = localStorage.getItem(PDF_COLUMN_STORAGE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (Array.isArray(parsed) && parsed.every((k) => typeof k === "string")) {
+        const valid = parsed.filter((k) => DEFAULT_PDF_COLUMN_KEYS.includes(k));
+        if (valid.length > 0) return valid;
+      }
+    }
+  } catch {
+    // ignore parse errors
+  }
+  return DEFAULT_PDF_COLUMN_KEYS;
+}
+
 interface ExportButtonProps {
   params?: ListProjectsParams;
 }
@@ -36,8 +54,16 @@ export default function ExportButton({ params }: ExportButtonProps) {
   const { data: projects } = useListProjects(params);
   const [open, setOpen] = useState(false);
   const [columnDialogOpen, setColumnDialogOpen] = useState(false);
-  const [selectedColumns, setSelectedColumns] = useState<string[]>(DEFAULT_PDF_COLUMN_KEYS);
+  const [selectedColumns, setSelectedColumns] = useState<string[]>(loadStoredColumns);
   const { toast } = useToast();
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(PDF_COLUMN_STORAGE_KEY, JSON.stringify(selectedColumns));
+    } catch {
+      // ignore storage errors
+    }
+  }, [selectedColumns]);
 
   function handleCSV() {
     if (!projects || projects.length === 0) {
@@ -142,7 +168,7 @@ export default function ExportButton({ params }: ExportButtonProps) {
               onClick={selectAll}
               className="text-primary underline-offset-2 hover:underline"
             >
-              Select all
+              Reset to defaults
             </button>
             <button
               type="button"
