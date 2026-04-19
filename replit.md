@@ -32,6 +32,24 @@ pnpm workspace monorepo using TypeScript. This is a full-stack engineering depar
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
 - `pnpm --filter @workspace/api-server run dev` — run API server locally
 
+## Pre-commit Hook (Codegen Drift Check)
+
+A Husky pre-commit hook is configured at `.husky/pre-commit`. It runs `scripts/check-codegen-drift.sh` before every commit, blocking the commit if generated files are out of sync with `openapi.yaml`.
+
+**Setup (after cloning or after `pnpm install`):**
+
+The hook is installed automatically when you run `pnpm install` (via the `prepare` script). No manual steps needed.
+
+**If the commit is blocked:**
+1. Run `pnpm --filter @workspace/api-spec run codegen` to regenerate the API client.
+2. Stage the updated generated files.
+3. Re-attempt your commit.
+
+**To bypass in an emergency (not recommended):**
+```
+git commit --no-verify
+```
+
 ## Database Schema (`lib/db/src/schema/`)
 
 - `cycles.ts` — 6-week delivery cycles (name, startDate, endDate)
