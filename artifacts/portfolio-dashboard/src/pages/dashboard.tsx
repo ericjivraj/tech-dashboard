@@ -84,18 +84,10 @@ export default function Dashboard() {
         </div>
       ) : (
         <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="rounded-xl border bg-card text-card-foreground shadow-sm p-6 flex flex-col gap-1" data-testid="metric-total-projects">
               <p className="text-sm font-medium text-muted-foreground">Total Projects</p>
               <p className="text-3xl font-bold">{summary.totalProjects}</p>
-            </div>
-            <div className="rounded-xl border bg-card text-card-foreground shadow-sm p-6 flex flex-col gap-1" data-testid="metric-story-points">
-              <p className="text-sm font-medium text-muted-foreground">Total Story Points</p>
-              <p className="text-3xl font-bold">{summary.totalStoryPoints}</p>
-            </div>
-            <div className="rounded-xl border bg-card text-card-foreground shadow-sm p-6 flex flex-col gap-1" data-testid="metric-capacity">
-              <p className="text-sm font-medium text-muted-foreground">Capacity</p>
-              <p className="text-3xl font-bold">{summary.capacityPercentage}%</p>
             </div>
             <div className="rounded-xl border bg-card text-card-foreground shadow-sm p-6 flex flex-col gap-1" data-testid="metric-active-cycle">
               <p className="text-sm font-medium text-muted-foreground">Active Cycle</p>
