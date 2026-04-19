@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ProjectWithDetails, ProjectStatus } from "@workspace/api-client-react";
-import { formatConfidence } from "@/lib/utils";
+import { formatConfidence, storyPointsToTShirt } from "@/lib/utils";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { format, parseISO } from "date-fns";
@@ -82,8 +82,16 @@ export default function PipelineView({ projects }: PipelineViewProps) {
                     </Badge>
                   ) : <span className="text-muted-foreground text-xs">—</span>}
                 </TableCell>
-                <TableCell className="text-sm font-mono">
-                  {project.storyPoints || "—"}
+                <TableCell>
+                  {project.storyPoints != null ? (() => {
+                    const size = storyPointsToTShirt(project.storyPoints);
+                    return (
+                      <span className="flex items-center gap-1.5" title={size.tooltip}>
+                        <Badge variant="outline" className="text-xs font-medium px-1.5 py-0">{size.label}</Badge>
+                        <span className="text-xs text-muted-foreground font-mono">{project.storyPoints}</span>
+                      </span>
+                    );
+                  })() : <span className="text-muted-foreground text-sm">—</span>}
                 </TableCell>
                 <TableCell>
                   <div className="flex flex-col gap-0.5 text-xs">

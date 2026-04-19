@@ -5,8 +5,10 @@ import ProjectForm from "./project-form";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { format, parseISO, startOfYear, endOfYear, eachMonthOfInterval, differenceInDays, startOfQuarter, endOfQuarter } from "date-fns";
 import type { FilterState } from "@/lib/filter-types";
+import { storyPointsToTShirt } from "@/lib/utils";
 
 const STATUS_COLORS: Record<string, string> = {
   done: "#10b981",
@@ -211,7 +213,17 @@ export default function GanttView({ filters }: GanttViewProps) {
                   >
                     <div className="w-[230px] shrink-0 pr-4">
                       <div className="text-sm font-medium truncate" title={project.title}>{project.title}</div>
-                      <div className="text-[10px] text-muted-foreground truncate">{project.team || "No team"}</div>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <span className="text-[10px] text-muted-foreground truncate">{project.team || "No team"}</span>
+                        {project.storyPoints != null ? (() => {
+                          const size = storyPointsToTShirt(project.storyPoints);
+                          return (
+                            <Badge variant="outline" className="text-[9px] font-medium px-1 py-0 h-3.5 leading-none shrink-0" title={size.tooltip}>
+                              {size.label}
+                            </Badge>
+                          );
+                        })() : null}
+                      </div>
                     </div>
 
                     <div className="flex-1 relative h-7 bg-muted/10 rounded overflow-hidden">
