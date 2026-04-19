@@ -280,7 +280,6 @@ export const CreateProjectBody = zod.object({
   description: zod.string().nullish(),
   sponsor: zod.string().nullish(),
   team: zod.string().nullish(),
-  stakeholder: zod.string().nullish(),
   status: zod.enum([
     "done",
     "in_progress",
@@ -301,6 +300,7 @@ export const CreateProjectBody = zod.object({
   storyPoints: zod.number().nullish(),
   startDate: zod.coerce.date().nullish(),
   endDate: zod.coerce.date().nullish(),
+  stakeholder: zod.string().nullish(),
   impact: zod.string().nullish(),
   blockedReason: zod.string().nullish(),
   cycleId: zod.number().nullish(),
@@ -396,7 +396,6 @@ export const UpdateProjectBody = zod.object({
   description: zod.string().nullish(),
   sponsor: zod.string().nullish(),
   team: zod.string().nullish(),
-  stakeholder: zod.string().nullish(),
   status: zod
     .union([
       zod.literal("done"),
@@ -420,6 +419,7 @@ export const UpdateProjectBody = zod.object({
   storyPoints: zod.number().nullish(),
   startDate: zod.coerce.date().nullish(),
   endDate: zod.coerce.date().nullish(),
+  stakeholder: zod.string().nullish(),
   impact: zod.string().nullish(),
   blockedReason: zod.string().nullish(),
   cycleId: zod.number().nullish(),
