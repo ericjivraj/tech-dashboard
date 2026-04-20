@@ -17,7 +17,7 @@ const COLUMN_TOOLTIPS: Record<string, string> = {
   "Team / Sponsor": "The team responsible for delivery, and the sponsor driving this project",
   "Stakeholder": "Business stakeholder for this project",
   "Goals": "Business goals this project contributes to",
-  "Confidence": "Team's confidence in delivery",
+  "Confidence": "Team's confidence in being on track with the predicted delivery timeframe",
   "Points": "Estimated story points for scope",
   "Timing": "Assigned cycle and date range",
   "Latest Update": "Most recent project update",
