@@ -118,7 +118,7 @@ export const PDF_COLUMNS: PdfColumn[] = [
     getValue: (p) => {
       if (!p.cycle) return "Unscheduled";
       if (p.cycle.startDate && p.cycle.endDate) {
-        return `${p.cycle.name} (${ordinalDate(p.cycle.startDate)} to ${ordinalDate(p.cycle.endDate)})`;
+        return `${p.cycle.name}: ${shortDate(p.cycle.startDate)} – ${shortDate(p.cycle.endDate, true)}`;
       }
       return p.cycle.name;
     },
@@ -215,6 +215,15 @@ export function exportProjectsToPDF(
 
   const date = new Date().toISOString().split("T")[0];
   doc.save(`portfolio-${date}.pdf`);
+}
+
+function shortDate(dateStr: string, includeYear = false): string {
+  const d = new Date(dateStr + "T00:00:00");
+  const month = d.toLocaleDateString("en-US", { month: "short" });
+  const day = d.getDate();
+  return includeYear
+    ? `${month} ${day}, ${d.getFullYear()}`
+    : `${month} ${day}`;
 }
 
 function ordinalDate(dateStr: string): string {
