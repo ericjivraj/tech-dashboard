@@ -179,13 +179,13 @@ export default function FilterBar({ filters, onFiltersChange, teams, sponsors, f
                       <span className="flex items-center gap-1.5">
                         {c.name}
                         {c.id === activeCycleId && (
-                          <span className="inline-flex items-center rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300 leading-none">Active</span>
+                          <span className="inline-flex items-center rounded-full bg-blue-100 px-1.5 py-0.5 text-[10px] font-medium text-blue-700 dark:bg-blue-900 dark:text-blue-300 leading-none">Active</span>
                         )}
                         {c.id === nextCycleId && (
-                          <span className="inline-flex items-center rounded-full bg-indigo-100 px-1.5 py-0.5 text-[10px] font-medium text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300 leading-none">Next</span>
+                          <span className="inline-flex items-center rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 dark:bg-amber-900 dark:text-amber-300 leading-none">Next</span>
                         )}
                         {isPast && c.id !== activeCycleId && (
-                          <span className="inline-flex items-center rounded-full bg-muted/60 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground/70 leading-none">Done</span>
+                          <span className="inline-flex items-center rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300 leading-none">Done</span>
                         )}
                       </span>
                     </SelectItem>
@@ -216,13 +216,13 @@ export default function FilterBar({ filters, onFiltersChange, teams, sponsors, f
                       <span className="flex items-center gap-1.5">
                         {s.name}
                         {s.id === activeSprintId && (
-                          <span className="inline-flex items-center rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300 leading-none">Active</span>
+                          <span className="inline-flex items-center rounded-full bg-blue-100 px-1.5 py-0.5 text-[10px] font-medium text-blue-700 dark:bg-blue-900 dark:text-blue-300 leading-none">Active</span>
                         )}
                         {s.id === nextSprintId && (
-                          <span className="inline-flex items-center rounded-full bg-indigo-100 px-1.5 py-0.5 text-[10px] font-medium text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300 leading-none">Next</span>
+                          <span className="inline-flex items-center rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 dark:bg-amber-900 dark:text-amber-300 leading-none">Next</span>
                         )}
                         {isPast && s.id !== activeSprintId && (
-                          <span className="inline-flex items-center rounded-full bg-muted/60 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground/70 leading-none">Done</span>
+                          <span className="inline-flex items-center rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300 leading-none">Done</span>
                         )}
                       </span>
                     </SelectItem>
