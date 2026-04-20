@@ -14,7 +14,7 @@ import { CONFIDENCE_COLORS, STATUS_LABELS, STATUS_ORDER } from "@/lib/constants"
 const COLUMN_TOOLTIPS: Record<string, string> = {
   "Project Name": "The name and any blocked reason for the project",
   "Status": "Current workflow status of the project",
-  "Team / Sponsor": "The team responsible for delivery, and the business sponsor responsible for the project",
+  "Team / Sponsor": "The team responsible for delivery, and the sponsor driving this project",
   "Stakeholder": "Business stakeholder for this project",
   "Goals": "Business goals this project contributes to",
   "Confidence": "Team's confidence in delivery",
