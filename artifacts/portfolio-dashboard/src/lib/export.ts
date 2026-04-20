@@ -112,8 +112,14 @@ export const PDF_COLUMNS: PdfColumn[] = [
   {
     key: "cycle",
     label: "Cycle",
-    width: 8,
-    getValue: (p) => p.cycle?.name ?? "Unscheduled",
+    width: 13,
+    getValue: (p) => {
+      if (!p.cycle) return "Unscheduled";
+      if (p.cycle.startDate && p.cycle.endDate) {
+        return `${p.cycle.name} (${ordinalDate(p.cycle.startDate)} to ${ordinalDate(p.cycle.endDate)})`;
+      }
+      return p.cycle.name;
+    },
   },
   {
     key: "goals",
@@ -210,6 +216,17 @@ export function exportProjectsToPDF(
   setTimeout(() => {
     win.print();
   }, 300);
+}
+
+function ordinalDate(dateStr: string): string {
+  const d = new Date(dateStr + "T00:00:00");
+  const day = d.getDate();
+  const suffix =
+    day % 10 === 1 && day !== 11 ? "st" :
+    day % 10 === 2 && day !== 12 ? "nd" :
+    day % 10 === 3 && day !== 13 ? "rd" : "th";
+  const month = d.toLocaleDateString("en-GB", { month: "long" });
+  return `${day}${suffix} of ${month}`;
 }
 
 function escapeHtml(str: string): string {
