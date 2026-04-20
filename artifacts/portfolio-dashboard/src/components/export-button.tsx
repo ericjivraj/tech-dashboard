@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Download, FileText, Sheet, GripVertical } from "lucide-react";
+import { Download, GripVertical } from "lucide-react";
 import {
   DndContext,
   closestCenter,
@@ -19,14 +19,6 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { Button } from "@/components/ui/button";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -38,7 +30,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { useListProjects, type ListProjectsParams } from "@workspace/api-client-react";
 import {
-  exportProjectsToCSV,
   exportProjectsToPDF,
   PDF_COLUMNS,
   DEFAULT_PDF_COLUMN_KEYS,
@@ -142,7 +133,6 @@ interface ExportButtonProps {
 
 export default function ExportButton({ params }: ExportButtonProps) {
   const { data: projects } = useListProjects(params);
-  const [open, setOpen] = useState(false);
   const [columnDialogOpen, setColumnDialogOpen] = useState(false);
   const [selectedColumns, setSelectedColumns] = useState<Set<string>>(loadStoredSelectedColumns);
   const [columnOrder, setColumnOrder] = useState<string[]>(loadStoredColumnOrder);
@@ -182,7 +172,7 @@ export default function ExportButton({ params }: ExportButtonProps) {
     }
   }
 
-  function handleCSV() {
+  function handleExportClick() {
     if (!projects || projects.length === 0) {
       toast({
         title: "Nothing to export",
@@ -191,25 +181,6 @@ export default function ExportButton({ params }: ExportButtonProps) {
       });
       return;
     }
-    const date = new Date().toISOString().split("T")[0];
-    exportProjectsToCSV(projects, `portfolio-${date}.csv`);
-    setOpen(false);
-    toast({
-      title: "CSV downloaded",
-      description: `${projects.length} project${projects.length !== 1 ? "s" : ""} exported.`,
-    });
-  }
-
-  function handlePDFClick() {
-    if (!projects || projects.length === 0) {
-      toast({
-        title: "Nothing to export",
-        description: "No projects match the current filters.",
-        variant: "destructive",
-      });
-      return;
-    }
-    setOpen(false);
     setColumnDialogOpen(true);
   }
 
@@ -242,42 +213,19 @@ export default function ExportButton({ params }: ExportButtonProps) {
   }
 
   const columnLabelMap = new Map(PDF_COLUMNS.map((c) => [c.key, c.label]));
-  const count = projects?.length ?? null;
 
   return (
     <>
-      <DropdownMenu open={open} onOpenChange={setOpen}>
-        <DropdownMenuTrigger asChild>
-          <Button size="sm" variant="outline" className="gap-1.5" data-testid="export-button">
-            <Download className="h-3.5 w-3.5" />
-            Export
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-44">
-          <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">
-            {count !== null
-              ? `${count} project${count !== 1 ? "s" : ""}`
-              : "Loading…"}
-          </DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            onClick={handleCSV}
-            className="gap-2 cursor-pointer"
-            data-testid="export-csv"
-          >
-            <Sheet className="h-4 w-4 text-emerald-600" />
-            Download CSV
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={handlePDFClick}
-            className="gap-2 cursor-pointer"
-            data-testid="export-pdf"
-          >
-            <FileText className="h-4 w-4 text-red-500" />
-            Print / PDF
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <Button
+        size="sm"
+        variant="outline"
+        className="gap-1.5"
+        data-testid="export-button"
+        onClick={handleExportClick}
+      >
+        <Download className="h-3.5 w-3.5" />
+        Export
+      </Button>
 
       <Dialog open={columnDialogOpen} onOpenChange={setColumnDialogOpen}>
         <DialogContent className="sm:max-w-xs" data-testid="pdf-column-dialog">
