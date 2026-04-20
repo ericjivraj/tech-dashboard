@@ -12,7 +12,7 @@ import { CONFIDENCE_COLORS, STATUS_LABELS } from "@/lib/constants";
 const COLUMN_DESCRIPTIONS: Record<ProjectStatus, string> = {
   new_request: "Newly submitted project requests awaiting triage",
   backlog: "Projects that have been deemed a priority either by the function and/or senior leadership",
-  up_next: "Projects lined up for the next development cycle",
+  up_next: "Projects that have been confirmed as a priority by senior leadership for the next available development cycle",
   in_progress: "Projects actively being worked on right now",
   blocked: "Projects that cannot progress due to a dependency or issue",
   done: "Completed and delivered projects",
