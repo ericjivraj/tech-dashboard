@@ -7,3 +7,5 @@ export * from "./projectUpdates";
 export * from "./emailSchedule";
 export * from "./users";
 export * from "./auditLog";
+export * from "./sprintCapacity";
+export * from "./projectSprintAllocations";

@@ -4,6 +4,7 @@ import {
   getListProjectsQueryKey, getGetDashboardSummaryQueryKey, getGetProjectQueryKey, getGetProjectsTimelineQueryKey,
   useListGoals, useListCycles, useListSprints,
   useGetMe,
+  useGetProjectAllocations, useUpsertProjectAllocations, getGetProjectAllocationsQueryKey,
   ProjectWithDetails, ProjectStatus, ProjectConfidence
 } from "@workspace/api-client-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -19,6 +20,7 @@ import * as z from "zod";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { TEAMS, SPONSORS, STATUS_LABELS, STATUS_ORDER } from "@/lib/constants";
+import { format, parseISO } from "date-fns";
 
 const formSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -35,8 +37,17 @@ const formSchema = z.object({
   blockedReason: z.string().optional().nullable(),
   cycleId: z.coerce.number().optional().nullable(),
   sprintId: z.coerce.number().optional().nullable(),
+  completionPercent: z.coerce.number().min(0).max(100).optional().nullable(),
   goalIds: z.array(z.number()).default([])
 });
+
+type AllocationEntry = {
+  sprintId: number;
+  sprintName: string;
+  a3: number;
+  backend: number;
+  frontend: number;
+};
 
 export default function ProjectForm({ 
   open, 
@@ -56,8 +67,20 @@ export default function ProjectForm({
   
   const createProject = useCreateProject();
   const updateProject = useUpdateProject();
+  const upsertAllocations = useUpsertProjectAllocations();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+
+  const [allocations, setAllocations] = useState<AllocationEntry[]>([]);
+
+  const allocProjectId = projectToEdit?.id ?? 0;
+  const { data: existingAllocations } = useGetProjectAllocations(
+    allocProjectId,
+    { query: {
+      enabled: !!projectToEdit && projectToEdit.team === "Development",
+      queryKey: getGetProjectAllocationsQueryKey(allocProjectId),
+    } }
+  );
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -76,9 +99,35 @@ export default function ProjectForm({
       blockedReason: "",
       cycleId: null,
       sprintId: null,
+      completionPercent: null,
       goalIds: []
     }
   });
+
+  const watchedTeam = form.watch("team");
+  const watchedCycleId = form.watch("cycleId");
+  const watchedStoryPoints = form.watch("storyPoints");
+  const isDevTeam = watchedTeam === "Development";
+
+  const watchedStartDate = form.watch("startDate");
+  const watchedEndDate = form.watch("endDate");
+
+  const cycleSprintsForAllocation = (() => {
+    if (!sprints || !isDevTeam) return [];
+    const projectStart = watchedStartDate || (projectToEdit?.startDate?.split("T")[0] ?? null);
+    const projectEnd = watchedEndDate || (projectToEdit?.endDate?.split("T")[0] ?? null);
+    if (projectStart && projectEnd) {
+      return sprints
+        .filter(s => s.endDate >= projectStart && s.startDate <= projectEnd)
+        .sort((a, b) => a.startDate.localeCompare(b.startDate));
+    }
+    if (watchedCycleId) {
+      return sprints
+        .filter(s => s.cycleId.toString() === watchedCycleId.toString())
+        .sort((a, b) => a.startDate.localeCompare(b.startDate));
+    }
+    return [];
+  })();
 
   useEffect(() => {
     if (projectToEdit) {
@@ -97,6 +146,7 @@ export default function ProjectForm({
         blockedReason: projectToEdit.blockedReason,
         cycleId: projectToEdit.cycleId,
         sprintId: projectToEdit.sprintId,
+        completionPercent: projectToEdit.completionPercent ?? null,
         goalIds: projectToEdit.goals?.map(g => g.id) || []
       });
     } else {
@@ -115,39 +165,107 @@ export default function ProjectForm({
         blockedReason: "",
         cycleId: null,
         sprintId: null,
+        completionPercent: null,
         goalIds: []
       });
+      setAllocations([]);
     }
   }, [projectToEdit, form, isGuest, guestTeam]);
 
-  const onSubmit = (values: z.infer<typeof formSchema>) => {
+  useEffect(() => {
+    if (!projectToEdit || !existingAllocations || !sprints) return;
+    const projectStart = projectToEdit.startDate?.split("T")[0] ?? null;
+    const projectEnd = projectToEdit.endDate?.split("T")[0] ?? null;
+    let relevantSprints = projectStart && projectEnd
+      ? sprints.filter(s => s.endDate >= projectStart && s.startDate <= projectEnd)
+      : (projectToEdit.cycleId ? sprints.filter(s => s.cycleId === projectToEdit.cycleId) : []);
+    relevantSprints = relevantSprints.sort((a, b) => a.startDate.localeCompare(b.startDate));
+    const newAllocations: AllocationEntry[] = relevantSprints.map(sprint => {
+      const a3 = existingAllocations.find(a => a.sprintId === sprint.id && a.subTeam === "a3")?.storyPoints ?? 0;
+      const backend = existingAllocations.find(a => a.sprintId === sprint.id && a.subTeam === "backend")?.storyPoints ?? 0;
+      const frontend = existingAllocations.find(a => a.sprintId === sprint.id && a.subTeam === "frontend")?.storyPoints ?? 0;
+      return { sprintId: sprint.id, sprintName: sprint.name, a3, backend, frontend };
+    });
+    setAllocations(newAllocations);
+  }, [existingAllocations, sprints, projectToEdit]);
+
+  useEffect(() => {
+    if (!isDevTeam || !cycleSprintsForAllocation.length) return;
+    setAllocations(prev => {
+      return cycleSprintsForAllocation.map(sprint => {
+        const existing = prev.find(a => a.sprintId === sprint.id);
+        return existing ?? { sprintId: sprint.id, sprintName: sprint.name, a3: 0, backend: 0, frontend: 0 };
+      });
+    });
+  }, [watchedCycleId, watchedStartDate, watchedEndDate, isDevTeam, sprints]);
+
+  const today = new Date().toISOString().slice(0, 10);
+  const totalAllocated = allocations.reduce((sum, a) => sum + a.a3 + a.backend + a.frontend, 0);
+  const pastAllocated = allocations
+    .filter(a => {
+      const sprint = sprints?.find(s => s.id === a.sprintId);
+      return sprint && sprint.endDate <= today;
+    })
+    .reduce((sum, a) => sum + a.a3 + a.backend + a.frontend, 0);
+  const autoCompletionPercent = watchedStoryPoints && watchedStoryPoints > 0 && pastAllocated > 0
+    ? Math.min(100, Math.round((pastAllocated / watchedStoryPoints) * 100))
+    : null;
+
+  const updateAllocation = (sprintId: number, field: "a3" | "backend" | "frontend", value: number) => {
+    setAllocations(prev => prev.map(a => a.sprintId === sprintId ? { ...a, [field]: value } : a));
+  };
+
+  const saveAllocations = async (projectId: number) => {
+    if (!isDevTeam) return;
+    const entries = allocations.flatMap(a => [
+      ...(a.a3 > 0 ? [{ sprintId: a.sprintId, subTeam: "a3" as const, storyPoints: a.a3 }] : []),
+      ...(a.backend > 0 ? [{ sprintId: a.sprintId, subTeam: "backend" as const, storyPoints: a.backend }] : []),
+      ...(a.frontend > 0 ? [{ sprintId: a.sprintId, subTeam: "frontend" as const, storyPoints: a.frontend }] : []),
+    ]);
+    await upsertAllocations.mutateAsync({ id: projectId, data: { allocations: entries } });
+  };
+
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
     const payload = {
       ...values,
       storyPoints: values.storyPoints ? Number(values.storyPoints) : null,
       cycleId: values.cycleId ? Number(values.cycleId) : null,
       sprintId: values.sprintId ? Number(values.sprintId) : null,
+      completionPercent: values.completionPercent != null ? Number(values.completionPercent) : null,
     };
 
     if (projectToEdit) {
       updateProject.mutate({ id: projectToEdit.id, data: payload }, {
-        onSuccess: () => {
+        onSuccess: async () => {
+          try {
+            await saveAllocations(projectToEdit.id);
+          } catch {
+            toast({ title: "Project updated, but allocations failed to save", variant: "destructive" });
+          }
           onOpenChange(false);
           queryClient.invalidateQueries({ queryKey: getListProjectsQueryKey() });
           queryClient.invalidateQueries({ queryKey: getGetProjectQueryKey(projectToEdit.id) });
           queryClient.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey() });
           queryClient.invalidateQueries({ queryKey: getGetProjectsTimelineQueryKey() });
-          toast({ title: "Project updated" });
+          queryClient.invalidateQueries({ queryKey: ["/api/capacity/summary"] });
+          if (!updateProject.isError) toast({ title: "Project updated" });
         }
       });
     } else {
       createProject.mutate({ data: payload }, {
-        onSuccess: () => {
+        onSuccess: async (created) => {
+          try {
+            await saveAllocations(created.id);
+          } catch {
+            toast({ title: "Project created, but allocations failed to save", variant: "destructive" });
+          }
           onOpenChange(false);
           form.reset();
           queryClient.invalidateQueries({ queryKey: getListProjectsQueryKey() });
           queryClient.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey() });
           queryClient.invalidateQueries({ queryKey: getGetProjectsTimelineQueryKey() });
-          toast({ title: "Project created" });
+          queryClient.invalidateQueries({ queryKey: ["/api/capacity/summary"] });
+          if (!createProject.isError) toast({ title: "Project created" });
         }
       });
     }
@@ -400,6 +518,99 @@ export default function ProjectForm({
                 )}
               />
             </div>
+
+            {isDevTeam && (
+              <div className="rounded-lg border border-blue-200 bg-blue-50/30 dark:border-blue-800/30 dark:bg-blue-950/10 p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-200">Sub-team Allocation</h4>
+                  {watchedCycleId ? null : (
+                    <span className="text-xs text-muted-foreground">Select a cycle to enter sprint allocations</span>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="completionPercent"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs">% Complete</FormLabel>
+                        <div className="flex items-center gap-2">
+                          <FormControl>
+                            <Input
+                              type="number"
+                              min={0}
+                              max={100}
+                              placeholder={autoCompletionPercent != null ? `Auto: ${autoCompletionPercent}%` : "0–100"}
+                              {...field}
+                              value={field.value ?? ""}
+                            />
+                          </FormControl>
+                          {field.value != null && (
+                            <Button type="button" variant="ghost" size="sm" className="text-xs px-2 h-8" onClick={() => form.setValue("completionPercent", null)}>
+                              Reset
+                            </Button>
+                          )}
+                        </div>
+                        {field.value == null && autoCompletionPercent != null && (
+                          <p className="text-xs text-muted-foreground">Auto-calculated: {autoCompletionPercent}%</p>
+                        )}
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                {cycleSprintsForAllocation.length > 0 && (
+                  <div className="space-y-2">
+                    <div className="grid grid-cols-4 gap-2 text-xs font-medium text-muted-foreground">
+                      <div>Sprint</div>
+                      <div>A3 pts</div>
+                      <div>Backend pts</div>
+                      <div>Frontend pts</div>
+                    </div>
+                    {cycleSprintsForAllocation.map(sprint => {
+                      const alloc = allocations.find(a => a.sprintId === sprint.id) ?? { sprintId: sprint.id, sprintName: sprint.name, a3: 0, backend: 0, frontend: 0 };
+                      return (
+                        <div key={sprint.id} className="grid grid-cols-4 gap-2 items-center">
+                          <div className="text-xs font-medium truncate" title={sprint.name}>{sprint.name}</div>
+                          <Input
+                            type="number"
+                            min={0}
+                            className="h-7 text-xs"
+                            value={alloc.a3 || ""}
+                            placeholder="0"
+                            onChange={e => updateAllocation(sprint.id, "a3", Number(e.target.value) || 0)}
+                          />
+                          <Input
+                            type="number"
+                            min={0}
+                            className="h-7 text-xs"
+                            value={alloc.backend || ""}
+                            placeholder="0"
+                            onChange={e => updateAllocation(sprint.id, "backend", Number(e.target.value) || 0)}
+                          />
+                          <Input
+                            type="number"
+                            min={0}
+                            className="h-7 text-xs"
+                            value={alloc.frontend || ""}
+                            placeholder="0"
+                            onChange={e => updateAllocation(sprint.id, "frontend", Number(e.target.value) || 0)}
+                          />
+                        </div>
+                      );
+                    })}
+                    {totalAllocated > 0 && (
+                      <p className="text-xs text-muted-foreground pt-1">
+                        Total allocated: {totalAllocated} pts
+                        {watchedStoryPoints ? ` / ${watchedStoryPoints} pts (${Math.round((totalAllocated / watchedStoryPoints) * 100)}%)` : ""}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
 
             <FormField
               control={form.control}

@@ -8,7 +8,9 @@ import {
   goalsTable,
   cyclesTable,
   sprintsTable,
+  projectSprintAllocationsTable,
 } from "@workspace/db";
+import { z } from "zod";
 import {
   CreateProjectBody,
   UpdateProjectBody,
@@ -191,6 +193,10 @@ router.post("/projects", requireAuth, async (req, res): Promise<void> => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
+  if (parsed.data.completionPercent != null && (parsed.data.completionPercent < 0 || parsed.data.completionPercent > 100)) {
+    res.status(400).json({ error: "completionPercent must be between 0 and 100" });
+    return;
+  }
 
   const ctx = req.authContext;
 
@@ -229,6 +235,12 @@ router.post("/projects", requireAuth, async (req, res): Promise<void> => {
 });
 
 router.get("/projects/timeline", async (req, res): Promise<void> => {
+  const windowCycleId = req.query.cycleId != null && req.query.cycleId !== "" && req.query.cycleId !== "null"
+    ? Number(req.query.cycleId)
+    : null;
+  const windowStartDate = typeof req.query.startDate === "string" && req.query.startDate ? req.query.startDate : null;
+  const windowEndDate = typeof req.query.endDate === "string" && req.query.endDate ? req.query.endDate : null;
+
   const projects = await db.select().from(projectsTable).orderBy(projectsTable.startDate);
 
   if (projects.length === 0) {
@@ -260,9 +272,74 @@ router.get("/projects/timeline", async (req, res): Promise<void> => {
     goalsByProject.set(r.projectId, existing);
   }
 
+  const allAllocations = projectIds.length > 0
+    ? await db
+        .select()
+        .from(projectSprintAllocationsTable)
+        .where(inArray(projectSprintAllocationsTable.projectId, projectIds))
+    : [];
+
+  const allSprintIds = [...new Set(allAllocations.map((a) => a.sprintId))];
+  const allocationSprints = allSprintIds.length > 0
+    ? await db.select().from(sprintsTable).where(inArray(sprintsTable.id, allSprintIds))
+    : [];
+  const allocationSprintMap = new Map(allocationSprints.map((s) => [s.id, s]));
+
+  const today = new Date().toISOString().split("T")[0];
+
+  const windowSprintIds: Set<number> | null = (() => {
+    if (windowCycleId != null) {
+      return new Set(allocationSprints.filter((s) => s.cycleId === windowCycleId).map((s) => s.id));
+    }
+    if (windowStartDate && windowEndDate) {
+      return new Set(allocationSprints
+        .filter((s) => s.startDate <= windowEndDate && s.endDate >= windowStartDate)
+        .map((s) => s.id));
+    }
+    return null;
+  })();
+
+  const allocationsByProject = new Map<number, typeof projectSprintAllocationsTable.$inferSelect[]>();
+  for (const a of allAllocations) {
+    const existing = allocationsByProject.get(a.projectId) ?? [];
+    existing.push(a);
+    allocationsByProject.set(a.projectId, existing);
+  }
+
   const result = projects.map((p) => {
     const cycle = p.cycleId ? cycleMap.get(p.cycleId) : undefined;
     const sprint = p.sprintId ? sprintMap.get(p.sprintId) : undefined;
+    const allocations = allocationsByProject.get(p.id) ?? [];
+    const totalPoints = p.storyPoints ?? 0;
+
+    const windowAllocations = windowSprintIds != null
+      ? allocations.filter((a) => windowSprintIds.has(a.sprintId))
+      : allocations;
+
+    let subTeamSummary: { a3Percent: number | null; backendPercent: number | null; frontendPercent: number | null } | null = null;
+    if (p.team === "Development" && windowAllocations.length > 0 && totalPoints > 0) {
+      const a3Total = windowAllocations.filter((a) => a.subTeam === "a3").reduce((s, a) => s + a.storyPoints, 0);
+      const beTotal = windowAllocations.filter((a) => a.subTeam === "backend").reduce((s, a) => s + a.storyPoints, 0);
+      const feTotal = windowAllocations.filter((a) => a.subTeam === "frontend").reduce((s, a) => s + a.storyPoints, 0);
+      subTeamSummary = {
+        a3Percent: a3Total > 0 ? Math.round((a3Total / totalPoints) * 100) : null,
+        backendPercent: beTotal > 0 ? Math.round((beTotal / totalPoints) * 100) : null,
+        frontendPercent: feTotal > 0 ? Math.round((feTotal / totalPoints) * 100) : null,
+      };
+    }
+
+    let resolvedCompletionPercent: number | null = p.completionPercent ?? null;
+    if (resolvedCompletionPercent == null && p.team === "Development" && allocations.length > 0 && totalPoints > 0) {
+      const pastAllocations = allocations.filter((a) => {
+        const s = allocationSprintMap.get(a.sprintId);
+        return s != null && s.endDate <= today;
+      });
+      const pastTotal = pastAllocations.reduce((sum, a) => sum + a.storyPoints, 0);
+      if (pastTotal > 0) {
+        resolvedCompletionPercent = Math.min(100, Math.round((pastTotal / totalPoints) * 100));
+      }
+    }
+
     return {
       id: p.id,
       title: p.title,
@@ -281,6 +358,8 @@ router.get("/projects/timeline", async (req, res): Promise<void> => {
       sprintId: p.sprintId ?? null,
       sprintName: sprint?.name ?? null,
       sprintNumber: sprint?.sprintNumber ?? null,
+      completionPercent: resolvedCompletionPercent,
+      subTeamSummary: subTeamSummary ?? { a3Percent: null, backendPercent: null, frontendPercent: null },
       goals: goalsByProject.get(p.id) ?? [],
     };
   });
@@ -412,6 +491,10 @@ router.patch("/projects/:id", requireAuth, async (req, res): Promise<void> => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
+  if (parsed.data.completionPercent != null && (parsed.data.completionPercent < 0 || parsed.data.completionPercent > 100)) {
+    res.status(400).json({ error: "completionPercent must be between 0 and 100" });
+    return;
+  }
 
   const ctx = req.authContext;
 
@@ -467,6 +550,9 @@ router.patch("/projects/:id", requireAuth, async (req, res): Promise<void> => {
     }
     after = project;
     fieldUpdated = true;
+    if (before.team === "Development" && after.team !== "Development") {
+      await db.delete(projectSprintAllocationsTable).where(eq(projectSprintAllocationsTable.projectId, params.data.id));
+    }
   }
 
   let goalsUpdated = false;
@@ -612,6 +698,110 @@ router.delete("/projects/:projectId/updates/:updateId", requireAuth, async (req,
     return;
   }
   res.sendStatus(204);
+});
+
+const ProjectIdParams = z.object({ id: z.coerce.number().int() });
+const UpsertProjectAllocationsBody = z.object({
+  allocations: z.array(z.object({
+    sprintId: z.number().int(),
+    subTeam: z.enum(["a3", "backend", "frontend"]),
+    storyPoints: z.number().int().min(0),
+  })),
+});
+
+router.get("/projects/:id/allocations", async (req, res): Promise<void> => {
+  const params = ProjectIdParams.safeParse(req.params);
+  if (!params.success) {
+    res.status(400).json({ error: params.error.message });
+    return;
+  }
+  const [project] = await db.select({ id: projectsTable.id }).from(projectsTable).where(eq(projectsTable.id, params.data.id));
+  if (!project) {
+    res.status(404).json({ error: "Project not found" });
+    return;
+  }
+  const allocations = await db
+    .select()
+    .from(projectSprintAllocationsTable)
+    .where(eq(projectSprintAllocationsTable.projectId, params.data.id))
+    .orderBy(projectSprintAllocationsTable.sprintId);
+  res.json(allocations);
+});
+
+router.put("/projects/:id/allocations", requireAuth, async (req, res): Promise<void> => {
+  const params = ProjectIdParams.safeParse(req.params);
+  if (!params.success) {
+    res.status(400).json({ error: params.error.message });
+    return;
+  }
+  const parsed = UpsertProjectAllocationsBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+  const [project] = await db
+    .select({ id: projectsTable.id, team: projectsTable.team, startDate: projectsTable.startDate, endDate: projectsTable.endDate })
+    .from(projectsTable).where(eq(projectsTable.id, params.data.id));
+  if (!project) {
+    res.status(404).json({ error: "Project not found" });
+    return;
+  }
+  if (project.team !== "Development") {
+    res.status(400).json({ error: "Allocations can only be set for Development team projects" });
+    return;
+  }
+  const ctx = req.authContext;
+  if (ctx?.role === "guest" && project.team !== ctx.team) {
+    res.status(403).json({ error: "Forbidden — guests can only update allocations for projects belonging to their team" });
+    return;
+  }
+
+  const allocationKeys = parsed.data.allocations.map((a) => `${a.sprintId}:${a.subTeam}`);
+  const duplicateKeys = allocationKeys.filter((k, i) => allocationKeys.indexOf(k) !== i);
+  if (duplicateKeys.length > 0) {
+    const unique = [...new Set(duplicateKeys)];
+    res.status(400).json({ error: `Duplicate allocation entries: ${unique.join(", ")}` });
+    return;
+  }
+
+  if (parsed.data.allocations.length > 0 && project.startDate && project.endDate) {
+    const allocationSprintIds = [...new Set(parsed.data.allocations.map((a) => a.sprintId))];
+    const allocationSprints = await db
+      .select({ id: sprintsTable.id, startDate: sprintsTable.startDate, endDate: sprintsTable.endDate })
+      .from(sprintsTable)
+      .where(inArray(sprintsTable.id, allocationSprintIds));
+    const sprintById = new Map(allocationSprints.map((s) => [s.id, s]));
+    const outOfRange = allocationSprintIds.filter((id) => {
+      const sprint = sprintById.get(id);
+      if (!sprint) return true;
+      return sprint.startDate > project.endDate! || sprint.endDate < project.startDate!;
+    });
+    if (outOfRange.length > 0) {
+      res.status(400).json({ error: `Sprint IDs [${outOfRange.join(", ")}] do not overlap with the project date range` });
+      return;
+    }
+  }
+
+  await db.transaction(async (tx) => {
+    await tx.delete(projectSprintAllocationsTable).where(eq(projectSprintAllocationsTable.projectId, params.data.id));
+    if (parsed.data.allocations.length > 0) {
+      await tx.insert(projectSprintAllocationsTable).values(
+        parsed.data.allocations.map((a) => ({
+          projectId: params.data.id,
+          sprintId: a.sprintId,
+          subTeam: a.subTeam,
+          storyPoints: a.storyPoints,
+        })),
+      );
+    }
+  });
+
+  const allocations = await db
+    .select()
+    .from(projectSprintAllocationsTable)
+    .where(eq(projectSprintAllocationsTable.projectId, params.data.id))
+    .orderBy(projectSprintAllocationsTable.sprintId);
+  res.json(allocations);
 });
 
 export default router;

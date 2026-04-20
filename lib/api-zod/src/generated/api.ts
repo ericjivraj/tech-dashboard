@@ -110,6 +110,46 @@ export const CreateSprintBody = zod.object({
 });
 
 /**
+ * @summary Get capacity budgets for a sprint (A3, Backend, Frontend)
+ */
+export const GetSprintCapacityParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetSprintCapacityResponse = zod.object({
+  sprintId: zod.number(),
+  a3: zod.number().nullable(),
+  backend: zod.number().nullable(),
+  frontend: zod.number().nullable(),
+});
+
+/**
+ * @summary Set capacity budgets for a sprint (editor only)
+ */
+export const UpsertSprintCapacityParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const upsertSprintCapacityBodyA3Min = 0;
+
+export const upsertSprintCapacityBodyBackendMin = 0;
+
+export const upsertSprintCapacityBodyFrontendMin = 0;
+
+export const UpsertSprintCapacityBody = zod.object({
+  a3: zod.number().min(upsertSprintCapacityBodyA3Min).nullish(),
+  backend: zod.number().min(upsertSprintCapacityBodyBackendMin).nullish(),
+  frontend: zod.number().min(upsertSprintCapacityBodyFrontendMin).nullish(),
+});
+
+export const UpsertSprintCapacityResponse = zod.object({
+  sprintId: zod.number(),
+  a3: zod.number().nullable(),
+  backend: zod.number().nullable(),
+  frontend: zod.number().nullable(),
+});
+
+/**
  * @summary Update a sprint (editor only)
  */
 export const UpdateSprintParams = zod.object({
@@ -239,6 +279,7 @@ export const ListProjectsResponseItem = zod
     blockedReason: zod.string().nullable(),
     cycleId: zod.number().nullable(),
     sprintId: zod.number().nullable(),
+    completionPercent: zod.number().nullable(),
     createdAt: zod.coerce.date(),
     updatedAt: zod.coerce.date(),
   })
@@ -312,6 +353,7 @@ export const CreateProjectBody = zod.object({
   blockedReason: zod.string().nullish(),
   cycleId: zod.number().nullish(),
   sprintId: zod.number().nullish(),
+  completionPercent: zod.number().nullish(),
   goalIds: zod.array(zod.number()).optional(),
 });
 
@@ -354,6 +396,7 @@ export const GetProjectResponse = zod
     blockedReason: zod.string().nullable(),
     cycleId: zod.number().nullable(),
     sprintId: zod.number().nullable(),
+    completionPercent: zod.number().nullable(),
     createdAt: zod.coerce.date(),
     updatedAt: zod.coerce.date(),
   })
@@ -433,6 +476,7 @@ export const UpdateProjectBody = zod.object({
   blockedReason: zod.string().nullish(),
   cycleId: zod.number().nullish(),
   sprintId: zod.number().nullish(),
+  completionPercent: zod.number().nullish(),
   goalIds: zod.array(zod.number()).nullish(),
 });
 
@@ -468,6 +512,7 @@ export const UpdateProjectResponse = zod
     blockedReason: zod.string().nullable(),
     cycleId: zod.number().nullable(),
     sprintId: zod.number().nullable(),
+    completionPercent: zod.number().nullable(),
     createdAt: zod.coerce.date(),
     updatedAt: zod.coerce.date(),
   })
@@ -512,6 +557,82 @@ export const UpdateProjectResponse = zod
  */
 export const DeleteProjectParams = zod.object({
   id: zod.coerce.number(),
+});
+
+/**
+ * @summary Get sub-team sprint allocations for a project
+ */
+export const GetProjectAllocationsParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetProjectAllocationsResponseItem = zod.object({
+  id: zod.number(),
+  projectId: zod.number(),
+  sprintId: zod.number(),
+  subTeam: zod.enum(["a3", "backend", "frontend"]),
+  storyPoints: zod.number(),
+  createdAt: zod.coerce.date(),
+});
+export const GetProjectAllocationsResponse = zod.array(
+  GetProjectAllocationsResponseItem,
+);
+
+/**
+ * @summary Set sub-team sprint allocations for a project (editor only)
+ */
+export const UpsertProjectAllocationsParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const upsertProjectAllocationsBodyAllocationsItemStoryPointsMin = 0;
+
+export const UpsertProjectAllocationsBody = zod.object({
+  allocations: zod.array(
+    zod.object({
+      sprintId: zod.number(),
+      subTeam: zod.enum(["a3", "backend", "frontend"]),
+      storyPoints: zod
+        .number()
+        .min(upsertProjectAllocationsBodyAllocationsItemStoryPointsMin),
+    }),
+  ),
+});
+
+export const UpsertProjectAllocationsResponseItem = zod.object({
+  id: zod.number(),
+  projectId: zod.number(),
+  sprintId: zod.number(),
+  subTeam: zod.enum(["a3", "backend", "frontend"]),
+  storyPoints: zod.number(),
+  createdAt: zod.coerce.date(),
+});
+export const UpsertProjectAllocationsResponse = zod.array(
+  UpsertProjectAllocationsResponseItem,
+);
+
+/**
+ * @summary Get aggregated capacity summary per cycle or sprint
+ */
+export const GetCapacitySummaryQueryParams = zod.object({
+  cycleId: zod.coerce.number().nullish(),
+  sprintId: zod.coerce.number().nullish(),
+});
+
+export const GetCapacitySummaryResponse = zod.object({
+  mode: zod.enum(["cycle", "sprint"]),
+  rows: zod.array(
+    zod.object({
+      id: zod.number(),
+      name: zod.string(),
+      a3Allocated: zod.number(),
+      a3Budget: zod.number().nullable(),
+      backendAllocated: zod.number(),
+      backendBudget: zod.number().nullable(),
+      frontendAllocated: zod.number(),
+      frontendBudget: zod.number().nullable(),
+    }),
+  ),
 });
 
 /**
@@ -590,6 +711,24 @@ export const GetDashboardSummaryResponse = zod.object({
  */
 export const GetProjectsTimelineQueryParams = zod.object({
   year: zod.coerce.number().nullish(),
+  cycleId: zod.coerce
+    .number()
+    .nullish()
+    .describe(
+      "When provided, sub-team summaries are scoped to sprints within this cycle",
+    ),
+  startDate: zod.coerce
+    .string()
+    .nullish()
+    .describe(
+      "ISO date string; when provided with endDate, scopes sub-team summaries to sprints overlapping this window",
+    ),
+  endDate: zod.coerce
+    .string()
+    .nullish()
+    .describe(
+      "ISO date string; when provided with startDate, scopes sub-team summaries to sprints overlapping this window",
+    ),
 });
 
 export const GetProjectsTimelineResponseItem = zod.object({
@@ -625,6 +764,14 @@ export const GetProjectsTimelineResponseItem = zod.object({
   sprintId: zod.number().nullable(),
   sprintName: zod.string().nullable(),
   sprintNumber: zod.number().nullable(),
+  completionPercent: zod.number().nullable(),
+  subTeamSummary: zod
+    .object({
+      a3Percent: zod.number().nullable(),
+      backendPercent: zod.number().nullable(),
+      frontendPercent: zod.number().nullable(),
+    })
+    .nullable(),
   goals: zod.array(
     zod.object({
       id: zod.number(),

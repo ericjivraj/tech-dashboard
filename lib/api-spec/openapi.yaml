@@ -219,6 +219,66 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /sprints/{id}/capacity:
+    get:
+      operationId: getSprintCapacity
+      tags: [sprints]
+      summary: Get capacity budgets for a sprint (A3, Backend, Frontend)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Sprint capacity entries
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SprintCapacity"
+        "404":
+          description: Sprint not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    put:
+      operationId: upsertSprintCapacity
+      tags: [sprints]
+      summary: Set capacity budgets for a sprint (editor only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpsertSprintCapacityBody"
+      responses:
+        "200":
+          description: Updated sprint capacity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SprintCapacity"
+        "404":
+          description: Sprint not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /sprints/{id}:
     patch:
       operationId: updateSprint
@@ -543,6 +603,94 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /projects/{id}/allocations:
+    get:
+      operationId: getProjectAllocations
+      tags: [projects]
+      summary: Get sub-team sprint allocations for a project
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Sub-team sprint allocations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProjectSprintAllocation"
+        "404":
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    put:
+      operationId: upsertProjectAllocations
+      tags: [projects]
+      summary: Set sub-team sprint allocations for a project (editor only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpsertProjectAllocationsBody"
+      responses:
+        "200":
+          description: Updated allocations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProjectSprintAllocation"
+        "404":
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /capacity/summary:
+    get:
+      operationId: getCapacitySummary
+      tags: [summary]
+      summary: Get aggregated capacity summary per cycle or sprint
+      parameters:
+        - name: cycleId
+          in: query
+          required: false
+          schema:
+            type: ["integer", "null"]
+        - name: sprintId
+          in: query
+          required: false
+          schema:
+            type: ["integer", "null"]
+      responses:
+        "200":
+          description: Capacity summary with allocations vs budgets
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CapacitySummary"
+
   /projects/{projectId}/updates:
     get:
       operationId: listProjectUpdates
@@ -667,6 +815,24 @@ paths:
           required: false
           schema:
             type: ["integer", "null"]
+        - name: cycleId
+          in: query
+          required: false
+          description: When provided, sub-team summaries are scoped to sprints within this cycle
+          schema:
+            type: ["integer", "null"]
+        - name: startDate
+          in: query
+          required: false
+          description: ISO date string; when provided with endDate, scopes sub-team summaries to sprints overlapping this window
+          schema:
+            type: ["string", "null"]
+        - name: endDate
+          in: query
+          required: false
+          description: ISO date string; when provided with startDate, scopes sub-team summaries to sprints overlapping this window
+          schema:
+            type: ["string", "null"]
       responses:
         "200":
           description: Projects with timeline details
@@ -1135,6 +1301,8 @@ components:
           type: ["integer", "null"]
         sprintId:
           type: ["integer", "null"]
+        completionPercent:
+          type: ["integer", "null"]
         createdAt:
           type: string
           format: date-time
@@ -1157,6 +1325,7 @@ components:
         - blockedReason
         - cycleId
         - sprintId
+        - completionPercent
         - createdAt
         - updatedAt
 
@@ -1258,6 +1427,8 @@ components:
           type: ["integer", "null"]
         sprintId:
           type: ["integer", "null"]
+        completionPercent:
+          type: ["integer", "null"]
         goalIds:
           type: array
           items:
@@ -1300,6 +1471,8 @@ components:
         cycleId:
           type: ["integer", "null"]
         sprintId:
+          type: ["integer", "null"]
+        completionPercent:
           type: ["integer", "null"]
         goalIds:
           type: ["array", "null"]
@@ -1453,6 +1626,21 @@ components:
           type: ["string", "null"]
         sprintNumber:
           type: ["integer", "null"]
+        completionPercent:
+          type: ["integer", "null"]
+        subTeamSummary:
+          type: ["object", "null"]
+          properties:
+            a3Percent:
+              type: ["number", "null"]
+            backendPercent:
+              type: ["number", "null"]
+            frontendPercent:
+              type: ["number", "null"]
+          required:
+            - a3Percent
+            - backendPercent
+            - frontendPercent
         goals:
           type: array
           items:
@@ -1475,4 +1663,127 @@ components:
         - sprintId
         - sprintName
         - sprintNumber
+        - completionPercent
+        - subTeamSummary
         - goals
+
+    SprintCapacity:
+      type: object
+      properties:
+        sprintId:
+          type: integer
+        a3:
+          type: ["integer", "null"]
+        backend:
+          type: ["integer", "null"]
+        frontend:
+          type: ["integer", "null"]
+      required:
+        - sprintId
+        - a3
+        - backend
+        - frontend
+
+    UpsertSprintCapacityBody:
+      type: object
+      properties:
+        a3:
+          type: ["integer", "null"]
+          minimum: 0
+        backend:
+          type: ["integer", "null"]
+          minimum: 0
+        frontend:
+          type: ["integer", "null"]
+          minimum: 0
+
+    ProjectSprintAllocation:
+      type: object
+      properties:
+        id:
+          type: integer
+        projectId:
+          type: integer
+        sprintId:
+          type: integer
+        subTeam:
+          type: string
+          enum: [a3, backend, frontend]
+        storyPoints:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - projectId
+        - sprintId
+        - subTeam
+        - storyPoints
+        - createdAt
+
+    UpsertProjectAllocationsBody:
+      type: object
+      properties:
+        allocations:
+          type: array
+          items:
+            type: object
+            properties:
+              sprintId:
+                type: integer
+              subTeam:
+                type: string
+                enum: [a3, backend, frontend]
+              storyPoints:
+                type: integer
+                minimum: 0
+            required:
+              - sprintId
+              - subTeam
+              - storyPoints
+      required:
+        - allocations
+
+    CapacitySummaryRow:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        a3Allocated:
+          type: integer
+        a3Budget:
+          type: ["integer", "null"]
+        backendAllocated:
+          type: integer
+        backendBudget:
+          type: ["integer", "null"]
+        frontendAllocated:
+          type: integer
+        frontendBudget:
+          type: ["integer", "null"]
+      required:
+        - id
+        - name
+        - a3Allocated
+        - a3Budget
+        - backendAllocated
+        - backendBudget
+        - frontendAllocated
+        - frontendBudget
+
+    CapacitySummary:
+      type: object
+      properties:
+        mode:
+          type: string
+          enum: [cycle, sprint]
+        rows:
+          type: array
+          items:
+            $ref: "#/components/schemas/CapacitySummaryRow"
+      required:
+        - mode
+        - rows

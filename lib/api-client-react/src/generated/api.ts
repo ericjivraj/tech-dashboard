@@ -20,6 +20,7 @@ import type {
   AppUser,
   AuditLogEntry,
   AuthUser,
+  CapacitySummary,
   CreateCycleBody,
   CreateGoalBody,
   CreateProjectBody,
@@ -29,20 +30,25 @@ import type {
   Cycle,
   DashboardSummary,
   ErrorResponse,
+  GetCapacitySummaryParams,
   GetProjectsTimelineParams,
   Goal,
   HealthStatus,
   ListProjectsParams,
   ListSprintsParams,
+  ProjectSprintAllocation,
   ProjectTimeline,
   ProjectUpdate,
   ProjectWithDetails,
   Sprint,
+  SprintCapacity,
   UpdateCycleBody,
   UpdateGoalBody,
   UpdateProjectBody,
   UpdateSprintBody,
   UpdateUserBody,
+  UpsertProjectAllocationsBody,
+  UpsertSprintCapacityBody,
 } from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
@@ -700,6 +706,181 @@ export const useCreateSprint = <
   TContext
 > => {
   return useMutation(getCreateSprintMutationOptions(options));
+};
+
+/**
+ * @summary Get capacity budgets for a sprint (A3, Backend, Frontend)
+ */
+export const getGetSprintCapacityUrl = (id: number) => {
+  return `/api/sprints/${id}/capacity`;
+};
+
+export const getSprintCapacity = async (
+  id: number,
+  options?: RequestInit,
+): Promise<SprintCapacity> => {
+  return customFetch<SprintCapacity>(getGetSprintCapacityUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetSprintCapacityQueryKey = (id: number) => {
+  return [`/api/sprints/${id}/capacity`] as const;
+};
+
+export const getGetSprintCapacityQueryOptions = <
+  TData = Awaited<ReturnType<typeof getSprintCapacity>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getSprintCapacity>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetSprintCapacityQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getSprintCapacity>>
+  > = ({ signal }) => getSprintCapacity(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getSprintCapacity>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetSprintCapacityQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getSprintCapacity>>
+>;
+export type GetSprintCapacityQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Get capacity budgets for a sprint (A3, Backend, Frontend)
+ */
+
+export function useGetSprintCapacity<
+  TData = Awaited<ReturnType<typeof getSprintCapacity>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getSprintCapacity>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetSprintCapacityQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Set capacity budgets for a sprint (editor only)
+ */
+export const getUpsertSprintCapacityUrl = (id: number) => {
+  return `/api/sprints/${id}/capacity`;
+};
+
+export const upsertSprintCapacity = async (
+  id: number,
+  upsertSprintCapacityBody: UpsertSprintCapacityBody,
+  options?: RequestInit,
+): Promise<SprintCapacity> => {
+  return customFetch<SprintCapacity>(getUpsertSprintCapacityUrl(id), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(upsertSprintCapacityBody),
+  });
+};
+
+export const getUpsertSprintCapacityMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof upsertSprintCapacity>>,
+    TError,
+    { id: number; data: BodyType<UpsertSprintCapacityBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof upsertSprintCapacity>>,
+  TError,
+  { id: number; data: BodyType<UpsertSprintCapacityBody> },
+  TContext
+> => {
+  const mutationKey = ["upsertSprintCapacity"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof upsertSprintCapacity>>,
+    { id: number; data: BodyType<UpsertSprintCapacityBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return upsertSprintCapacity(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpsertSprintCapacityMutationResult = NonNullable<
+  Awaited<ReturnType<typeof upsertSprintCapacity>>
+>;
+export type UpsertSprintCapacityMutationBody =
+  BodyType<UpsertSprintCapacityBody>;
+export type UpsertSprintCapacityMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Set capacity budgets for a sprint (editor only)
+ */
+export const useUpsertSprintCapacity = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof upsertSprintCapacity>>,
+    TError,
+    { id: number; data: BodyType<UpsertSprintCapacityBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof upsertSprintCapacity>>,
+  TError,
+  { id: number; data: BodyType<UpsertSprintCapacityBody> },
+  TContext
+> => {
+  return useMutation(getUpsertSprintCapacityMutationOptions(options));
 };
 
 /**
@@ -1632,6 +1813,285 @@ export const useDeleteProject = <
 > => {
   return useMutation(getDeleteProjectMutationOptions(options));
 };
+
+/**
+ * @summary Get sub-team sprint allocations for a project
+ */
+export const getGetProjectAllocationsUrl = (id: number) => {
+  return `/api/projects/${id}/allocations`;
+};
+
+export const getProjectAllocations = async (
+  id: number,
+  options?: RequestInit,
+): Promise<ProjectSprintAllocation[]> => {
+  return customFetch<ProjectSprintAllocation[]>(
+    getGetProjectAllocationsUrl(id),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetProjectAllocationsQueryKey = (id: number) => {
+  return [`/api/projects/${id}/allocations`] as const;
+};
+
+export const getGetProjectAllocationsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getProjectAllocations>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getProjectAllocations>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetProjectAllocationsQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getProjectAllocations>>
+  > = ({ signal }) => getProjectAllocations(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getProjectAllocations>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetProjectAllocationsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getProjectAllocations>>
+>;
+export type GetProjectAllocationsQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Get sub-team sprint allocations for a project
+ */
+
+export function useGetProjectAllocations<
+  TData = Awaited<ReturnType<typeof getProjectAllocations>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getProjectAllocations>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetProjectAllocationsQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Set sub-team sprint allocations for a project (editor only)
+ */
+export const getUpsertProjectAllocationsUrl = (id: number) => {
+  return `/api/projects/${id}/allocations`;
+};
+
+export const upsertProjectAllocations = async (
+  id: number,
+  upsertProjectAllocationsBody: UpsertProjectAllocationsBody,
+  options?: RequestInit,
+): Promise<ProjectSprintAllocation[]> => {
+  return customFetch<ProjectSprintAllocation[]>(
+    getUpsertProjectAllocationsUrl(id),
+    {
+      ...options,
+      method: "PUT",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(upsertProjectAllocationsBody),
+    },
+  );
+};
+
+export const getUpsertProjectAllocationsMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof upsertProjectAllocations>>,
+    TError,
+    { id: number; data: BodyType<UpsertProjectAllocationsBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof upsertProjectAllocations>>,
+  TError,
+  { id: number; data: BodyType<UpsertProjectAllocationsBody> },
+  TContext
+> => {
+  const mutationKey = ["upsertProjectAllocations"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof upsertProjectAllocations>>,
+    { id: number; data: BodyType<UpsertProjectAllocationsBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return upsertProjectAllocations(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpsertProjectAllocationsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof upsertProjectAllocations>>
+>;
+export type UpsertProjectAllocationsMutationBody =
+  BodyType<UpsertProjectAllocationsBody>;
+export type UpsertProjectAllocationsMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Set sub-team sprint allocations for a project (editor only)
+ */
+export const useUpsertProjectAllocations = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof upsertProjectAllocations>>,
+    TError,
+    { id: number; data: BodyType<UpsertProjectAllocationsBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof upsertProjectAllocations>>,
+  TError,
+  { id: number; data: BodyType<UpsertProjectAllocationsBody> },
+  TContext
+> => {
+  return useMutation(getUpsertProjectAllocationsMutationOptions(options));
+};
+
+/**
+ * @summary Get aggregated capacity summary per cycle or sprint
+ */
+export const getGetCapacitySummaryUrl = (params?: GetCapacitySummaryParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/capacity/summary?${stringifiedParams}`
+    : `/api/capacity/summary`;
+};
+
+export const getCapacitySummary = async (
+  params?: GetCapacitySummaryParams,
+  options?: RequestInit,
+): Promise<CapacitySummary> => {
+  return customFetch<CapacitySummary>(getGetCapacitySummaryUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetCapacitySummaryQueryKey = (
+  params?: GetCapacitySummaryParams,
+) => {
+  return [`/api/capacity/summary`, ...(params ? [params] : [])] as const;
+};
+
+export const getGetCapacitySummaryQueryOptions = <
+  TData = Awaited<ReturnType<typeof getCapacitySummary>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetCapacitySummaryParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getCapacitySummary>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetCapacitySummaryQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getCapacitySummary>>
+  > = ({ signal }) => getCapacitySummary(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getCapacitySummary>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetCapacitySummaryQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getCapacitySummary>>
+>;
+export type GetCapacitySummaryQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get aggregated capacity summary per cycle or sprint
+ */
+
+export function useGetCapacitySummary<
+  TData = Awaited<ReturnType<typeof getCapacitySummary>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetCapacitySummaryParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getCapacitySummary>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetCapacitySummaryQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 /**
  * @summary List updates for a project

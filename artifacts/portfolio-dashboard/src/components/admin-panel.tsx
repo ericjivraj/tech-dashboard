@@ -5,6 +5,8 @@ import {
   useListSprints, useCreateSprint, useUpdateSprint, useDeleteSprint, getListSprintsQueryKey,
   useListUsers, useCreateUser, useDeleteUser, getListUsersQueryKey,
   useListAuditLog, getListAuditLogQueryKey,
+  useGetSprintCapacity, useUpsertSprintCapacity, getGetSprintCapacityQueryKey,
+  useGetCapacitySummary,
 } from "@workspace/api-client-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -29,10 +31,11 @@ export default function AdminPanel({ open, onOpenChange }: { open: boolean, onOp
         </DialogHeader>
         
         <Tabs defaultValue="goals" className="flex-1 flex flex-col min-h-0">
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="goals" data-testid="admin-tab-goals">Goals</TabsTrigger>
             <TabsTrigger value="cycles" data-testid="admin-tab-cycles">Cycles</TabsTrigger>
             <TabsTrigger value="sprints" data-testid="admin-tab-sprints">Sprints</TabsTrigger>
+            <TabsTrigger value="capacity" data-testid="admin-tab-capacity">Capacity</TabsTrigger>
             <TabsTrigger value="email-reports" data-testid="admin-tab-email-reports">Email</TabsTrigger>
             <TabsTrigger value="users" data-testid="admin-tab-users">Users</TabsTrigger>
             <TabsTrigger value="audit-log" data-testid="admin-tab-audit-log">Audit Log</TabsTrigger>
@@ -47,6 +50,9 @@ export default function AdminPanel({ open, onOpenChange }: { open: boolean, onOp
             </TabsContent>
             <TabsContent value="sprints" className="m-0 border-0 p-0 h-full">
               <SprintsTab />
+            </TabsContent>
+            <TabsContent value="capacity" className="m-0 border-0 p-0 h-full">
+              <SprintCapacityTab />
             </TabsContent>
             <TabsContent value="email-reports" className="m-0 border-0 p-0 h-full">
               <EmailReportsTab />
@@ -907,6 +913,137 @@ function UsersTab() {
           )}
         </TableBody>
       </Table>
+    </div>
+  );
+}
+
+type SprintCapacityValues = {
+  a3: number | null;
+  backend: number | null;
+  frontend: number | null;
+};
+
+function SprintCapacityRow({ sprintId, sprintName }: { sprintId: number; sprintName: string }) {
+  const { data } = useGetSprintCapacity(sprintId);
+  const upsert = useUpsertSprintCapacity();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [local, setLocal] = useState<SprintCapacityValues | null>(null);
+
+  const current: SprintCapacityValues = local ?? {
+    a3: data?.a3 ?? null,
+    backend: data?.backend ?? null,
+    frontend: data?.frontend ?? null,
+  };
+
+  const isDirty = local !== null;
+
+  const handleSave = () => {
+    if (!local) return;
+    upsert.mutate({ id: sprintId, data: { a3: local.a3, backend: local.backend, frontend: local.frontend } }, {
+      onSuccess: () => {
+        setLocal(null);
+        queryClient.invalidateQueries({ queryKey: getGetSprintCapacityQueryKey(sprintId) });
+        queryClient.invalidateQueries({ queryKey: ["/api/capacity/summary"] });
+        toast({ title: `Capacity saved for ${sprintName}` });
+      },
+      onError: () => {
+        toast({ title: "Failed to save capacity", variant: "destructive" });
+      },
+    });
+  };
+
+  const handleChange = (field: keyof SprintCapacityValues, raw: string) => {
+    const val = raw === "" ? null : parseInt(raw, 10);
+    setLocal(prev => ({ ...((prev ?? current) as SprintCapacityValues), [field]: isNaN(val as number) ? null : val }));
+  };
+
+  return (
+    <div className="grid grid-cols-5 gap-2 items-center py-1.5 border-b last:border-b-0">
+      <div className="col-span-2 text-sm font-medium truncate" title={sprintName}>{sprintName}</div>
+      {(["a3", "backend", "frontend"] as const).map(field => (
+        <Input
+          key={field}
+          type="number"
+          min={0}
+          className="h-7 text-xs"
+          value={current[field] ?? ""}
+          placeholder="—"
+          onChange={e => handleChange(field, e.target.value)}
+        />
+      ))}
+      {isDirty && (
+        <Button size="sm" variant="ghost" className="h-7 px-2 col-span-5 justify-end" onClick={handleSave} disabled={upsert.isPending}>
+          Save
+        </Button>
+      )}
+    </div>
+  );
+}
+
+function SprintCapacityTab() {
+  const { data: cycles } = useListCycles();
+  const { data: sprints } = useListSprints();
+  const { data: capacitySummary } = useGetCapacitySummary({});
+  const cycleTotalsById = new Map((capacitySummary?.rows ?? []).map(r => [r.id, r]));
+
+  const cyclesSorted = [...(cycles ?? [])].sort((a, b) => a.startDate.localeCompare(b.startDate));
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-start gap-3 p-4 border rounded-lg bg-muted/20">
+        <div>
+          <p className="text-sm font-medium">Sprint Capacity Budgets</p>
+          <p className="text-xs text-muted-foreground mt-1">
+            Set the story point budget for A3, Backend, and Frontend for each sprint.
+            The cycle total is derived automatically (sprint budget × number of sprints).
+          </p>
+        </div>
+      </div>
+
+      {cyclesSorted.map(cycle => {
+        const cycleSprints = (sprints ?? []).filter(s => s.cycleId === cycle.id).sort((a, b) => a.sprintNumber - b.sprintNumber);
+        return (
+          <div key={cycle.id} className="border rounded-lg overflow-hidden">
+            <div className="bg-muted/30 px-4 py-2 border-b">
+              <span className="text-sm font-semibold">{cycle.name}</span>
+            </div>
+            <div className="p-4 space-y-1">
+              <div className="grid grid-cols-5 gap-2 pb-1 border-b">
+                <div className="col-span-2 text-xs font-medium text-muted-foreground">Sprint</div>
+                <div className="text-xs font-medium text-muted-foreground text-center">A3 (pts)</div>
+                <div className="text-xs font-medium text-muted-foreground text-center">Backend (pts)</div>
+                <div className="text-xs font-medium text-muted-foreground text-center">Frontend (pts)</div>
+              </div>
+              {cycleSprints.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-2">No sprints in this cycle</p>
+              ) : (
+                cycleSprints.map(sprint => (
+                  <SprintCapacityRow key={sprint.id} sprintId={sprint.id} sprintName={sprint.name} />
+                ))
+              )}
+              {(() => {
+                const totals = cycleTotalsById.get(cycle.id);
+                if (!totals) return null;
+                return (
+                  <div className="grid grid-cols-5 gap-2 items-center pt-2 mt-1 border-t">
+                    <div className="col-span-2 text-xs font-semibold text-muted-foreground">Cycle total</div>
+                    <div className="text-xs text-center font-medium">{totals.a3Budget ?? "—"}</div>
+                    <div className="text-xs text-center font-medium">{totals.backendBudget ?? "—"}</div>
+                    <div className="text-xs text-center font-medium">{totals.frontendBudget ?? "—"}</div>
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+        );
+      })}
+
+      {cyclesSorted.length === 0 && (
+        <div className="text-center text-muted-foreground py-8 text-sm">
+          No cycles found. Create cycles and sprints first.
+        </div>
+      )}
     </div>
   );
 }

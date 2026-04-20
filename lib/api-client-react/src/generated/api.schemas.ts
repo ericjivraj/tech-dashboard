@@ -256,6 +256,8 @@ export interface Project {
   cycleId: number | null;
   /** @nullable */
   sprintId: number | null;
+  /** @nullable */
+  completionPercent: number | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -353,6 +355,8 @@ export interface CreateProjectBody {
   cycleId?: number | null;
   /** @nullable */
   sprintId?: number | null;
+  /** @nullable */
+  completionPercent?: number | null;
   goalIds?: number[];
 }
 
@@ -415,6 +419,8 @@ export interface UpdateProjectBody {
   cycleId?: number | null;
   /** @nullable */
   sprintId?: number | null;
+  /** @nullable */
+  completionPercent?: number | null;
   /** @nullable */
   goalIds?: number[] | null;
 }
@@ -498,6 +504,18 @@ export const ProjectTimelineConfidence = {
   at_risk: "at_risk",
 } as const;
 
+/**
+ * @nullable
+ */
+export type ProjectTimelineSubTeamSummary = {
+  /** @nullable */
+  a3Percent: number | null;
+  /** @nullable */
+  backendPercent: number | null;
+  /** @nullable */
+  frontendPercent: number | null;
+} | null;
+
 export interface ProjectTimeline {
   id: number;
   title: string;
@@ -530,7 +548,104 @@ export interface ProjectTimeline {
   sprintName: string | null;
   /** @nullable */
   sprintNumber: number | null;
+  /** @nullable */
+  completionPercent: number | null;
+  /** @nullable */
+  subTeamSummary: ProjectTimelineSubTeamSummary;
   goals: Goal[];
+}
+
+export interface SprintCapacity {
+  sprintId: number;
+  /** @nullable */
+  a3: number | null;
+  /** @nullable */
+  backend: number | null;
+  /** @nullable */
+  frontend: number | null;
+}
+
+export interface UpsertSprintCapacityBody {
+  /**
+   * @minimum 0
+   * @nullable
+   */
+  a3?: number | null;
+  /**
+   * @minimum 0
+   * @nullable
+   */
+  backend?: number | null;
+  /**
+   * @minimum 0
+   * @nullable
+   */
+  frontend?: number | null;
+}
+
+export type ProjectSprintAllocationSubTeam =
+  (typeof ProjectSprintAllocationSubTeam)[keyof typeof ProjectSprintAllocationSubTeam];
+
+export const ProjectSprintAllocationSubTeam = {
+  a3: "a3",
+  backend: "backend",
+  frontend: "frontend",
+} as const;
+
+export interface ProjectSprintAllocation {
+  id: number;
+  projectId: number;
+  sprintId: number;
+  subTeam: ProjectSprintAllocationSubTeam;
+  storyPoints: number;
+  createdAt: string;
+}
+
+export type UpsertProjectAllocationsBodyAllocationsItemSubTeam =
+  (typeof UpsertProjectAllocationsBodyAllocationsItemSubTeam)[keyof typeof UpsertProjectAllocationsBodyAllocationsItemSubTeam];
+
+export const UpsertProjectAllocationsBodyAllocationsItemSubTeam = {
+  a3: "a3",
+  backend: "backend",
+  frontend: "frontend",
+} as const;
+
+export type UpsertProjectAllocationsBodyAllocationsItem = {
+  sprintId: number;
+  subTeam: UpsertProjectAllocationsBodyAllocationsItemSubTeam;
+  /** @minimum 0 */
+  storyPoints: number;
+};
+
+export interface UpsertProjectAllocationsBody {
+  allocations: UpsertProjectAllocationsBodyAllocationsItem[];
+}
+
+export interface CapacitySummaryRow {
+  id: number;
+  name: string;
+  a3Allocated: number;
+  /** @nullable */
+  a3Budget: number | null;
+  backendAllocated: number;
+  /** @nullable */
+  backendBudget: number | null;
+  frontendAllocated: number;
+  /** @nullable */
+  frontendBudget: number | null;
+}
+
+export type CapacitySummaryMode =
+  (typeof CapacitySummaryMode)[keyof typeof CapacitySummaryMode];
+
+export const CapacitySummaryMode = {
+  cycle: "cycle",
+  sprint: "sprint",
+} as const;
+
+export interface CapacitySummary {
+  mode: CapacitySummaryMode;
+  rows: CapacitySummaryRow[];
 }
 
 export type ListSprintsParams = {
@@ -576,9 +691,35 @@ export const ListProjectsStatus = {
   new_request: "new_request",
 } as const;
 
+export type GetCapacitySummaryParams = {
+  /**
+   * @nullable
+   */
+  cycleId?: number | null;
+  /**
+   * @nullable
+   */
+  sprintId?: number | null;
+};
+
 export type GetProjectsTimelineParams = {
   /**
    * @nullable
    */
   year?: number | null;
+  /**
+   * When provided, sub-team summaries are scoped to sprints within this cycle
+   * @nullable
+   */
+  cycleId?: number | null;
+  /**
+   * ISO date string; when provided with endDate, scopes sub-team summaries to sprints overlapping this window
+   * @nullable
+   */
+  startDate?: string | null;
+  /**
+   * ISO date string; when provided with startDate, scopes sub-team summaries to sprints overlapping this window
+   * @nullable
+   */
+  endDate?: string | null;
 };

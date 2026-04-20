@@ -1,4 +1,5 @@
-import { pgTable, text, serial, date, integer, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, date, integer, timestamp, check } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { cyclesTable } from "./cycles";
@@ -23,9 +24,12 @@ export const projectsTable = pgTable("projects", {
   blockedReason: text("blocked_reason"),
   cycleId: integer("cycle_id").references(() => cyclesTable.id, { onDelete: "set null" }),
   sprintId: integer("sprint_id").references(() => sprintsTable.id, { onDelete: "set null" }),
+  completionPercent: integer("completion_percent"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
-});
+}, (t) => ({
+  completionPercentCheck: check("projects_completion_percent_range", sql`${t.completionPercent} IS NULL OR (${t.completionPercent} >= 0 AND ${t.completionPercent} <= 100)`),
+}));
 
 export const insertProjectSchema = createInsertSchema(projectsTable).omit({ id: true, createdAt: true, updatedAt: true });
 export type InsertProject = z.infer<typeof insertProjectSchema>;
