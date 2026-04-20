@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { eq } from "drizzle-orm";
 import { db, emailScheduleTable } from "@workspace/db";
-import { requireAuth } from "../middlewares/requireAuth";
+import { requireAuth, requireRole } from "../middlewares/requireAuth";
 import { refreshSchedule, sendWeeklyReport, fetchProjectsForReport, buildHtmlSummary } from "../lib/emailScheduler";
 import { logger } from "../lib/logger";
 
@@ -19,7 +19,7 @@ async function ensureScheduleRow() {
   return rows[0];
 }
 
-router.get("/email-schedule", requireAuth, async (_req, res): Promise<void> => {
+router.get("/email-schedule", requireRole(["admin"]), async (_req, res): Promise<void> => {
   try {
     const schedule = await ensureScheduleRow();
     res.json(schedule);
@@ -29,7 +29,7 @@ router.get("/email-schedule", requireAuth, async (_req, res): Promise<void> => {
   }
 });
 
-router.patch("/email-schedule", requireAuth, async (req, res): Promise<void> => {
+router.patch("/email-schedule", requireRole(["admin"]), async (req, res): Promise<void> => {
   try {
     const schedule = await ensureScheduleRow();
 
@@ -61,7 +61,7 @@ router.patch("/email-schedule", requireAuth, async (req, res): Promise<void> => 
   }
 });
 
-router.get("/email-schedule/preview", requireAuth, async (_req, res): Promise<void> => {
+router.get("/email-schedule/preview", requireRole(["admin"]), async (_req, res): Promise<void> => {
   try {
     const projects = await fetchProjectsForReport();
     const html = buildHtmlSummary(projects);
@@ -73,7 +73,7 @@ router.get("/email-schedule/preview", requireAuth, async (_req, res): Promise<vo
   }
 });
 
-router.post("/email-schedule/send-now", requireAuth, async (_req, res): Promise<void> => {
+router.post("/email-schedule/send-now", requireRole(["admin"]), async (_req, res): Promise<void> => {
   try {
     const result = await sendWeeklyReport({ ignoreEnabled: true });
     if (result.success) {

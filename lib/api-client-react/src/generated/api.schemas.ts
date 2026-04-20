@@ -13,6 +13,18 @@ export interface ErrorResponse {
   error: string;
 }
 
+/**
+ * @nullable
+ */
+export type AuthUserRole =
+  | (typeof AuthUserRole)[keyof typeof AuthUserRole]
+  | null;
+
+export const AuthUserRole = {
+  admin: "admin",
+  guest: "guest",
+} as const;
+
 export interface AuthUser {
   /** @nullable */
   userId: string | null;
@@ -24,6 +36,97 @@ export interface AuthUser {
   firstName: string | null;
   /** @nullable */
   lastName: string | null;
+  /** @nullable */
+  role: AuthUserRole;
+  /** @nullable */
+  team: string | null;
+}
+
+export type AppUserRole = (typeof AppUserRole)[keyof typeof AppUserRole];
+
+export const AppUserRole = {
+  admin: "admin",
+  guest: "guest",
+} as const;
+
+export interface AppUser {
+  id: number;
+  /** @nullable */
+  clerkUserId: string | null;
+  email: string;
+  role: AppUserRole;
+  /** @nullable */
+  team: string | null;
+  createdAt: string;
+}
+
+export type CreateUserBodyRole =
+  (typeof CreateUserBodyRole)[keyof typeof CreateUserBodyRole];
+
+export const CreateUserBodyRole = {
+  admin: "admin",
+  guest: "guest",
+} as const;
+
+export interface CreateUserBody {
+  email: string;
+  /** @nullable */
+  clerkUserId?: string | null;
+  role: CreateUserBodyRole;
+  /** @nullable */
+  team?: string | null;
+}
+
+export type UpdateUserBodyRole =
+  (typeof UpdateUserBodyRole)[keyof typeof UpdateUserBodyRole];
+
+export const UpdateUserBodyRole = {
+  admin: "admin",
+  guest: "guest",
+} as const;
+
+export interface UpdateUserBody {
+  role?: UpdateUserBodyRole;
+  /** @nullable */
+  team?: string | null;
+}
+
+export type AuditLogEntryAction =
+  (typeof AuditLogEntryAction)[keyof typeof AuditLogEntryAction];
+
+export const AuditLogEntryAction = {
+  create: "create",
+  update: "update",
+  delete: "delete",
+} as const;
+
+export type AuditLogEntryEntityType =
+  (typeof AuditLogEntryEntityType)[keyof typeof AuditLogEntryEntityType];
+
+export const AuditLogEntryEntityType = {
+  project: "project",
+  goal: "goal",
+  cycle: "cycle",
+  sprint: "sprint",
+} as const;
+
+/**
+ * @nullable
+ */
+export type AuditLogEntryDiff = { [key: string]: unknown } | null;
+
+export interface AuditLogEntry {
+  id: number;
+  /** @nullable */
+  userId: number | null;
+  /** @nullable */
+  userEmail: string | null;
+  action: AuditLogEntryAction;
+  entityType: AuditLogEntryEntityType;
+  entityId: number;
+  /** @nullable */
+  diff: AuditLogEntryDiff;
+  createdAt: string;
 }
 
 export interface Cycle {

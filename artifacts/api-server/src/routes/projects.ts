@@ -22,6 +22,7 @@ import {
   ListProjectUpdatesParams,
 } from "@workspace/api-zod";
 import { requireAuth } from "../middlewares/requireAuth";
+import { logAudit } from "../lib/auditLog";
 
 const router: IRouter = Router();
 
@@ -191,6 +192,16 @@ router.post("/projects", requireAuth, async (req, res): Promise<void> => {
     return;
   }
 
+  const ctx = req.authContext;
+
+  if (ctx?.role === "guest") {
+    const requestedTeam = parsed.data.team ?? null;
+    if (requestedTeam !== ctx.team) {
+      res.status(403).json({ error: "Forbidden — guests can only create projects for their assigned team" });
+      return;
+    }
+  }
+
   const { goalIds, startDate, endDate, ...fields } = parsed.data;
 
   if (fields.status === "in_progress" && !fields.cycleId) {
@@ -210,6 +221,8 @@ router.post("/projects", requireAuth, async (req, res): Promise<void> => {
   if (goalIds && goalIds.length > 0) {
     await db.insert(projectGoalsTable).values(goalIds.map((gid) => ({ projectId: project.id, goalId: gid })));
   }
+
+  await logAudit(ctx, "create", "project", project.id, { after: project });
 
   const projectWithDetails = await getProjectWithDetails(project.id);
   res.status(201).json(projectWithDetails);
@@ -400,6 +413,27 @@ router.patch("/projects/:id", requireAuth, async (req, res): Promise<void> => {
     return;
   }
 
+  const ctx = req.authContext;
+
+  if (ctx?.role === "guest") {
+    const [existingProject] = await db.select({ team: projectsTable.team }).from(projectsTable).where(eq(projectsTable.id, params.data.id));
+    if (!existingProject || existingProject.team !== ctx.team) {
+      res.status(403).json({ error: "Forbidden — guests can only edit projects belonging to their team" });
+      return;
+    }
+    if (parsed.data.team !== undefined && parsed.data.team !== ctx.team) {
+      res.status(403).json({ error: "Forbidden — guests cannot reassign a project to a different team" });
+      return;
+    }
+  }
+
+  const [before] = await db.select().from(projectsTable).where(eq(projectsTable.id, params.data.id));
+
+  if (!before) {
+    res.status(404).json({ error: "Project not found" });
+    return;
+  }
+
   const { goalIds, startDate, endDate, ...fields } = parsed.data;
   const updates: Record<string, unknown> = {};
 
@@ -419,6 +453,8 @@ router.patch("/projects/:id", requireAuth, async (req, res): Promise<void> => {
     if (activeCycleId) updates.cycleId = activeCycleId;
   }
 
+  let after = before;
+  let fieldUpdated = false;
   if (Object.keys(updates).length > 0) {
     const [project] = await db
       .update(projectsTable)
@@ -429,13 +465,31 @@ router.patch("/projects/:id", requireAuth, async (req, res): Promise<void> => {
       res.status(404).json({ error: "Project not found" });
       return;
     }
+    after = project;
+    fieldUpdated = true;
   }
 
+  let goalsUpdated = false;
+  let goalIdsBefore: number[] | undefined;
+  let goalIdsAfter: number[] | undefined;
   if (goalIds !== undefined && goalIds !== null) {
+    const existingGoals = await db.select({ goalId: projectGoalsTable.goalId }).from(projectGoalsTable).where(eq(projectGoalsTable.projectId, params.data.id));
+    goalIdsBefore = existingGoals.map((r) => r.goalId);
     await db.delete(projectGoalsTable).where(eq(projectGoalsTable.projectId, params.data.id));
     if (goalIds.length > 0) {
       await db.insert(projectGoalsTable).values(goalIds.map((gid) => ({ projectId: params.data.id, goalId: gid })));
     }
+    goalIdsAfter = goalIds;
+    goalsUpdated = true;
+  }
+
+  if (fieldUpdated || goalsUpdated) {
+    const diff: Record<string, unknown> = { before, after };
+    if (goalsUpdated) {
+      diff.goalIdsBefore = goalIdsBefore;
+      diff.goalIdsAfter = goalIdsAfter;
+    }
+    await logAudit(ctx, "update", "project", params.data.id, diff);
   }
 
   const projectWithDetails = await getProjectWithDetails(params.data.id);
@@ -452,11 +506,25 @@ router.delete("/projects/:id", requireAuth, async (req, res): Promise<void> => {
     res.status(400).json({ error: params.error.message });
     return;
   }
+
+  const ctx = req.authContext;
+
+  if (ctx?.role === "guest") {
+    const [existingProject] = await db.select({ team: projectsTable.team }).from(projectsTable).where(eq(projectsTable.id, params.data.id));
+    if (!existingProject || existingProject.team !== ctx.team) {
+      res.status(403).json({ error: "Forbidden — guests can only delete projects belonging to their team" });
+      return;
+    }
+  }
+
   const [project] = await db.delete(projectsTable).where(eq(projectsTable.id, params.data.id)).returning();
   if (!project) {
     res.status(404).json({ error: "Project not found" });
     return;
   }
+
+  await logAudit(ctx, "delete", "project", params.data.id, { before: project });
+
   res.sendStatus(204);
 });
 
@@ -490,11 +558,18 @@ router.post("/projects/:projectId/updates", requireAuth, async (req, res): Promi
     res.status(400).json({ error: parsed.error.message });
     return;
   }
-  const [project] = await db.select({ id: projectsTable.id }).from(projectsTable).where(eq(projectsTable.id, params.data.projectId));
+  const [project] = await db.select({ id: projectsTable.id, team: projectsTable.team }).from(projectsTable).where(eq(projectsTable.id, params.data.projectId));
   if (!project) {
     res.status(404).json({ error: "Project not found" });
     return;
   }
+
+  const ctx = req.authContext;
+  if (ctx?.role === "guest" && project.team !== ctx.team) {
+    res.status(403).json({ error: "Forbidden — guests can only add updates to projects belonging to their team" });
+    return;
+  }
+
   const [update] = await db
     .insert(projectUpdatesTable)
     .values({
@@ -513,6 +588,16 @@ router.delete("/projects/:projectId/updates/:updateId", requireAuth, async (req,
     return;
   }
   const { projectId, updateId } = params.data;
+
+  const ctx = req.authContext;
+  if (ctx?.role === "guest") {
+    const [project] = await db.select({ team: projectsTable.team }).from(projectsTable).where(eq(projectsTable.id, projectId));
+    if (!project || project.team !== ctx.team) {
+      res.status(403).json({ error: "Forbidden — guests can only delete updates on projects belonging to their team" });
+      return;
+    }
+  }
+
   const [update] = await db
     .delete(projectUpdatesTable)
     .where(

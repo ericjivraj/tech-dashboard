@@ -24,6 +24,10 @@ export const GetMeResponse = zod.object({
   email: zod.string().nullable(),
   firstName: zod.string().nullable(),
   lastName: zod.string().nullable(),
+  role: zod
+    .union([zod.literal("admin"), zod.literal("guest"), zod.literal(null)])
+    .nullable(),
+  team: zod.string().nullable(),
 });
 
 /**
@@ -632,3 +636,69 @@ export const GetProjectsTimelineResponseItem = zod.object({
 export const GetProjectsTimelineResponse = zod.array(
   GetProjectsTimelineResponseItem,
 );
+
+/**
+ * @summary List all managed users (admin only)
+ */
+export const ListUsersResponseItem = zod.object({
+  id: zod.number(),
+  clerkUserId: zod.string().nullable(),
+  email: zod.string(),
+  role: zod.enum(["admin", "guest"]),
+  team: zod.string().nullable(),
+  createdAt: zod.coerce.date(),
+});
+export const ListUsersResponse = zod.array(ListUsersResponseItem);
+
+/**
+ * @summary Create a managed user (admin only)
+ */
+export const CreateUserBody = zod.object({
+  email: zod.string(),
+  clerkUserId: zod.string().nullish(),
+  role: zod.enum(["admin", "guest"]),
+  team: zod.string().nullish(),
+});
+
+/**
+ * @summary Update a managed user (admin only)
+ */
+export const UpdateUserParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateUserBody = zod.object({
+  role: zod.enum(["admin", "guest"]).optional(),
+  team: zod.string().nullish(),
+});
+
+export const UpdateUserResponse = zod.object({
+  id: zod.number(),
+  clerkUserId: zod.string().nullable(),
+  email: zod.string(),
+  role: zod.enum(["admin", "guest"]),
+  team: zod.string().nullable(),
+  createdAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Delete a managed user (admin only)
+ */
+export const DeleteUserParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+/**
+ * @summary Get audit log entries (admin only, last 200)
+ */
+export const ListAuditLogResponseItem = zod.object({
+  id: zod.number(),
+  userId: zod.number().nullable(),
+  userEmail: zod.string().nullable(),
+  action: zod.enum(["create", "update", "delete"]),
+  entityType: zod.enum(["project", "goal", "cycle", "sprint"]),
+  entityId: zod.number(),
+  diff: zod.record(zod.string(), zod.unknown()).nullable(),
+  createdAt: zod.coerce.date(),
+});
+export const ListAuditLogResponse = zod.array(ListAuditLogResponseItem);

@@ -29,6 +29,9 @@ export default function Dashboard() {
   const [adminPanelOpen, setAdminPanelOpen] = useState(false);
 
   const isEditor = user?.isEditor === true;
+  const isAdmin = user?.role === "admin";
+  const isGuest = user?.role === "guest";
+  const guestTeam = user?.team ?? null;
 
   const teams = TEAMS;
   const sponsors = SPONSORS;
@@ -67,16 +70,16 @@ export default function Dashboard() {
         </div>
         <div className="flex items-center gap-2">
           <ExportButton />
+          {isAdmin && (
+            <Button size="sm" variant="outline" onClick={() => setAdminPanelOpen(true)} data-testid="button-admin-settings">
+              Admin Settings
+            </Button>
+          )}
           {isEditor && (
-            <>
-              <Button size="sm" variant="outline" onClick={() => setAdminPanelOpen(true)} data-testid="button-admin-settings">
-                Admin Settings
-              </Button>
-              <Button size="sm" className="gap-1" onClick={() => setProjectFormOpen(true)}>
-                <Plus className="h-4 w-4" />
-                New Project
-              </Button>
-            </>
+            <Button size="sm" className="gap-1" onClick={() => setProjectFormOpen(true)}>
+              <Plus className="h-4 w-4" />
+              New Project
+            </Button>
           )}
         </div>
       </div>

@@ -8,7 +8,8 @@ import {
   UpdateGoalParams,
   DeleteGoalParams,
 } from "@workspace/api-zod";
-import { requireAuth } from "../middlewares/requireAuth";
+import { requireRole } from "../middlewares/requireAuth";
+import { logAudit } from "../lib/auditLog";
 
 const router: IRouter = Router();
 
@@ -21,17 +22,18 @@ router.get("/goals", async (_req, res): Promise<void> => {
   res.json(goals);
 });
 
-router.post("/goals", requireAuth, async (req, res): Promise<void> => {
+router.post("/goals", requireRole(["admin"]), async (req, res): Promise<void> => {
   const parsed = CreateGoalBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
   const [goal] = await db.insert(goalsTable).values(parsed.data).returning();
+  await logAudit(req.authContext, "create", "goal", goal.id, { after: goal });
   res.status(201).json(goal);
 });
 
-router.patch("/goals/:id", requireAuth, async (req, res): Promise<void> => {
+router.patch("/goals/:id", requireRole(["admin"]), async (req, res): Promise<void> => {
   const params = UpdateGoalParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
@@ -46,6 +48,7 @@ router.patch("/goals/:id", requireAuth, async (req, res): Promise<void> => {
   if (parsed.data.name != null) updates.name = parsed.data.name;
   if (parsed.data.color != null) updates.color = parsed.data.color;
 
+  const [before] = await db.select().from(goalsTable).where(eq(goalsTable.id, params.data.id));
   const [goal] = await db
     .update(goalsTable)
     .set(updates)
@@ -55,10 +58,11 @@ router.patch("/goals/:id", requireAuth, async (req, res): Promise<void> => {
     res.status(404).json({ error: "Goal not found" });
     return;
   }
+  await logAudit(req.authContext, "update", "goal", goal.id, { before, after: goal });
   res.json(goal);
 });
 
-router.delete("/goals/:id", requireAuth, async (req, res): Promise<void> => {
+router.delete("/goals/:id", requireRole(["admin"]), async (req, res): Promise<void> => {
   const params = DeleteGoalParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
@@ -69,6 +73,7 @@ router.delete("/goals/:id", requireAuth, async (req, res): Promise<void> => {
     res.status(404).json({ error: "Goal not found" });
     return;
   }
+  await logAudit(req.authContext, "delete", "goal", goal.id, { before: goal });
   res.sendStatus(204);
 });
 

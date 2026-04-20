@@ -9,7 +9,8 @@ import {
   DeleteSprintParams,
   ListSprintsQueryParams,
 } from "@workspace/api-zod";
-import { requireAuth } from "../middlewares/requireAuth";
+import { requireRole } from "../middlewares/requireAuth";
+import { logAudit } from "../lib/auditLog";
 
 const router: IRouter = Router();
 
@@ -33,7 +34,7 @@ router.get("/sprints", async (req, res): Promise<void> => {
   res.json(sprints);
 });
 
-router.post("/sprints", requireAuth, async (req, res): Promise<void> => {
+router.post("/sprints", requireRole(["admin"]), async (req, res): Promise<void> => {
   const parsed = CreateSprintBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
@@ -50,10 +51,11 @@ router.post("/sprints", requireAuth, async (req, res): Promise<void> => {
       endDate: endDate instanceof Date ? endDate.toISOString().split("T")[0] : String(endDate),
     })
     .returning();
+  await logAudit(req.authContext, "create", "sprint", sprint.id, { after: sprint });
   res.status(201).json(sprint);
 });
 
-router.patch("/sprints/:id", requireAuth, async (req, res): Promise<void> => {
+router.patch("/sprints/:id", requireRole(["admin"]), async (req, res): Promise<void> => {
   const params = UpdateSprintParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
@@ -76,6 +78,7 @@ router.patch("/sprints/:id", requireAuth, async (req, res): Promise<void> => {
     const d = parsed.data.endDate;
     updates.endDate = d instanceof Date ? d.toISOString().split("T")[0] : String(d);
   }
+  const [before] = await db.select().from(sprintsTable).where(eq(sprintsTable.id, params.data.id));
   const [sprint] = await db
     .update(sprintsTable)
     .set(updates)
@@ -85,10 +88,11 @@ router.patch("/sprints/:id", requireAuth, async (req, res): Promise<void> => {
     res.status(404).json({ error: "Sprint not found" });
     return;
   }
+  await logAudit(req.authContext, "update", "sprint", sprint.id, { before, after: sprint });
   res.json(sprint);
 });
 
-router.delete("/sprints/:id", requireAuth, async (req, res): Promise<void> => {
+router.delete("/sprints/:id", requireRole(["admin"]), async (req, res): Promise<void> => {
   const params = DeleteSprintParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
@@ -99,6 +103,7 @@ router.delete("/sprints/:id", requireAuth, async (req, res): Promise<void> => {
     res.status(404).json({ error: "Sprint not found" });
     return;
   }
+  await logAudit(req.authContext, "delete", "sprint", sprint.id, { before: sprint });
   res.sendStatus(204);
 });
 

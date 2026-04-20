@@ -2,7 +2,9 @@ import { useState } from "react";
 import { 
   useListGoals, useCreateGoal, useUpdateGoal, useDeleteGoal, getListGoalsQueryKey,
   useListCycles, useCreateCycle, useUpdateCycle, useDeleteCycle, getListCyclesQueryKey,
-  useListSprints, useCreateSprint, useUpdateSprint, useDeleteSprint, getListSprintsQueryKey
+  useListSprints, useCreateSprint, useUpdateSprint, useDeleteSprint, getListSprintsQueryKey,
+  useListUsers, useCreateUser, useDeleteUser, getListUsersQueryKey,
+  useListAuditLog, getListAuditLogQueryKey,
 } from "@workspace/api-client-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -10,10 +12,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query";
 import { Trash2, Plus, Pencil, Check, X, Mail, Send, Loader2, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format, parseISO } from "date-fns";
+import { TEAMS } from "@/lib/constants";
 
 export default function AdminPanel({ open, onOpenChange }: { open: boolean, onOpenChange: (open: boolean) => void }) {
   return (
@@ -24,11 +29,13 @@ export default function AdminPanel({ open, onOpenChange }: { open: boolean, onOp
         </DialogHeader>
         
         <Tabs defaultValue="goals" className="flex-1 flex flex-col min-h-0">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="goals" data-testid="admin-tab-goals">Goals</TabsTrigger>
             <TabsTrigger value="cycles" data-testid="admin-tab-cycles">Cycles</TabsTrigger>
             <TabsTrigger value="sprints" data-testid="admin-tab-sprints">Sprints</TabsTrigger>
-            <TabsTrigger value="email-reports" data-testid="admin-tab-email-reports">Email Reports</TabsTrigger>
+            <TabsTrigger value="email-reports" data-testid="admin-tab-email-reports">Email</TabsTrigger>
+            <TabsTrigger value="users" data-testid="admin-tab-users">Users</TabsTrigger>
+            <TabsTrigger value="audit-log" data-testid="admin-tab-audit-log">Audit Log</TabsTrigger>
           </TabsList>
           
           <div className="flex-1 overflow-y-auto mt-4 min-h-[400px]">
@@ -43,6 +50,12 @@ export default function AdminPanel({ open, onOpenChange }: { open: boolean, onOp
             </TabsContent>
             <TabsContent value="email-reports" className="m-0 border-0 p-0 h-full">
               <EmailReportsTab />
+            </TabsContent>
+            <TabsContent value="users" className="m-0 border-0 p-0 h-full">
+              <UsersTab />
+            </TabsContent>
+            <TabsContent value="audit-log" className="m-0 border-0 p-0 h-full">
+              <AuditLogTab />
             </TabsContent>
           </div>
         </Tabs>
@@ -756,6 +769,221 @@ function SprintsTab() {
               </TableRow>
             );
           })}
+        </TableBody>
+      </Table>
+    </div>
+  );
+}
+
+function UsersTab() {
+  const { data: users, isLoading } = useListUsers();
+  const createUser = useCreateUser();
+  const deleteUser = useDeleteUser();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  const [email, setEmail] = useState("");
+  const [role, setRole] = useState<"admin" | "guest">("guest");
+  const [team, setTeam] = useState("__none__");
+
+  const handleAdd = () => {
+    if (!email) return;
+    createUser.mutate(
+      { data: { email, role, team: team === "__none__" ? null : team } },
+      {
+        onSuccess: () => {
+          setEmail(""); setRole("guest"); setTeam("__none__");
+          queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() });
+          toast({ title: "User added" });
+        },
+        onError: (err: Error) => {
+          toast({ title: "Failed to add user", description: err.message, variant: "destructive" });
+        },
+      }
+    );
+  };
+
+  const handleDelete = (id: number, userEmail: string) => {
+    if (!confirm(`Remove user ${userEmail}?`)) return;
+    deleteUser.mutate({ id }, {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() });
+        toast({ title: "User removed" });
+      },
+      onError: (err: Error) => {
+        toast({ title: "Failed to remove user", description: err.message, variant: "destructive" });
+      },
+    });
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-40 text-muted-foreground">
+        <Loader2 className="h-5 w-5 animate-spin mr-2" /> Loading...
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="p-4 border rounded-lg bg-muted/20 space-y-3">
+        <p className="text-sm font-medium">Add User</p>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1 col-span-2">
+            <label className="text-xs font-medium">Email</label>
+            <Input value={email} onChange={e => setEmail(e.target.value)} placeholder="user@example.com" data-testid="input-user-email" />
+            <p className="text-xs text-muted-foreground">Their Clerk account will be linked automatically on first login.</p>
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-medium">Role</label>
+            <Select value={role} onValueChange={(v) => setRole(v as "admin" | "guest")}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="admin">Admin</SelectItem>
+                <SelectItem value="guest">Guest</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-medium">Team (for guests)</label>
+            <Select value={team} onValueChange={setTeam}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select team" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">— None —</SelectItem>
+                {TEAMS.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <Button onClick={handleAdd} disabled={!email || createUser.isPending} size="sm" data-testid="button-add-user">
+          <Plus className="h-4 w-4 mr-2" /> Add User
+        </Button>
+      </div>
+
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Email</TableHead>
+            <TableHead>Role</TableHead>
+            <TableHead>Team</TableHead>
+            <TableHead>Added</TableHead>
+            <TableHead className="w-16">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {users?.map(u => (
+            <TableRow key={u.id} data-testid={`user-row-${u.id}`}>
+              <TableCell className="font-mono text-sm">{u.email}</TableCell>
+              <TableCell>
+                <Badge variant={u.role === "admin" ? "default" : "secondary"} className="capitalize">
+                  {u.role}
+                </Badge>
+              </TableCell>
+              <TableCell className="text-muted-foreground text-sm">{u.team || "—"}</TableCell>
+              <TableCell className="text-muted-foreground text-sm">{format(new Date(u.createdAt), 'MMM d, yyyy')}</TableCell>
+              <TableCell>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleDelete(u.id, u.email)}
+                  disabled={deleteUser.isPending}
+                  data-testid={`delete-user-${u.id}`}
+                >
+                  <Trash2 className="h-4 w-4 text-destructive" />
+                </Button>
+              </TableCell>
+            </TableRow>
+          ))}
+          {users?.length === 0 && (
+            <TableRow>
+              <TableCell colSpan={5} className="text-center text-muted-foreground">
+                No users yet. Add a user above.
+              </TableCell>
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
+    </div>
+  );
+}
+
+function AuditLogTab() {
+  const { data: entries, isLoading } = useListAuditLog();
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-40 text-muted-foreground">
+        <Loader2 className="h-5 w-5 animate-spin mr-2" /> Loading audit log...
+      </div>
+    );
+  }
+
+  const ACTION_COLORS: Record<string, string> = {
+    create: "bg-emerald-100 text-emerald-700",
+    update: "bg-blue-100 text-blue-700",
+    delete: "bg-red-100 text-red-700",
+  };
+
+  return (
+    <div className="space-y-4">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Time</TableHead>
+            <TableHead>User</TableHead>
+            <TableHead>Action</TableHead>
+            <TableHead>Entity</TableHead>
+            <TableHead>Changes</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {entries?.map(entry => {
+            const diff = entry.diff as Record<string, unknown> | null;
+            let diffSummary = "";
+            if (entry.action === "update" && diff?.before && diff?.after) {
+              const before = diff.before as Record<string, unknown>;
+              const after = diff.after as Record<string, unknown>;
+              const changed = Object.entries(after)
+                .filter(([k, v]) => JSON.stringify(v) !== JSON.stringify(before[k]) && k !== "updatedAt")
+                .map(([k]) => k);
+              diffSummary = changed.length > 0 ? `Updated: ${changed.join(", ")}` : "No field changes";
+            } else if (entry.action === "create") {
+              diffSummary = "Created";
+            } else if (entry.action === "delete") {
+              diffSummary = "Deleted";
+            }
+
+            return (
+              <TableRow key={entry.id} data-testid={`audit-row-${entry.id}`}>
+                <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                  {format(new Date(entry.createdAt), 'MMM d, yyyy h:mm a')}
+                </TableCell>
+                <TableCell className="text-sm font-mono">{entry.userEmail || "—"}</TableCell>
+                <TableCell>
+                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-full capitalize ${ACTION_COLORS[entry.action] ?? ""}`}>
+                    {entry.action}
+                  </span>
+                </TableCell>
+                <TableCell className="text-sm capitalize">
+                  {entry.entityType} #{entry.entityId}
+                </TableCell>
+                <TableCell className="text-xs text-muted-foreground max-w-xs truncate" title={diffSummary}>
+                  {diffSummary}
+                </TableCell>
+              </TableRow>
+            );
+          })}
+          {entries?.length === 0 && (
+            <TableRow>
+              <TableCell colSpan={5} className="text-center text-muted-foreground">
+                No audit log entries yet.
+              </TableCell>
+            </TableRow>
+          )}
         </TableBody>
       </Table>
     </div>

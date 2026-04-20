@@ -3,6 +3,7 @@ import {
   useCreateProject, useUpdateProject, 
   getListProjectsQueryKey, getGetDashboardSummaryQueryKey, getGetProjectQueryKey, getGetProjectsTimelineQueryKey,
   useListGoals, useListCycles, useListSprints,
+  useGetMe,
   ProjectWithDetails, ProjectStatus, ProjectConfidence
 } from "@workspace/api-client-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -49,6 +50,9 @@ export default function ProjectForm({
   const { data: goals } = useListGoals();
   const { data: cycles } = useListCycles();
   const { data: sprints } = useListSprints();
+  const { data: user } = useGetMe();
+  const isGuest = user?.role === "guest";
+  const guestTeam = user?.team ?? null;
   
   const createProject = useCreateProject();
   const updateProject = useUpdateProject();
@@ -96,9 +100,25 @@ export default function ProjectForm({
         goalIds: projectToEdit.goals?.map(g => g.id) || []
       });
     } else {
-      form.reset();
+      form.reset({
+        title: "",
+        description: "",
+        sponsor: "",
+        team: isGuest && guestTeam ? guestTeam : "",
+        stakeholder: "",
+        status: "new_request",
+        confidence: "medium",
+        storyPoints: null,
+        startDate: "",
+        endDate: "",
+        impact: "",
+        blockedReason: "",
+        cycleId: null,
+        sprintId: null,
+        goalIds: []
+      });
     }
-  }, [projectToEdit, form]);
+  }, [projectToEdit, form, isGuest, guestTeam]);
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
     const payload = {
@@ -232,7 +252,7 @@ export default function ProjectForm({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Team</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || ""}>
+                    <Select onValueChange={field.onChange} value={field.value || ""} disabled={isGuest && !!guestTeam}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select team" />
@@ -244,6 +264,9 @@ export default function ProjectForm({
                         ))}
                       </SelectContent>
                     </Select>
+                    {isGuest && guestTeam && (
+                      <p className="text-xs text-muted-foreground">Guests can only create projects for their assigned team.</p>
+                    )}
                     <FormMessage />
                   </FormItem>
                 )}

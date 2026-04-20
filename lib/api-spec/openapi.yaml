@@ -11,7 +11,7 @@ tags:
   - name: health
     description: Health operations
   - name: auth
-    description: Authentication
+    description: Authentication and user management
   - name: cycles
     description: Cycle management
   - name: sprints
@@ -671,6 +671,139 @@ paths:
                 items:
                   $ref: "#/components/schemas/ProjectTimeline"
 
+  /users:
+    get:
+      operationId: listUsers
+      tags: [auth]
+      summary: List all managed users (admin only)
+      responses:
+        "200":
+          description: List of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AppUser"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      operationId: createUser
+      tags: [auth]
+      summary: Create a managed user (admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateUserBody"
+      responses:
+        "201":
+          description: Created user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppUser"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: User already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /users/{id}:
+    patch:
+      operationId: updateUser
+      tags: [auth]
+      summary: Update a managed user (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserBody"
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppUser"
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteUser
+      tags: [auth]
+      summary: Delete a managed user (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: User deleted
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /audit-log:
+    get:
+      operationId: listAuditLog
+      tags: [auth]
+      summary: Get audit log entries (admin only, last 200)
+      responses:
+        "200":
+          description: Audit log entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AuditLogEntry"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   schemas:
     HealthStatus:
@@ -704,6 +837,11 @@ components:
           type: ["string", "null"]
         lastName:
           type: ["string", "null"]
+        role:
+          type: ["string", "null"]
+          enum: [admin, guest, null]
+        team:
+          type: ["string", "null"]
       required:
         - isAuthenticated
         - isEditor
@@ -711,6 +849,91 @@ components:
         - email
         - firstName
         - lastName
+        - role
+        - team
+
+    AppUser:
+      type: object
+      properties:
+        id:
+          type: integer
+        clerkUserId:
+          type: ["string", "null"]
+        email:
+          type: string
+        role:
+          type: string
+          enum: [admin, guest]
+        team:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - clerkUserId
+        - email
+        - role
+        - team
+        - createdAt
+
+    CreateUserBody:
+      type: object
+      properties:
+        email:
+          type: string
+        clerkUserId:
+          type: ["string", "null"]
+        role:
+          type: string
+          enum: [admin, guest]
+        team:
+          type: ["string", "null"]
+      required:
+        - email
+        - role
+
+    UpdateUserBody:
+      type: object
+      properties:
+        role:
+          type: string
+          enum: [admin, guest]
+        team:
+          type: ["string", "null"]
+
+    AuditLogEntry:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: ["integer", "null"]
+        userEmail:
+          type: ["string", "null"]
+        action:
+          type: string
+          enum: [create, update, delete]
+        entityType:
+          type: string
+          enum: [project, goal, cycle, sprint]
+        entityId:
+          type: integer
+        diff:
+          type: ["object", "null"]
+          additionalProperties: true
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - userId
+        - userEmail
+        - action
+        - entityType
+        - entityId
+        - diff
+        - createdAt
 
     Cycle:
       type: object

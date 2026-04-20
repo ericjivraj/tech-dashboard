@@ -7,6 +7,8 @@ import goalsRouter from "./goals";
 import projectsRouter from "./projects";
 import summaryRouter from "./summary";
 import emailScheduleRouter from "./email-schedule";
+import usersRouter from "./users";
+import auditLogRouter from "./auditLog";
 
 const router: IRouter = Router();
 
@@ -18,5 +20,7 @@ router.use(goalsRouter);
 router.use(projectsRouter);
 router.use(summaryRouter);
 router.use(emailScheduleRouter);
+router.use(usersRouter);
+router.use(auditLogRouter);
 
 export default router;

@@ -8,7 +8,8 @@ import {
   UpdateCycleParams,
   DeleteCycleParams,
 } from "@workspace/api-zod";
-import { requireAuth } from "../middlewares/requireAuth";
+import { requireRole } from "../middlewares/requireAuth";
+import { logAudit } from "../lib/auditLog";
 
 const router: IRouter = Router();
 
@@ -17,7 +18,7 @@ router.get("/cycles", async (_req, res): Promise<void> => {
   res.json(cycles);
 });
 
-router.post("/cycles", requireAuth, async (req, res): Promise<void> => {
+router.post("/cycles", requireRole(["admin"]), async (req, res): Promise<void> => {
   const parsed = CreateCycleBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
@@ -32,10 +33,11 @@ router.post("/cycles", requireAuth, async (req, res): Promise<void> => {
       endDate: endDate instanceof Date ? endDate.toISOString().split("T")[0] : String(endDate),
     })
     .returning();
+  await logAudit(req.authContext, "create", "cycle", cycle.id, { after: cycle });
   res.status(201).json(cycle);
 });
 
-router.patch("/cycles/:id", requireAuth, async (req, res): Promise<void> => {
+router.patch("/cycles/:id", requireRole(["admin"]), async (req, res): Promise<void> => {
   const params = UpdateCycleParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
@@ -56,6 +58,7 @@ router.patch("/cycles/:id", requireAuth, async (req, res): Promise<void> => {
     const d = parsed.data.endDate;
     updates.endDate = d instanceof Date ? d.toISOString().split("T")[0] : String(d);
   }
+  const [before] = await db.select().from(cyclesTable).where(eq(cyclesTable.id, params.data.id));
   const [cycle] = await db
     .update(cyclesTable)
     .set(updates)
@@ -65,10 +68,11 @@ router.patch("/cycles/:id", requireAuth, async (req, res): Promise<void> => {
     res.status(404).json({ error: "Cycle not found" });
     return;
   }
+  await logAudit(req.authContext, "update", "cycle", cycle.id, { before, after: cycle });
   res.json(cycle);
 });
 
-router.delete("/cycles/:id", requireAuth, async (req, res): Promise<void> => {
+router.delete("/cycles/:id", requireRole(["admin"]), async (req, res): Promise<void> => {
   const params = DeleteCycleParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
@@ -79,6 +83,7 @@ router.delete("/cycles/:id", requireAuth, async (req, res): Promise<void> => {
     res.status(404).json({ error: "Cycle not found" });
     return;
   }
+  await logAudit(req.authContext, "delete", "cycle", cycle.id, { before: cycle });
   res.sendStatus(204);
 });
 

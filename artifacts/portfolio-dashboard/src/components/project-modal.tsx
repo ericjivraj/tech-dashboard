@@ -33,7 +33,13 @@ export default function ProjectModal({
   const { data: project, isLoading } = useGetProject(projectId, { query: { enabled: open && !!projectId, queryKey: getGetProjectQueryKey(projectId) } });
   const { data: updates } = useListProjectUpdates(projectId, { query: { enabled: open && !!projectId, queryKey: getListProjectUpdatesQueryKey(projectId) } });
   const { data: user } = useGetMe();
+  const isAdmin = user?.role === "admin";
+  const isGuest = user?.role === "guest";
+  const guestTeam = user?.team ?? null;
   const isEditor = user?.isEditor === true;
+
+  const canEditProject = (projectTeam?: string | null) =>
+    isAdmin || (isGuest && guestTeam !== null && projectTeam === guestTeam);
 
   const createUpdate = useCreateProjectUpdate();
   const deleteUpdate = useDeleteProjectUpdate();
@@ -112,7 +118,7 @@ export default function ProjectModal({
                     })()}
                   </div>
                 </div>
-                {isEditor && (
+                {canEditProject(project.team) && (
                   <div className="flex gap-2 shrink-0">
                     <Button variant="outline" size="sm" onClick={() => onEdit(project)} className="h-8">
                       <Edit className="h-3.5 w-3.5 mr-1" /> Edit
@@ -196,7 +202,7 @@ export default function ProjectModal({
                 <Clock className="h-4 w-4" /> Updates
               </h4>
               
-              {isEditor && (
+              {canEditProject(project?.team) && (
                 <div className="flex gap-2">
                   <Textarea 
                     placeholder="Post a new update..." 
@@ -218,7 +224,7 @@ export default function ProjectModal({
                       <span>{update.authorName || 'Editor'}</span>
                       <span>{format(parseISO(update.createdAt), 'MMM d, yyyy h:mm a')}</span>
                     </div>
-                    {isEditor && (
+                    {canEditProject(project?.team) && (
                       <button
                         className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-destructive/10 hover:text-destructive text-muted-foreground"
                         onClick={() => handleDeleteUpdate(update.id)}

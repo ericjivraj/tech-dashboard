@@ -5,3 +5,5 @@ export * from "./projects";
 export * from "./projectGoals";
 export * from "./projectUpdates";
 export * from "./emailSchedule";
+export * from "./users";
+export * from "./auditLog";
