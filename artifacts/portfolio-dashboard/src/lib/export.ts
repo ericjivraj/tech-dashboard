@@ -1,6 +1,6 @@
 import type { ProjectWithDetails } from "@workspace/api-client-react";
 import { STATUS_LABELS } from "./constants";
-import { formatConfidence } from "./utils";
+import { formatConfidence, storyPointsToTShirt } from "./utils";
 
 function escapeCSV(value: string | null | undefined): string {
   const str = value ?? "";
@@ -21,7 +21,7 @@ export function exportProjectsToCSV(
     "Sponsor",
     "Team",
     "Stakeholder",
-    "Story Points",
+    "Sizing",
     "Cycle",
     "Goals",
     "Latest Update",
@@ -36,7 +36,7 @@ export function exportProjectsToCSV(
     escapeCSV(p.sponsor ?? ""),
     escapeCSV(p.team ?? ""),
     escapeCSV(p.stakeholder ?? ""),
-    escapeCSV(p.storyPoints?.toString() ?? ""),
+    escapeCSV(p.storyPoints != null ? storyPointsToTShirt(p.storyPoints).label : ""),
     escapeCSV(p.cycle?.name ?? ""),
     escapeCSV(p.goals?.map((g) => g.name).join("; ") ?? ""),
     escapeCSV(p.latestUpdate?.content ?? ""),
@@ -104,10 +104,10 @@ export const PDF_COLUMNS: PdfColumn[] = [
     getValue: (p) => p.stakeholder ?? "—",
   },
   {
-    key: "storyPoints",
-    label: "Points",
-    width: 5,
-    getValue: (p) => (p.storyPoints != null ? String(p.storyPoints) : "—"),
+    key: "size",
+    label: "Sizing",
+    width: 6,
+    getValue: (p) => (p.storyPoints != null ? storyPointsToTShirt(p.storyPoints).label : "—"),
   },
   {
     key: "cycle",
