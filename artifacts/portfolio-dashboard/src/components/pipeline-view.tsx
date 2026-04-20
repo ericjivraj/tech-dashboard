@@ -3,7 +3,7 @@ import { ProjectWithDetails, ProjectStatus } from "@workspace/api-client-react";
 import { formatConfidence, storyPointsToTShirt } from "@/lib/utils";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Info } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
@@ -109,16 +109,16 @@ export default function PipelineView({ projects }: PipelineViewProps) {
 
   function renderHeader(col: string, tip: string) {
     const infoIcon = (
-      <Tooltip>
-        <TooltipTrigger asChild>
+      <Popover>
+        <PopoverTrigger asChild>
           <button className="text-muted-foreground/40 hover:text-muted-foreground transition-colors shrink-0" aria-label={`About ${col}`}>
             <Info className="h-3 w-3" />
           </button>
-        </TooltipTrigger>
-        <TooltipContent side="bottom" className="max-w-[200px]">
+        </PopoverTrigger>
+        <PopoverContent side="bottom" align="start" className="w-auto max-w-[200px] px-3 py-1.5 text-xs">
           {tip}
-        </TooltipContent>
-      </Tooltip>
+        </PopoverContent>
+      </Popover>
     );
 
     if (!SORTABLE_COLUMNS.has(col)) {
@@ -161,7 +161,7 @@ export default function PipelineView({ projects }: PipelineViewProps) {
   const totalColSpan = Object.keys(COLUMN_TOOLTIPS).length;
 
   return (
-    <TooltipProvider>
+    <>
       <>
         <div className="rounded-md border bg-card overflow-hidden">
           <Table>
@@ -289,6 +289,6 @@ export default function PipelineView({ projects }: PipelineViewProps) {
           projectToEdit={projectToEdit}
         />
       </>
-    </TooltipProvider>
+    </>
   );
 }

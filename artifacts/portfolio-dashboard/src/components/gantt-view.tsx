@@ -6,7 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Info } from "lucide-react";
 import { format, parseISO, startOfYear, endOfYear, eachMonthOfInterval, differenceInDays, startOfQuarter, endOfQuarter } from "date-fns";
 import type { FilterState } from "@/lib/filter-types";
@@ -146,7 +146,7 @@ export default function GanttView({ filters }: GanttViewProps) {
   });
 
   return (
-    <TooltipProvider>
+    <>
       <>
       <div className="space-y-4">
         <div className="flex flex-wrap items-center gap-3" data-testid="gantt-filters">
@@ -201,16 +201,16 @@ export default function GanttView({ filters }: GanttViewProps) {
             <div className="flex mb-4 relative ml-[240px] border-b pb-2">
               <div className="absolute left-[-240px] flex items-center gap-1 text-xs font-medium text-muted-foreground">
                 Project
-                <Tooltip>
-                  <TooltipTrigger asChild>
+                <Popover>
+                  <PopoverTrigger asChild>
                     <button className="text-muted-foreground/50 hover:text-muted-foreground transition-colors" aria-label="About Project column">
                       <Info className="h-3 w-3" />
                     </button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom">
+                  </PopoverTrigger>
+                  <PopoverContent side="bottom" align="start" className="w-auto max-w-[220px] px-3 py-1.5 text-xs">
                     Project name with team, sponsor, stakeholder, and goals
-                  </TooltipContent>
-                </Tooltip>
+                  </PopoverContent>
+                </Popover>
               </div>
               {months.map((month, i) => (
                 <div key={i} className="flex-1 text-xs font-medium text-muted-foreground text-center border-l first:border-l-0 border-border/50">
@@ -312,6 +312,6 @@ export default function GanttView({ filters }: GanttViewProps) {
         projectToEdit={projectToEdit}
       />
       </>
-    </TooltipProvider>
+    </>
   );
 }

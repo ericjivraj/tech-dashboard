@@ -3,7 +3,7 @@ import { ProjectWithDetails, ProjectStatus, useGetMe } from "@workspace/api-clie
 import { formatConfidence, storyPointsToTShirt } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Info } from "lucide-react";
 import ProjectModal from "./project-modal";
 import ProjectForm from "./project-form";
@@ -41,7 +41,7 @@ export default function KanbanView({ projects }: KanbanViewProps) {
   }, {} as Record<ProjectStatus, ProjectWithDetails[]>);
 
   return (
-    <TooltipProvider>
+    <>
       <>
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 items-start pb-4">
           {COLUMNS.map((col) => (
@@ -49,16 +49,16 @@ export default function KanbanView({ projects }: KanbanViewProps) {
               <div className="flex items-center justify-between px-1">
                 <div className="flex items-center gap-1">
                   <h3 className="font-semibold text-sm text-foreground">{col.label}</h3>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
+                  <Popover>
+                    <PopoverTrigger asChild>
                       <button className="text-muted-foreground/50 hover:text-muted-foreground transition-colors" aria-label={`About ${col.label}`}>
                         <Info className="h-3 w-3" />
                       </button>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom" className="max-w-[180px] text-center">
+                    </PopoverTrigger>
+                    <PopoverContent side="bottom" align="start" className="w-auto max-w-[180px] text-center px-3 py-1.5 text-xs">
                       {COLUMN_DESCRIPTIONS[col.id]}
-                    </TooltipContent>
-                  </Tooltip>
+                    </PopoverContent>
+                  </Popover>
                 </div>
                 <Badge variant="secondary" className="px-1.5 min-w-[1.5rem] flex justify-center text-xs">
                   {projectsByStatus[col.id].length}
@@ -101,7 +101,7 @@ export default function KanbanView({ projects }: KanbanViewProps) {
           />
         )}
       </>
-    </TooltipProvider>
+    </>
   );
 }
 
