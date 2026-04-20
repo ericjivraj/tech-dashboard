@@ -160,7 +160,7 @@ export function exportProjectsToPDF(
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(16);
-  doc.text("Technology Project Report", marginX, 36);
+  doc.text("Technology Report", marginX, 36);
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
