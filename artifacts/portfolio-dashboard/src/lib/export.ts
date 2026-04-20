@@ -1,5 +1,6 @@
 import type { ProjectWithDetails } from "@workspace/api-client-react";
 import { STATUS_LABELS } from "./constants";
+import { formatConfidence } from "./utils";
 
 function escapeCSV(value: string | null | undefined): string {
   const str = value ?? "";
@@ -31,7 +32,7 @@ export function exportProjectsToCSV(
   const rows = projects.map((p) => [
     escapeCSV(p.title),
     escapeCSV(STATUS_LABELS[p.status] ?? p.status),
-    escapeCSV(p.confidence?.replace(/_/g, " ") ?? ""),
+    escapeCSV(p.confidence ? formatConfidence(p.confidence) : ""),
     escapeCSV(p.sponsor ?? ""),
     escapeCSV(p.team ?? ""),
     escapeCSV(p.stakeholder ?? ""),
@@ -82,7 +83,7 @@ export const PDF_COLUMNS: PdfColumn[] = [
     key: "confidence",
     label: "Confidence",
     width: 8,
-    getValue: (p) => p.confidence?.replace(/_/g, " ") ?? "—",
+    getValue: (p) => p.confidence ? formatConfidence(p.confidence) : "—",
   },
   {
     key: "sponsor",
