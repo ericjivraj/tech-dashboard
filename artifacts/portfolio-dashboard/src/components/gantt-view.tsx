@@ -236,12 +236,17 @@ export default function GanttView({ filters }: GanttViewProps) {
                   return (
                     <div
                       key={project.id}
-                      className="flex items-center group relative hover:bg-muted/20 -mx-4 px-4 py-1 rounded cursor-pointer"
+                      className={`flex items-center group relative -mx-4 px-4 py-1 rounded cursor-pointer ${project.status === "blocked" ? "bg-red-50/40 dark:bg-red-950/20 hover:bg-red-50/60" : "hover:bg-muted/20"}`}
                       data-testid={`gantt-row-${project.id}`}
                       onClick={() => setSelectedProjectId(project.id)}
                     >
                       <div className="w-[230px] shrink-0 pr-4">
-                        <div className="text-sm font-medium truncate" title={project.title}>{project.title}</div>
+                        <div className="flex items-center gap-1.5">
+                          <div className="text-sm font-medium truncate" title={project.title}>{project.title}</div>
+                          {project.status === "blocked" && (
+                            <span className="inline-flex shrink-0 items-center rounded-full bg-red-100 px-1.5 py-0.5 text-[9px] font-semibold text-red-700 dark:bg-red-900 dark:text-red-300 leading-none">Blocked</span>
+                          )}
+                        </div>
                         <div className="flex items-center gap-1.5 mt-0.5">
                           <span className="text-[10px] text-muted-foreground truncate">{project.team || "No team"}</span>
                           {project.storyPoints != null ? (() => {
@@ -279,8 +284,14 @@ export default function GanttView({ filters }: GanttViewProps) {
 
                       <div className="flex-1 relative h-7 bg-muted/10 rounded overflow-hidden">
                         <div
-                          className="absolute top-1 bottom-1 rounded-sm shadow-sm transition-opacity opacity-85 hover:opacity-100"
-                          style={{ left: pos.left, width: pos.width, backgroundColor: color }}
+                          className="absolute top-1 bottom-1 rounded-sm shadow-sm transition-opacity opacity-90 hover:opacity-100"
+                          style={{
+                            left: pos.left,
+                            width: pos.width,
+                            ...(project.status === "blocked"
+                              ? { backgroundImage: `repeating-linear-gradient(-45deg, ${color}, ${color} 5px, rgba(0,0,0,0.18) 5px, rgba(0,0,0,0.18) 10px)` }
+                              : { backgroundColor: color })
+                          }}
                           title={`${project.title}\n${format(parseISO(effectiveStart), 'MMM d')} — ${format(parseISO(effectiveEnd), 'MMM d, yyyy')}${usingCycleFallback ? '\n(dates from cycle)' : ''}`}
                         >
                           <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/10 rounded-b-sm" />
