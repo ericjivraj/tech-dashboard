@@ -148,7 +148,7 @@ export default function FilterBar({ filters, onFiltersChange, teams, sponsors, f
             <SelectTrigger className="h-8 w-[150px] text-sm">
               <SelectValue placeholder="Business Goal" />
             </SelectTrigger>
-            <SelectContent side="bottom" align="start">
+            <SelectContent position="popper" side="bottom" align="start">
               <SelectItem value="all">All Goals</SelectItem>
               {goals.map((g) => (
                 <SelectItem key={g.id} value={g.id.toString()}>
