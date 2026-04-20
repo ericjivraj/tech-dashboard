@@ -1,3 +1,5 @@
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import type { ProjectWithDetails } from "@workspace/api-client-react";
 import { STATUS_LABELS } from "./constants";
 import { formatConfidence, storyPointsToTShirt } from "./utils";
@@ -150,72 +152,69 @@ export function exportProjectsToPDF(
 
   const totalDefinedWidth = columns.reduce((sum, c) => sum + c.width, 0);
 
-  const colWidths = columns.map(
-    (c) => `${((c.width / totalDefinedWidth) * 100).toFixed(2)}%`
-  );
+  const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
 
-  const colGroupHtml = columns
-    .map((c, i) => `<col style="width:${colWidths[i]}" />`)
-    .join("\n      ");
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const marginX = 28;
+  const tableWidth = pageWidth - marginX * 2;
 
-  const theadHtml = columns.map((c) => `<th>${c.label}</th>`).join("");
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(16);
+  doc.text("Portfolio Report", marginX, 36);
 
-  const rows = projects
-    .map((p) => {
-      const cells = columns
-        .map((c) => `<td>${escapeHtml(c.getValue(p))}</td>`)
-        .join("");
-      return `<tr>${cells}</tr>`;
-    })
-    .join("\n    ");
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.setTextColor(100);
+  const subtitle = `Generated on ${new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}  ·  ${projects.length} project${projects.length !== 1 ? "s" : ""}`;
+  doc.text(subtitle, marginX, 52);
+  doc.setTextColor(0);
 
-  const html = `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8" />
-  <title>Portfolio Export – ${new Date().toLocaleDateString()}</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 10px; color: #111; padding: 24px; }
-    h1 { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
-    .subtitle { color: #555; margin-bottom: 20px; font-size: 12px; }
-    table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-    th { background: #1e293b; color: #fff; text-align: left; padding: 5px 6px; font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em; }
-    td { padding: 5px 6px; border-bottom: 1px solid #e2e8f0; vertical-align: top; word-wrap: break-word; overflow-wrap: break-word; }
-    tr:nth-child(even) td { background: #f8fafc; }
-    @media print {
-      body { padding: 0; }
-      h1 { font-size: 16px; }
-      th { background: #1e293b !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-      tr:nth-child(even) td { background: #f8fafc !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    }
-  </style>
-</head>
-<body>
-  <h1>Portfolio Report</h1>
-  <p class="subtitle">Generated on ${new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })} · ${projects.length} project${projects.length !== 1 ? "s" : ""}</p>
-  <table>
-    <colgroup>
-      ${colGroupHtml}
-    </colgroup>
-    <thead>
-      <tr>${theadHtml}</tr>
-    </thead>
-    <tbody>
-    ${rows}
-    </tbody>
-  </table>
-</body>
-</html>`;
+  const head = [columns.map((c) => c.label.toUpperCase())];
+  const body = projects.map((p) => columns.map((c) => c.getValue(p)));
 
-  const win = window.open("", "_blank");
-  if (!win) return;
-  win.document.write(html);
-  win.document.close();
-  win.focus();
-  setTimeout(() => {
-    win.print();
-  }, 300);
+  const columnStyles: Record<number, { cellWidth: number }> = {};
+  columns.forEach((c, i) => {
+    columnStyles[i] = { cellWidth: (c.width / totalDefinedWidth) * tableWidth };
+  });
+
+  autoTable(doc, {
+    head,
+    body,
+    startY: 62,
+    margin: { left: marginX, right: marginX },
+    columnStyles,
+    tableWidth,
+    styles: {
+      fontSize: 8,
+      cellPadding: { top: 4, bottom: 4, left: 5, right: 5 },
+      valign: "top",
+      overflow: "linebreak",
+    },
+    headStyles: {
+      fillColor: [30, 41, 59],
+      textColor: 255,
+      fontStyle: "bold",
+      fontSize: 7,
+    },
+    alternateRowStyles: {
+      fillColor: [248, 250, 252],
+    },
+    didDrawPage: (data: { pageNumber: number }) => {
+      const pageCount = (doc.internal as unknown as { getNumberOfPages: () => number }).getNumberOfPages();
+      doc.setFontSize(7);
+      doc.setTextColor(150);
+      doc.text(
+        `Page ${data.pageNumber} of ${pageCount}`,
+        pageWidth - marginX,
+        doc.internal.pageSize.getHeight() - 14,
+        { align: "right" }
+      );
+      doc.setTextColor(0);
+    },
+  });
+
+  const date = new Date().toISOString().split("T")[0];
+  doc.save(`portfolio-${date}.pdf`);
 }
 
 function ordinalDate(dateStr: string): string {
@@ -229,10 +228,3 @@ function ordinalDate(dateStr: string): string {
   return `${day}${suffix} of ${month}`;
 }
 
-function escapeHtml(str: string): string {
-  return str
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
