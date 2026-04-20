@@ -1,0 +1,60 @@
+# Dependencies — reinstalled inside the image via pnpm install
+node_modules
+**/node_modules
+
+# Build outputs — rebuilt inside the image via pnpm build
+**/dist
+**/build
+**/.next
+**/.nuxt
+
+# Version control
+.git
+.gitignore
+.gitattributes
+
+# Replit / local agent state
+.local
+.replit
+replit.nix
+.upm
+
+# Caches
+.cache
+**/.cache
+.pnpm-store
+**/.turbo
+
+# Logs
+*.log
+**/logs
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Test & coverage artefacts
+**/coverage
+**/__tests__
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+**/*.spec.tsx
+
+# Development / editor config
+.editorconfig
+.eslintcache
+.env.local
+.env.development
+.env.test
+**/.DS_Store
+Thumbs.db
+
+# Documentation and assets not needed at runtime
+README.md
+replit.md
+attached_assets
+
+# Design / mockup sandbox (not part of the API build)
+artifacts/mockup-sandbox
+artifacts/portfolio-dashboard
