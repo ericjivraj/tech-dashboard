@@ -113,6 +113,11 @@ export default function Dashboard() {
               {summary.activeCycle?.startDate && summary.activeCycle?.endDate && (
                 <p className="text-sm text-muted-foreground">
                   {format(parseISO(summary.activeCycle.startDate), 'MMM d')} – {format(parseISO(summary.activeCycle.endDate), 'MMM d, yyyy')}
+                  {currentSprint?.startDate && currentSprint?.endDate && (
+                    <span className="ml-2 pl-2 border-l border-muted-foreground/30">
+                      {currentSprint.name}: {format(parseISO(currentSprint.startDate), 'MMM d')} – {format(parseISO(currentSprint.endDate), 'MMM d, yyyy')}
+                    </span>
+                  )}
                 </p>
               )}
             </div>
