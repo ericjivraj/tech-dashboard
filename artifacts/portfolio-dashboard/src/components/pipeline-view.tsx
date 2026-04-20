@@ -14,7 +14,7 @@ import { CONFIDENCE_COLORS, STATUS_LABELS, STATUS_ORDER } from "@/lib/constants"
 const COLUMN_TOOLTIPS: Record<string, string> = {
   "Project Name": "The name and any blocked reason for the project",
   "Status": "Current workflow status of the project",
-  "Team / Sponsor": "The team responsible and the business sponsor",
+  "Team / Sponsor": "The team responsible for delivery, and the business sponsor responsible for the project",
   "Stakeholder": "Business stakeholder for this project",
   "Goals": "Business goals this project contributes to",
   "Confidence": "Team's confidence in delivery",
@@ -187,7 +187,16 @@ export default function PipelineView({ projects }: PipelineViewProps) {
                     )}
                   </TableCell>
                   <TableCell>
-                    <Badge variant={project.status === 'done' ? 'default' : project.status === 'blocked' ? 'destructive' : 'secondary'} className="font-medium text-xs">
+                    <Badge
+                      variant="secondary"
+                      className={`font-medium text-xs ${
+                        project.status === 'done'
+                          ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300'
+                          : project.status === 'blocked'
+                          ? 'bg-destructive text-destructive-foreground'
+                          : ''
+                      }`}
+                    >
                       {STATUS_LABELS[project.status]}
                     </Badge>
                   </TableCell>
