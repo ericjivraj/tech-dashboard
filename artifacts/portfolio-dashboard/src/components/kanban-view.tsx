@@ -170,9 +170,12 @@ function ProjectCard({ project, onClick }: { project: ProjectWithDetails; onClic
           </div>
         )}
         {project.goals && project.goals.length > 0 && (
-          <div className="flex items-center gap-1 flex-wrap w-full pt-1 mt-0.5 border-t border-border/40">
+          <div className="flex items-center gap-1.5 flex-wrap w-full pt-1 mt-0.5 border-t border-border/40">
             {project.goals.map((g) => (
-              <span key={g.id} className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: g.color }} title={g.name} />
+              <span key={g.id} className="flex items-center gap-1 min-w-0 max-w-full">
+                <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: g.color }} />
+                <span className="truncate max-w-[80px]" title={g.name}>{g.name}</span>
+              </span>
             ))}
           </div>
         )}
