@@ -75,6 +75,8 @@ export default function FilterBar({ filters, onFiltersChange, teams, sponsors, f
     onFiltersChange(presetFilters);
   }
 
+  const today = new Date().toISOString().split("T")[0];
+
   return (
     <div className="flex flex-col gap-3" data-testid="filter-bar">
       <div className="flex flex-wrap items-center gap-2">
@@ -93,7 +95,7 @@ export default function FilterBar({ filters, onFiltersChange, teams, sponsors, f
           <SelectTrigger className="h-8 w-[140px] text-sm">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent side="bottom" align="start">
             <SelectItem value="all">All Statuses</SelectItem>
             {Object.entries(STATUS_LABELS).map(([value, label]) => (
               <SelectItem key={value} value={value}>{label}</SelectItem>
@@ -106,7 +108,7 @@ export default function FilterBar({ filters, onFiltersChange, teams, sponsors, f
             <SelectTrigger className="h-8 w-[140px] text-sm">
               <SelectValue placeholder="Team" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent side="bottom" align="start">
               <SelectItem value="all">All Teams</SelectItem>
               {teams.map((t) => (
                 <SelectItem key={t} value={t}>{t}</SelectItem>
@@ -120,7 +122,7 @@ export default function FilterBar({ filters, onFiltersChange, teams, sponsors, f
             <SelectTrigger className="h-8 w-[140px] text-sm">
               <SelectValue placeholder="Sponsor" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent side="bottom" align="start">
               <SelectItem value="all">All Sponsors</SelectItem>
               {sponsors.map((s) => (
                 <SelectItem key={s} value={s}>{s}</SelectItem>
@@ -133,7 +135,7 @@ export default function FilterBar({ filters, onFiltersChange, teams, sponsors, f
           <SelectTrigger className="h-8 w-[130px] text-sm">
             <SelectValue placeholder="Size" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent side="bottom" align="start">
             <SelectItem value="all">All Sizes</SelectItem>
             {["XS", "S", "M", "L", "XL", "XXL"].map((size) => (
               <SelectItem key={size} value={size}>{size}</SelectItem>
@@ -146,7 +148,7 @@ export default function FilterBar({ filters, onFiltersChange, teams, sponsors, f
             <SelectTrigger className="h-8 w-[150px] text-sm">
               <SelectValue placeholder="Business Goal" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent side="bottom" align="start">
               <SelectItem value="all">All Goals</SelectItem>
               {goals.map((g) => (
                 <SelectItem key={g.id} value={g.id.toString()}>
@@ -161,7 +163,6 @@ export default function FilterBar({ filters, onFiltersChange, teams, sponsors, f
         )}
 
         {cycles && cycles.length > 0 && (() => {
-          const today = new Date().toISOString().split("T")[0];
           const activeCycleId = cycles.find((c) => c.startDate <= today && c.endDate >= today)?.id ?? null;
           const nextCycleId = cycles.find((c) => c.startDate > today)?.id ?? null;
           return (
@@ -169,28 +170,33 @@ export default function FilterBar({ filters, onFiltersChange, teams, sponsors, f
               <SelectTrigger className="h-8 w-[150px] text-sm">
                 <SelectValue placeholder="Cycle" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent side="bottom" align="start">
                 <SelectItem value="all">All Cycles</SelectItem>
-                {cycles.map((c) => (
-                  <SelectItem key={c.id} value={c.id.toString()}>
-                    <span className="flex items-center gap-1.5">
-                      {c.name}
-                      {c.id === activeCycleId && (
-                        <span className="inline-flex items-center rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300 leading-none">Active</span>
-                      )}
-                      {c.id === nextCycleId && (
-                        <span className="inline-flex items-center rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground leading-none">Next</span>
-                      )}
-                    </span>
-                  </SelectItem>
-                ))}
+                {cycles.map((c) => {
+                  const isPast = c.endDate < today;
+                  return (
+                    <SelectItem key={c.id} value={c.id.toString()}>
+                      <span className="flex items-center gap-1.5">
+                        {c.name}
+                        {c.id === activeCycleId && (
+                          <span className="inline-flex items-center rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300 leading-none">Active</span>
+                        )}
+                        {c.id === nextCycleId && (
+                          <span className="inline-flex items-center rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground leading-none">Next</span>
+                        )}
+                        {isPast && c.id !== activeCycleId && (
+                          <span className="inline-flex items-center rounded-full bg-muted/60 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground/70 leading-none">Past</span>
+                        )}
+                      </span>
+                    </SelectItem>
+                  );
+                })}
               </SelectContent>
             </Select>
           );
         })()}
 
         {sprints && sprints.length > 0 && (() => {
-          const today = new Date().toISOString().split("T")[0];
           const visibleSprints = sprints.filter((s) => filters.cycleId === "all" || s.cycleId.toString() === filters.cycleId);
           const activeSprintId = visibleSprints.find((s) => s.startDate <= today && s.endDate >= today)?.id ?? null;
           const nextSprintId = visibleSprints
@@ -201,21 +207,27 @@ export default function FilterBar({ filters, onFiltersChange, teams, sponsors, f
               <SelectTrigger className="h-8 w-[150px] text-sm">
                 <SelectValue placeholder="Sprint" />
               </SelectTrigger>
-              <SelectContent className="max-h-60 overflow-y-auto">
+              <SelectContent side="bottom" align="start" className="max-h-60 overflow-y-auto">
                 <SelectItem value="all">All Sprints</SelectItem>
-                {visibleSprints.map((s) => (
-                  <SelectItem key={s.id} value={s.id.toString()}>
-                    <span className="flex items-center gap-1.5">
-                      {s.name}
-                      {s.id === activeSprintId && (
-                        <span className="inline-flex items-center rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300 leading-none">Active</span>
-                      )}
-                      {s.id === nextSprintId && (
-                        <span className="inline-flex items-center rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground leading-none">Next</span>
-                      )}
-                    </span>
-                  </SelectItem>
-                ))}
+                {visibleSprints.map((s) => {
+                  const isPast = s.endDate < today;
+                  return (
+                    <SelectItem key={s.id} value={s.id.toString()}>
+                      <span className="flex items-center gap-1.5">
+                        {s.name}
+                        {s.id === activeSprintId && (
+                          <span className="inline-flex items-center rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300 leading-none">Active</span>
+                        )}
+                        {s.id === nextSprintId && (
+                          <span className="inline-flex items-center rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground leading-none">Next</span>
+                        )}
+                        {isPast && s.id !== activeSprintId && (
+                          <span className="inline-flex items-center rounded-full bg-muted/60 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground/70 leading-none">Past</span>
+                        )}
+                      </span>
+                    </SelectItem>
+                  );
+                })}
               </SelectContent>
             </Select>
           );
@@ -236,7 +248,7 @@ export default function FilterBar({ filters, onFiltersChange, teams, sponsors, f
                 <ChevronDown className="h-3 w-3 text-muted-foreground" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56" data-testid="presets-menu">
+            <DropdownMenuContent side="bottom" align="end" className="w-56" data-testid="presets-menu">
               {presets.map((preset, index) => (
                 <div key={preset.id}>
                   {index > 0 && <DropdownMenuSeparator />}
@@ -278,7 +290,7 @@ export default function FilterBar({ filters, onFiltersChange, teams, sponsors, f
                 Save as preset
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-64 p-3" align="end" data-testid="save-preset-popover">
+            <PopoverContent className="w-64 p-3" side="bottom" align="end" data-testid="save-preset-popover">
               <p className="text-sm font-medium mb-2">Save filter preset</p>
               <div className="flex gap-2">
                 <Input

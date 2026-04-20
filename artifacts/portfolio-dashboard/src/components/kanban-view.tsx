@@ -3,9 +3,20 @@ import { ProjectWithDetails, ProjectStatus, useGetMe } from "@workspace/api-clie
 import { formatConfidence, storyPointsToTShirt } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Info } from "lucide-react";
 import ProjectModal from "./project-modal";
 import ProjectForm from "./project-form";
 import { CONFIDENCE_COLORS, STATUS_LABELS } from "@/lib/constants";
+
+const COLUMN_DESCRIPTIONS: Record<ProjectStatus, string> = {
+  new_request: "Newly submitted project requests awaiting triage",
+  backlog: "Prioritised items not yet scheduled for development",
+  up_next: "Projects lined up for the next development cycle",
+  in_progress: "Projects actively being worked on right now",
+  blocked: "Projects that cannot progress due to a dependency or issue",
+  done: "Completed and delivered projects",
+};
 
 const COLUMNS: { id: ProjectStatus; label: string }[] = [
   { id: "new_request", label: STATUS_LABELS.new_request },
@@ -30,58 +41,73 @@ export default function KanbanView({ projects }: KanbanViewProps) {
   }, {} as Record<ProjectStatus, ProjectWithDetails[]>);
 
   return (
-    <>
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 items-start pb-4">
-        {COLUMNS.map((col) => (
-          <div key={col.id} className="flex flex-col gap-3 rounded-xl bg-muted/30 p-3 min-h-[600px] border border-border/50">
-            <div className="flex items-center justify-between px-1">
-              <h3 className="font-semibold text-sm text-foreground">{col.label}</h3>
-              <Badge variant="secondary" className="px-1.5 min-w-[1.5rem] flex justify-center text-xs">
-                {projectsByStatus[col.id].length}
-              </Badge>
-            </div>
-            <div className="flex flex-col gap-3">
-              {projectsByStatus[col.id].map((project) => (
-                <ProjectCard
-                  key={project.id}
-                  project={project}
-                  onClick={() => setSelectedProjectId(project.id)}
-                />
-              ))}
-              {projectsByStatus[col.id].length === 0 && (
-                <div className="text-center p-4 text-sm text-muted-foreground border border-dashed rounded-lg border-border/50">
-                  Empty
+    <TooltipProvider>
+      <>
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 items-start pb-4">
+          {COLUMNS.map((col) => (
+            <div key={col.id} className="flex flex-col gap-3 rounded-xl bg-muted/30 p-3 min-h-[600px] border border-border/50">
+              <div className="flex items-center justify-between px-1">
+                <div className="flex items-center gap-1">
+                  <h3 className="font-semibold text-sm text-foreground">{col.label}</h3>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button className="text-muted-foreground/50 hover:text-muted-foreground transition-colors" aria-label={`About ${col.label}`}>
+                        <Info className="h-3 w-3" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="max-w-[180px] text-center">
+                      {COLUMN_DESCRIPTIONS[col.id]}
+                    </TooltipContent>
+                  </Tooltip>
                 </div>
-              )}
+                <Badge variant="secondary" className="px-1.5 min-w-[1.5rem] flex justify-center text-xs">
+                  {projectsByStatus[col.id].length}
+                </Badge>
+              </div>
+              <div className="flex flex-col gap-3">
+                {projectsByStatus[col.id].map((project) => (
+                  <ProjectCard
+                    key={project.id}
+                    project={project}
+                    onClick={() => setSelectedProjectId(project.id)}
+                  />
+                ))}
+                {projectsByStatus[col.id].length === 0 && (
+                  <div className="text-center p-4 text-sm text-muted-foreground border border-dashed rounded-lg border-border/50">
+                    Empty
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
 
-      {selectedProjectId && (
-        <ProjectModal
-          projectId={selectedProjectId}
-          open={!!selectedProjectId}
-          onOpenChange={(open) => !open && setSelectedProjectId(null)}
-          onEdit={(project) => {
-            setSelectedProjectId(null);
-            setProjectToEdit(project);
-          }}
-        />
-      )}
-      {projectToEdit && (
-        <ProjectForm
-          open={!!projectToEdit}
-          onOpenChange={(open) => !open && setProjectToEdit(null)}
-          projectToEdit={projectToEdit}
-        />
-      )}
-    </>
+        {selectedProjectId && (
+          <ProjectModal
+            projectId={selectedProjectId}
+            open={!!selectedProjectId}
+            onOpenChange={(open) => !open && setSelectedProjectId(null)}
+            onEdit={(project) => {
+              setSelectedProjectId(null);
+              setProjectToEdit(project);
+            }}
+          />
+        )}
+        {projectToEdit && (
+          <ProjectForm
+            open={!!projectToEdit}
+            onOpenChange={(open) => !open && setProjectToEdit(null)}
+            projectToEdit={projectToEdit}
+          />
+        )}
+      </>
+    </TooltipProvider>
   );
 }
 
 function ProjectCard({ project, onClick }: { project: ProjectWithDetails; onClick: () => void }) {
   const isBlocked = project.status === "blocked";
+  const isBacklog = project.status === "backlog";
 
   return (
     <Card
@@ -106,7 +132,7 @@ function ProjectCard({ project, onClick }: { project: ProjectWithDetails; onClic
           )}
         </div>
         <div className="flex items-center gap-1 flex-wrap">
-          {project.confidence && (
+          {project.confidence && !isBacklog && (
             <Badge variant="secondary" className={`text-[10px] px-1.5 font-medium border-0 ${CONFIDENCE_COLORS[project.confidence]}`}>
               {formatConfidence(project.confidence)}
             </Badge>
@@ -141,6 +167,13 @@ function ProjectCard({ project, onClick }: { project: ProjectWithDetails; onClic
           <div className="flex items-center gap-1 w-full" title={project.stakeholder}>
             <span className="text-muted-foreground/60 shrink-0">Stakeholder:</span>
             <span className="truncate font-medium">{project.stakeholder}</span>
+          </div>
+        )}
+        {project.goals && project.goals.length > 0 && (
+          <div className="flex items-center gap-1 flex-wrap">
+            {project.goals.map((g) => (
+              <span key={g.id} className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: g.color }} title={g.name} />
+            ))}
           </div>
         )}
       </CardFooter>
