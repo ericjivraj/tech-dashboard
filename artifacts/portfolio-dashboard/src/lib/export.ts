@@ -214,7 +214,7 @@ export function exportProjectsToPDF(
   });
 
   const date = new Date().toISOString().split("T")[0];
-  doc.save(`portfolio-${date}.pdf`);
+  doc.save(`tech-${date}.pdf`);
 }
 
 function shortDate(dateStr: string, includeYear = false): string {
