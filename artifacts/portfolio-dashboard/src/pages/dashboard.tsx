@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { format, parseISO } from "date-fns";
-import { useGetDashboardSummary, useGetMe, useListProjects, useListSprints } from "@workspace/api-client-react";
+import { useGetDashboardSummary, useGetMe, useListProjects } from "@workspace/api-client-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import KanbanView from "@/components/kanban-view";
@@ -21,7 +21,6 @@ export default function Dashboard() {
   const { data: summary, isLoading: isLoadingSummary } = useGetDashboardSummary();
   const { data: user } = useGetMe();
   const { data: allProjects, isLoading: isLoadingProjects } = useListProjects();
-  const { data: sprints } = useListSprints();
   const [view, setView] = useState("kanban");
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
 
@@ -37,14 +36,6 @@ export default function Dashboard() {
   const sponsors = SPONSORS;
 
   const today = new Date().toISOString().split("T")[0];
-
-  const currentSprint = useMemo(() => {
-    if (!sprints || !summary?.activeCycle) return null;
-    const activeCycleId = summary.activeCycle.id;
-    return sprints.find(
-      (s) => s.cycleId === activeCycleId && s.startDate <= today && s.endDate >= today
-    ) ?? null;
-  }, [sprints, summary?.activeCycle, today]);
 
   const filteredProjects = useMemo(() => {
     if (!allProjects) return [];
@@ -104,20 +95,11 @@ export default function Dashboard() {
             <div className="rounded-xl border bg-card text-card-foreground shadow-sm p-6 flex flex-col gap-1" data-testid="metric-active-cycle">
               <p className="text-sm font-medium text-muted-foreground">Active Cycle</p>
               <p className="text-xl font-semibold truncate" title={summary.activeCycle?.name || "None"}>
-                {summary.activeCycle?.name
-                  ? currentSprint
-                    ? `${summary.activeCycle.name} · ${currentSprint.name}`
-                    : summary.activeCycle.name
-                  : "None"}
+                {summary.activeCycle?.name ?? "None"}
               </p>
               {summary.activeCycle?.startDate && summary.activeCycle?.endDate && (
                 <p className="text-sm text-muted-foreground">
                   {format(parseISO(summary.activeCycle.startDate), 'MMM d')} – {format(parseISO(summary.activeCycle.endDate), 'MMM d, yyyy')}
-                  {currentSprint?.startDate && currentSprint?.endDate && (
-                    <span className="ml-2 pl-2 border-l border-muted-foreground/30">
-                      {currentSprint.name}: {format(parseISO(currentSprint.startDate), 'MMM d')} – {format(parseISO(currentSprint.endDate), 'MMM d, yyyy')}
-                    </span>
-                  )}
                 </p>
               )}
             </div>
