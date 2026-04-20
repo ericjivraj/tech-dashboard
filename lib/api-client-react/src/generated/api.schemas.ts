@@ -7,6 +7,7 @@
  */
 export interface HealthStatus {
   status: string;
+  db?: string;
 }
 
 export interface ErrorResponse {
