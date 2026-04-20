@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useGetProjectsTimeline, useListCycles, ProjectWithDetails } from "@workspace/api-client-react";
+import { useGetProjectsTimeline, useListCycles, useListSprints, ProjectWithDetails } from "@workspace/api-client-react";
 import ProjectModal from "./project-modal";
 import ProjectForm from "./project-form";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -48,6 +48,7 @@ export default function GanttView({ filters }: GanttViewProps) {
 
   const { data: projects, isLoading } = useGetProjectsTimeline({ year: currentYear });
   const { data: cycles } = useListCycles();
+  const { data: sprints } = useListSprints();
 
   if (isLoading) {
     return <Skeleton className="h-[400px] w-full rounded-xl" />;
@@ -81,6 +82,12 @@ export default function GanttView({ filters }: GanttViewProps) {
 
   const totalDays = Math.max(1, differenceInDays(viewEnd, viewStart));
   const months = eachMonthOfInterval({ start: viewStart, end: viewEnd });
+
+  const selectedCycle = selectedCycleId !== "all" ? cycles?.find((c) => c.id.toString() === selectedCycleId) ?? null : null;
+  const sprintsForCycle = selectedCycle && sprints
+    ? [...sprints.filter((s) => s.cycleId === selectedCycle.id)].sort((a, b) => a.startDate.localeCompare(b.startDate))
+    : [];
+  const showSprintHeaders = sprintsForCycle.length > 0;
 
   const getBarPosition = (start: string, end: string) => {
     const sDate = Math.max(parseISO(start).getTime(), viewStart.getTime());
@@ -212,11 +219,30 @@ export default function GanttView({ filters }: GanttViewProps) {
                   </PopoverContent>
                 </Popover>
               </div>
-              {months.map((month, i) => (
-                <div key={i} className="flex-1 text-xs font-medium text-muted-foreground text-center border-l first:border-l-0 border-border/50">
-                  {format(month, months.length <= 4 ? 'MMM d' : 'MMM')}
-                </div>
-              ))}
+              {showSprintHeaders ? (
+                sprintsForCycle.map((sprint) => {
+                  const sprintDays = Math.max(1, differenceInDays(parseISO(sprint.endDate), parseISO(sprint.startDate)));
+                  const widthPct = (sprintDays / totalDays) * 100;
+                  return (
+                    <div
+                      key={sprint.id}
+                      className="text-xs font-medium text-muted-foreground text-center border-l first:border-l-0 border-border/50 px-1 overflow-hidden"
+                      style={{ width: `${widthPct}%` }}
+                    >
+                      <div className="font-semibold text-foreground truncate">{sprint.name}</div>
+                      <div className="text-[10px] font-normal truncate">
+                        {format(parseISO(sprint.startDate), 'MMM d')} – {format(parseISO(sprint.endDate), 'MMM d')}
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                months.map((month, i) => (
+                  <div key={i} className="flex-1 text-xs font-medium text-muted-foreground text-center border-l first:border-l-0 border-border/50">
+                    {format(month, months.length <= 4 ? 'MMM d' : 'MMM')}
+                  </div>
+                ))
+              )}
             </div>
 
             {visibleProjects.length === 0 ? (
@@ -283,6 +309,16 @@ export default function GanttView({ filters }: GanttViewProps) {
                       </div>
 
                       <div className="flex-1 relative h-7 bg-muted/10 rounded overflow-hidden">
+                        {showSprintHeaders && sprintsForCycle.map((sprint) => {
+                          const left = (differenceInDays(parseISO(sprint.startDate), viewStart) / totalDays) * 100;
+                          return (
+                            <div
+                              key={sprint.id}
+                              className="absolute top-0 bottom-0 border-l border-border/40"
+                              style={{ left: `${Math.max(0, left)}%` }}
+                            />
+                          );
+                        })}
                         <div
                           className="absolute top-1 bottom-1 rounded-sm shadow-sm transition-opacity opacity-90 hover:opacity-100"
                           style={{
