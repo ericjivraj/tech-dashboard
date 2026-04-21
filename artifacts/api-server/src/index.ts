@@ -1,6 +1,7 @@
 import app from "./app";
 import { logger } from "./lib/logger";
 import { startEmailScheduler } from "./lib/emailScheduler";
+import { seedIfEmpty } from "./lib/seed";
 
 const rawPort = process.env["PORT"];
 
@@ -15,6 +16,10 @@ const port = Number(rawPort);
 if (Number.isNaN(port) || port <= 0) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
 }
+
+seedIfEmpty()
+  .then(() => logger.info("Seed check complete"))
+  .catch((err) => logger.warn({ err }, "Seed check failed (non-fatal)"));
 
 app.listen(port, (err) => {
   if (err) {
