@@ -327,16 +327,6 @@ export default function GanttView({ filters }: GanttViewProps) {
                   if (!pos) return null;
                   const color = STATUS_COLORS[project.status] || "#94a3b8";
 
-                  const subTeamSummary = project.subTeamSummary;
-                  const completionPercent = project.completionPercent;
-
-                  const subTeamParts: string[] = [];
-                  if (subTeamSummary) {
-                    if (subTeamSummary.backendPercent != null && subTeamSummary.backendPercent > 0) subTeamParts.push(`BE ${subTeamSummary.backendPercent}%`);
-                    if (subTeamSummary.frontendPercent != null && subTeamSummary.frontendPercent > 0) subTeamParts.push(`FE ${subTeamSummary.frontendPercent}%`);
-                    if (subTeamSummary.a3Percent != null && subTeamSummary.a3Percent > 0) subTeamParts.push(`A3 ${subTeamSummary.a3Percent}%`);
-                  }
-
                   return (
                     <div
                       key={project.id}
@@ -357,18 +347,6 @@ export default function GanttView({ filters }: GanttViewProps) {
                         {project.cycleName && project.cycleStartDate && project.cycleEndDate && (
                           <div className="text-xs text-foreground truncate mt-0.5">
                             {project.cycleName} · {format(parseISO(project.cycleStartDate), 'MMM d')} – {format(parseISO(project.cycleEndDate), 'MMM d')}
-                          </div>
-                        )}
-                        {(subTeamParts.length > 0 || completionPercent != null) && (
-                          <div className="flex items-center flex-wrap gap-x-2 gap-y-0.5 mt-1">
-                            {completionPercent != null && (
-                              <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">
-                                {completionPercent}% done
-                              </span>
-                            )}
-                            {subTeamParts.length > 0 && (
-                              <span className="text-xs text-foreground">{subTeamParts.join(' · ')}</span>
-                            )}
                           </div>
                         )}
                       </div>
@@ -405,12 +383,6 @@ export default function GanttView({ filters }: GanttViewProps) {
                           title={`${project.title}\n${format(parseISO(effectiveStart), 'MMM d')} — ${format(parseISO(effectiveEnd), 'MMM d, yyyy')}${usingCycleFallback ? '\n(dates from cycle)' : ''}`}
                         >
                           <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/10 rounded-b-sm" />
-                          {completionPercent != null && completionPercent > 0 && (
-                            <div
-                              className="absolute top-0 left-0 bottom-0 bg-white/25 rounded-sm"
-                              style={{ width: `${Math.min(completionPercent, 100)}%` }}
-                            />
-                          )}
                         </div>
                       </div>
                     </div>
