@@ -1,6 +1,9 @@
 import { useState, useEffect, useRef } from "react";
 
-const PASSCODE = import.meta.env.VITE_SITE_PASSCODE as string | undefined;
+const RAW_PASSCODE = import.meta.env.VITE_SITE_PASSCODE as string | undefined;
+const PASSCODES: string[] = RAW_PASSCODE
+  ? RAW_PASSCODE.split(",").map((p) => p.trim()).filter(Boolean)
+  : [];
 const SESSION_KEY = "delivery_dashboard_unlocked";
 
 interface PasscodeGateProps {
@@ -9,7 +12,7 @@ interface PasscodeGateProps {
 
 export default function PasscodeGate({ children }: PasscodeGateProps) {
   const [unlocked, setUnlocked] = useState(() => {
-    if (!PASSCODE) return true;
+    if (PASSCODES.length === 0) return true;
     return sessionStorage.getItem(SESSION_KEY) === "1";
   });
   const [value, setValue] = useState("");
@@ -29,7 +32,7 @@ export default function PasscodeGate({ children }: PasscodeGateProps) {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (value === PASSCODE) {
+    if (PASSCODES.includes(value)) {
       sessionStorage.setItem(SESSION_KEY, "1");
       setUnlocked(true);
     } else {
