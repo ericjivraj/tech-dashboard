@@ -362,7 +362,7 @@ export default function GanttView({ filters }: GanttViewProps) {
                         {(subTeamParts.length > 0 || completionPercent != null) && (
                           <div className="flex items-center flex-wrap gap-x-2 gap-y-0.5 mt-1">
                             {completionPercent != null && (
-                              <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                              <span className="text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
                                 {completionPercent}% done
                               </span>
                             )}
