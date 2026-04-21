@@ -248,6 +248,25 @@ export default function GanttView({ filters }: GanttViewProps) {
           </span>
         </div>
 
+        <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
+          <div className="flex items-center gap-1.5">
+            <span className="w-3 h-3 rounded-sm shrink-0 bg-[#3b82f6]" />
+            <span><span className="font-medium text-foreground">In development</span> — prioritized &amp; actively being built this cycle</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-3 h-3 rounded-sm shrink-0 bg-[#eab308]" />
+            <span><span className="font-medium text-foreground">Planned &amp; upcoming</span> — prioritized &amp; scheduled for a future cycle</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-3 h-3 rounded-sm shrink-0 bg-[#a855f7]" />
+            <span><span className="font-medium text-foreground">Awaiting scheduling</span> — identified work not yet assigned to a cycle</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-3 h-3 rounded-sm shrink-0 bg-[#ef4444]" />
+            <span><span className="font-medium text-foreground">Blocked</span> — progress halted, needs attention</span>
+          </div>
+        </div>
+
         <div className="rounded-xl border bg-card overflow-x-auto">
           <div className="min-w-[700px] p-4">
             <div className="flex mb-4 relative ml-[240px] border-b pb-2">
