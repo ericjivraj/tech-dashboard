@@ -12,14 +12,6 @@ import { format, parseISO, startOfYear, endOfYear, differenceInDays, startOfQuar
 import type { FilterState } from "@/lib/filter-types";
 import { storyPointsToTShirt } from "@/lib/utils";
 
-const STATUS_COLORS: Record<string, string> = {
-  done: "#10b981",
-  in_progress: "#3b82f6",
-  up_next: "#818cf8",
-  backlog: "#94a3b8",
-  blocked: "#ef4444",
-  new_request: "#a78bfa",
-};
 
 const QUARTERS = [
   { label: "Q1 (Jan–Mar)", value: "1" },
@@ -139,6 +131,7 @@ export default function GanttView({ filters }: GanttViewProps) {
   }
 
   const totalDays = Math.max(1, differenceInDays(viewEnd, viewStart));
+  const today = new Date();
 
   const cyclesInView = cycles
     ? cycles
@@ -298,7 +291,6 @@ export default function GanttView({ filters }: GanttViewProps) {
                   const be = cyclePct(cap, "backend");
                   const fe = cyclePct(cap, "frontend");
                   const hasCapacity = !!(a3 || be || fe);
-                  const today = new Date();
                   const isActive = parseISO(cycle.startDate) <= today && parseISO(cycle.endDate) >= today;
                   return (
                     <div
@@ -354,7 +346,16 @@ export default function GanttView({ filters }: GanttViewProps) {
                   const usingCycleFallback = !project.startDate && !project.endDate;
                   const pos = getBarPosition(effectiveStart, effectiveEnd);
                   if (!pos) return null;
-                  const color = STATUS_COLORS[project.status] || "#94a3b8";
+                  const isCurrent = project.cycleStartDate && project.cycleEndDate
+                    && parseISO(project.cycleStartDate) <= today && parseISO(project.cycleEndDate) >= today;
+                  const isFuture = project.cycleStartDate && parseISO(project.cycleStartDate) > today;
+                  const color = project.status === "blocked"
+                    ? "#ef4444"
+                    : isCurrent
+                      ? "#3b82f6"
+                      : isFuture
+                        ? "#eab308"
+                        : "#94a3b8";
 
                   return (
                     <div
