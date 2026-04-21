@@ -252,7 +252,7 @@ export default function GanttView({ filters }: GanttViewProps) {
           {[
             { color: "#3b82f6", label: "In development", desc: "Prioritized & actively being built this cycle" },
             { color: "#eab308", label: "Planned & upcoming", desc: "Prioritized & scheduled for a future cycle" },
-            { color: "#a855f7", label: "Awaiting scheduling", desc: "Identified work not yet assigned to a cycle" },
+            { color: "#a855f7", label: "Awaiting scheduling", desc: "Future opportunity identified, not yet planned or prioritized" },
             { color: "#ef4444", label: "Blocked", desc: "Progress halted, needs attention" },
           ].map(({ color, label, desc }) => (
             <div key={label} className="flex items-start gap-2 rounded-lg border bg-card px-4 py-3 min-w-[200px]">
