@@ -59,6 +59,15 @@ function cyclePct(row: CapacitySummaryRow | undefined, key: "a3" | "backend" | "
   return `${Math.round((allocated / budget) * 100)}%`;
 }
 
+function cyclePctNum(row: CapacitySummaryRow | undefined, key: "a3" | "backend" | "frontend"): number | null {
+  if (!row) return null;
+  const allocated = key === "a3" ? row.a3Allocated : key === "backend" ? row.backendAllocated : row.frontendAllocated;
+  const budget = key === "a3" ? row.a3Budget : key === "backend" ? row.backendBudget : row.frontendBudget;
+  if (budget == null) return null;
+  if (budget === 0) return allocated > 0 ? 101 : 0;
+  return Math.round((allocated / budget) * 100);
+}
+
 export default function GanttView({ filters }: GanttViewProps) {
   const currentYear = new Date().getFullYear();
   const [selectedQuarter, setSelectedQuarter] = useState<string>("all");
@@ -303,8 +312,27 @@ export default function GanttView({ filters }: GanttViewProps) {
                         {format(parseISO(cycle.startDate), 'MMM d')} – {format(parseISO(cycle.endDate), 'MMM d')}
                       </div>
                       {hasCapacity && (
-                        <div className="text-[10px] text-foreground truncate mt-0.5 leading-tight">
-                          {[a3 && `A3 ${a3}`, be && `BE ${be}`, fe && `FE ${fe}`].filter(Boolean).join(' · ')}
+                        <div className="mt-1.5 space-y-1 text-left px-0.5">
+                          {([
+                            { key: "a3" as const, label: "A3" },
+                            { key: "backend" as const, label: "BE" },
+                            { key: "frontend" as const, label: "FE" },
+                          ] as const).map(({ key, label }) => {
+                            const num = cyclePctNum(cap, key);
+                            if (num === null) return null;
+                            const pctStr = cyclePct(cap, key);
+                            const fill = Math.min(num, 100);
+                            const barColor = num >= 100 ? "bg-red-500" : num >= 80 ? "bg-amber-400" : "bg-blue-400";
+                            return (
+                              <div key={key} className="flex items-center gap-1">
+                                <span className="text-[9px] text-muted-foreground w-4 shrink-0">{label}</span>
+                                <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
+                                  <div className={`h-full rounded-full ${barColor}`} style={{ width: `${fill}%` }} />
+                                </div>
+                                <span className="text-[9px] text-foreground w-6 text-right shrink-0 tabular-nums">{pctStr}</span>
+                              </div>
+                            );
+                          })}
                         </div>
                       )}
                     </div>
