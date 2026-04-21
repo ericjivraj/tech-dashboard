@@ -415,32 +415,7 @@ export default function GanttView({ filters }: GanttViewProps) {
                         </div>
                         <div className="flex items-center gap-1.5 mt-0.5">
                           <span className="text-[10px] text-muted-foreground truncate">{project.team || "No team"}</span>
-                          {project.storyPoints != null ? (() => {
-                            const size = storyPointsToTShirt(project.storyPoints);
-                            return (
-                              <Badge variant="outline" className="text-[9px] font-medium px-1 py-0 h-3.5 leading-none shrink-0" title={size.tooltip}>
-                                {size.label}
-                              </Badge>
-                            );
-                          })() : null}
                         </div>
-                        {project.sponsor && (
-                          <div className="text-[10px] text-muted-foreground/70 truncate mt-0.5">
-                            Sponsor: {project.sponsor}
-                          </div>
-                        )}
-                        {project.stakeholder && (
-                          <div className="text-[10px] text-muted-foreground/70 truncate mt-0.5">
-                            Stakeholder: {project.stakeholder}
-                          </div>
-                        )}
-                        {project.goals && project.goals.length > 0 && (
-                          <div className="flex items-center gap-1 flex-wrap mt-0.5">
-                            {project.goals.map((g) => (
-                              <span key={g.id} className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: g.color }} title={g.name} />
-                            ))}
-                          </div>
-                        )}
                         {project.cycleName && project.cycleStartDate && project.cycleEndDate && (
                           <div className="text-[10px] text-muted-foreground/70 truncate mt-0.5">
                             {project.cycleName} · {format(parseISO(project.cycleStartDate), 'MMM d')} – {format(parseISO(project.cycleEndDate), 'MMM d')}
