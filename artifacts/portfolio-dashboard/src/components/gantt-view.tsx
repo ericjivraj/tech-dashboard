@@ -227,26 +227,11 @@ export default function GanttView({ filters }: GanttViewProps) {
             </Select>
           </div>
 
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground font-medium">Cycle</span>
-            <Select value={selectedCycleId} onValueChange={(v) => { setSelectedCycleId(v); setSelectedQuarter("all"); }} data-testid="gantt-cycle-filter">
-              <SelectTrigger className="h-8 w-[200px]">
-                <SelectValue placeholder="All cycles" />
-              </SelectTrigger>
-              <SelectContent side="bottom" align="start">
-                <SelectItem value="all">All Cycles</SelectItem>
-                {cycles?.map((c) => (
-                  <SelectItem key={c.id} value={c.id.toString()}>{c.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {(selectedQuarter !== "all" || selectedCycleId !== "all") && (
+          {selectedQuarter !== "all" && (
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => { setSelectedQuarter("all"); setSelectedCycleId("all"); }}
+              onClick={() => setSelectedQuarter("all")}
               data-testid="gantt-clear-filters"
             >
               Clear view filters
