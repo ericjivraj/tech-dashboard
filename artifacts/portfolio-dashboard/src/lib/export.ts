@@ -135,9 +135,27 @@ export const PDF_COLUMNS: PdfColumn[] = [
     width: 17,
     getValue: (p) => p.latestUpdate?.content ?? "—",
   },
+  {
+    key: "description",
+    label: "Description",
+    width: 22,
+    getValue: (p) => p.description ?? "—",
+  },
+  {
+    key: "impact",
+    label: "Business Impact",
+    width: 22,
+    getValue: (p) => p.impact ?? "—",
+  },
 ];
 
-export const DEFAULT_PDF_COLUMN_KEYS = PDF_COLUMNS.map((c) => c.key);
+const CORE_PDF_COLUMN_KEYS = [
+  "title", "status", "confidence", "sponsor", "team",
+  "stakeholder", "size", "cycle", "goals", "latestUpdate",
+];
+
+export const ALL_PDF_COLUMN_KEYS = PDF_COLUMNS.map((c) => c.key);
+export const DEFAULT_PDF_COLUMN_KEYS = CORE_PDF_COLUMN_KEYS;
 
 export function exportProjectsToPDF(
   projects: ProjectWithDetails[],

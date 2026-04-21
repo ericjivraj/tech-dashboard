@@ -33,6 +33,7 @@ import {
   exportProjectsToPDF,
   PDF_COLUMNS,
   DEFAULT_PDF_COLUMN_KEYS,
+  ALL_PDF_COLUMN_KEYS,
 } from "@/lib/export";
 import { useToast } from "@/hooks/use-toast";
 
@@ -45,7 +46,7 @@ function loadStoredSelectedColumns(): Set<string> {
     if (stored) {
       const parsed = JSON.parse(stored);
       if (Array.isArray(parsed) && parsed.every((k) => typeof k === "string")) {
-        const valid = parsed.filter((k) => DEFAULT_PDF_COLUMN_KEYS.includes(k));
+        const valid = parsed.filter((k) => ALL_PDF_COLUMN_KEYS.includes(k));
         if (valid.length > 0) return new Set(valid);
       }
     }
@@ -61,15 +62,15 @@ function loadStoredColumnOrder(): string[] {
     if (stored) {
       const parsed = JSON.parse(stored);
       if (Array.isArray(parsed) && parsed.every((k) => typeof k === "string")) {
-        const valid = parsed.filter((k) => DEFAULT_PDF_COLUMN_KEYS.includes(k));
-        const missing = DEFAULT_PDF_COLUMN_KEYS.filter((k) => !valid.includes(k));
+        const valid = parsed.filter((k) => ALL_PDF_COLUMN_KEYS.includes(k));
+        const missing = ALL_PDF_COLUMN_KEYS.filter((k) => !valid.includes(k));
         return [...valid, ...missing];
       }
     }
   } catch {
     // ignore
   }
-  return DEFAULT_PDF_COLUMN_KEYS;
+  return ALL_PDF_COLUMN_KEYS;
 }
 
 interface SortableColumnRowProps {
@@ -205,7 +206,7 @@ export default function ExportButton({ params }: ExportButtonProps) {
 
   function resetToDefaults() {
     setSelectedColumns(new Set(DEFAULT_PDF_COLUMN_KEYS));
-    setColumnOrder(DEFAULT_PDF_COLUMN_KEYS);
+    setColumnOrder(ALL_PDF_COLUMN_KEYS);
   }
 
   function selectNone() {
