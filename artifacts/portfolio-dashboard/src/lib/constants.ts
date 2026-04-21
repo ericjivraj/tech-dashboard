@@ -18,6 +18,15 @@ export const STATUS_ORDER: ProjectStatus[] = [
   "done",
 ];
 
+export const PIPELINE_STATUS_ORDER: ProjectStatus[] = [
+  "blocked",
+  "in_progress",
+  "up_next",
+  "backlog",
+  "new_request",
+  "done",
+];
+
 export const CONFIDENCE_COLORS: Record<string, string> = {
   high: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-100",
   medium: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100",

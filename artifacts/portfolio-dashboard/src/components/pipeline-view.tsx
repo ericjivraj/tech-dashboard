@@ -9,7 +9,7 @@ import { format, parseISO } from "date-fns";
 import { ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import ProjectModal from "./project-modal";
 import ProjectForm from "./project-form";
-import { CONFIDENCE_COLORS, STATUS_LABELS, STATUS_ORDER } from "@/lib/constants";
+import { CONFIDENCE_COLORS, STATUS_LABELS, PIPELINE_STATUS_ORDER } from "@/lib/constants";
 
 const COLUMN_TOOLTIPS: Record<string, string> = {
   "Project Name": "The name and any blocked reason for the project",
@@ -47,7 +47,7 @@ interface PipelineViewProps {
 export default function PipelineView({ projects }: PipelineViewProps) {
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
   const [projectToEdit, setProjectToEdit] = useState<ProjectWithDetails | null>(null);
-  const [sort, setSort] = useState<SortState>({ column: null, order: null });
+  const [sort, setSort] = useState<SortState>({ column: "Status", order: "asc" });
 
   function cycleSort(column: SortColumn) {
     setSort((prev) => {
@@ -73,8 +73,8 @@ export default function PipelineView({ projects }: PipelineViewProps) {
       }
 
       if (sort.column === "Status") {
-        const aIdx = STATUS_ORDER.indexOf(a.status as ProjectStatus);
-        const bIdx = STATUS_ORDER.indexOf(b.status as ProjectStatus);
+        const aIdx = PIPELINE_STATUS_ORDER.indexOf(a.status as ProjectStatus);
+        const bIdx = PIPELINE_STATUS_ORDER.indexOf(b.status as ProjectStatus);
         return dir * (aIdx - bIdx);
       }
 
