@@ -298,13 +298,17 @@ export default function GanttView({ filters }: GanttViewProps) {
                   const be = cyclePct(cap, "backend");
                   const fe = cyclePct(cap, "frontend");
                   const hasCapacity = !!(a3 || be || fe);
+                  const today = new Date();
+                  const isActive = parseISO(cycle.startDate) <= today && parseISO(cycle.endDate) >= today;
                   return (
                     <div
                       key={cycle.id}
-                      className="text-xs font-medium text-foreground text-center border-l first:border-l-0 border-border/50 px-1 overflow-hidden"
+                      className={`text-xs font-medium text-foreground text-center border-l first:border-l-0 border-border/50 px-1 overflow-hidden rounded-sm ${isActive ? "bg-blue-50 dark:bg-blue-950/40" : ""}`}
                       style={{ width: `${widthPct}%` }}
                     >
-                      <div className="font-semibold text-foreground truncate">{cycle.name}</div>
+                      <div className={`font-semibold truncate ${isActive ? "text-blue-700 dark:text-blue-400" : "text-foreground"}`}>
+                        {cycle.name}{isActive && <span className="ml-1 text-[9px] font-medium bg-blue-600 text-white rounded-full px-1 py-0.5 leading-none align-middle">Now</span>}
+                      </div>
                       <div className="text-xs font-normal truncate">
                         {format(parseISO(cycle.startDate), 'MMM d')} – {format(parseISO(cycle.endDate), 'MMM d')}
                       </div>
