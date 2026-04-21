@@ -52,7 +52,7 @@ type CapacitySummaryRow = {
 
 function FillBar({ allocated, budget }: { allocated: number; budget: number | null }) {
   if (budget == null) {
-    return <span className="text-[10px] text-muted-foreground italic">No budget</span>;
+    return <span className="text-[10px] text-muted-foreground">-</span>;
   }
   const overAllocatedZeroBudget = budget === 0 && allocated > 0;
   const pct = overAllocatedZeroBudget ? 100 : budget === 0 ? 0 : Math.min(Math.round((allocated / budget) * 100), 100);
@@ -65,7 +65,7 @@ function FillBar({ allocated, budget }: { allocated: number; budget: number | nu
         <div className={`h-full rounded-full transition-all ${color}`} style={{ width: `${pct}%` }} />
       </div>
       <div className={`text-[10px] font-medium ${textColor}`}>
-        {allocated}/{budget} ({overAllocatedZeroBudget ? "over" : `${overPct}%`})
+        {overAllocatedZeroBudget ? "over" : `${overPct}%`}
       </div>
     </div>
   );
