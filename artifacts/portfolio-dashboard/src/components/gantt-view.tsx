@@ -248,23 +248,21 @@ export default function GanttView({ filters }: GanttViewProps) {
           </span>
         </div>
 
-        <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
-          <div className="flex items-center gap-1.5">
-            <span className="w-3 h-3 rounded-sm shrink-0 bg-[#3b82f6]" />
-            <span><span className="font-medium text-foreground">In development</span> — prioritized &amp; actively being built this cycle</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-3 h-3 rounded-sm shrink-0 bg-[#eab308]" />
-            <span><span className="font-medium text-foreground">Planned &amp; upcoming</span> — prioritized &amp; scheduled for a future cycle</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-3 h-3 rounded-sm shrink-0 bg-[#a855f7]" />
-            <span><span className="font-medium text-foreground">Awaiting scheduling</span> — identified work not yet assigned to a cycle</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-3 h-3 rounded-sm shrink-0 bg-[#ef4444]" />
-            <span><span className="font-medium text-foreground">Blocked</span> — progress halted, needs attention</span>
-          </div>
+        <div className="flex flex-wrap gap-3">
+          {[
+            { color: "#3b82f6", label: "In development", desc: "Prioritized & actively being built this cycle" },
+            { color: "#eab308", label: "Planned & upcoming", desc: "Prioritized & scheduled for a future cycle" },
+            { color: "#a855f7", label: "Awaiting scheduling", desc: "Identified work not yet assigned to a cycle" },
+            { color: "#ef4444", label: "Blocked", desc: "Progress halted, needs attention" },
+          ].map(({ color, label, desc }) => (
+            <div key={label} className="flex items-start gap-2 rounded-lg border bg-card px-4 py-3 min-w-[200px]">
+              <span className="w-4 h-4 rounded shrink-0 mt-0.5" style={{ backgroundColor: color }} />
+              <div>
+                <div className="text-sm font-semibold text-foreground">{label}</div>
+                <div className="text-xs text-muted-foreground mt-0.5">{desc}</div>
+              </div>
+            </div>
+          ))}
         </div>
 
         <div className="rounded-xl border bg-card overflow-x-auto">
