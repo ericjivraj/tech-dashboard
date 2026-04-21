@@ -126,6 +126,18 @@ export default function GanttView({ filters }: GanttViewProps) {
     }
   }
 
+  // When viewing all cycles with no quarter filter, skip completed cycles
+  // by clamping viewStart to the first cycle that hasn't ended yet.
+  if (selectedCycleId === "all" && selectedQuarter === "all" && cycles) {
+    const today = new Date();
+    const firstActiveCycle = [...cycles]
+      .sort((a, b) => a.startDate.localeCompare(b.startDate))
+      .find((c) => parseISO(c.endDate) >= today);
+    if (firstActiveCycle) {
+      viewStart = parseISO(firstActiveCycle.startDate);
+    }
+  }
+
   const totalDays = Math.max(1, differenceInDays(viewEnd, viewStart));
 
   const cyclesInView = cycles
