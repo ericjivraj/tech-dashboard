@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Info } from "lucide-react";
-import { format, parseISO, startOfYear, endOfYear, eachMonthOfInterval, differenceInDays, startOfQuarter, endOfQuarter } from "date-fns";
+import { format, parseISO, startOfYear, endOfYear, differenceInDays, startOfQuarter, endOfQuarter } from "date-fns";
 import type { FilterState } from "@/lib/filter-types";
 import { storyPointsToTShirt } from "@/lib/utils";
 
@@ -182,7 +182,12 @@ export default function GanttView({ filters }: GanttViewProps) {
   }
 
   const totalDays = Math.max(1, differenceInDays(viewEnd, viewStart));
-  const months = eachMonthOfInterval({ start: viewStart, end: viewEnd });
+
+  const cyclesInView = cycles
+    ? cycles
+        .filter((c) => parseISO(c.startDate) < viewEnd && parseISO(c.endDate) > viewStart)
+        .sort((a, b) => a.startDate.localeCompare(b.startDate))
+    : [];
 
   const selectedCycle = selectedCycleId !== "all" ? cycles?.find((c) => c.id.toString() === selectedCycleId) ?? null : null;
   const sprintsForCycle = selectedCycle && sprints
@@ -350,11 +355,23 @@ export default function GanttView({ filters }: GanttViewProps) {
                   );
                 })
               ) : (
-                months.map((month, i) => (
-                  <div key={i} className="flex-1 text-xs font-medium text-muted-foreground text-center border-l first:border-l-0 border-border/50">
-                    {format(month, months.length <= 4 ? 'MMM d' : 'MMM')}
-                  </div>
-                ))
+                cyclesInView.map((cycle) => {
+                  const cStart = Math.max(parseISO(cycle.startDate).getTime(), viewStart.getTime());
+                  const cEnd = Math.min(parseISO(cycle.endDate).getTime(), viewEnd.getTime());
+                  const widthPct = (differenceInDays(new Date(cEnd), new Date(cStart)) / totalDays) * 100;
+                  return (
+                    <div
+                      key={cycle.id}
+                      className="text-xs font-medium text-muted-foreground text-center border-l first:border-l-0 border-border/50 px-1 overflow-hidden"
+                      style={{ width: `${widthPct}%` }}
+                    >
+                      <div className="font-semibold text-foreground truncate">{cycle.name}</div>
+                      <div className="text-[10px] font-normal truncate">
+                        {format(parseISO(cycle.startDate), 'MMM d')} – {format(parseISO(cycle.endDate), 'MMM d')}
+                      </div>
+                    </div>
+                  );
+                })
               )}
             </div>
 
@@ -444,7 +461,7 @@ export default function GanttView({ filters }: GanttViewProps) {
                       </div>
 
                       <div className="flex-1 relative h-7 bg-muted/10 rounded overflow-hidden">
-                        {showSprintHeaders && sprintsForCycle.map((sprint) => {
+                        {showSprintHeaders ? sprintsForCycle.map((sprint) => {
                           const left = (differenceInDays(parseISO(sprint.startDate), viewStart) / totalDays) * 100;
                           return (
                             <div
@@ -453,6 +470,15 @@ export default function GanttView({ filters }: GanttViewProps) {
                               style={{ left: `${Math.max(0, left)}%` }}
                             />
                           );
+                        }) : cyclesInView.map((cycle) => {
+                          const left = (differenceInDays(parseISO(cycle.startDate), viewStart) / totalDays) * 100;
+                          return left > 0 ? (
+                            <div
+                              key={cycle.id}
+                              className="absolute top-0 bottom-0 border-l border-border/40"
+                              style={{ left: `${left}%` }}
+                            />
+                          ) : null;
                         })}
                         <div
                           className="absolute top-1 bottom-1 rounded-sm shadow-sm transition-opacity opacity-90 hover:opacity-100"
