@@ -335,7 +335,7 @@ export default function GanttView({ filters }: GanttViewProps) {
                       </PopoverTrigger>
                       {cycleProjects.length > 0 && cap && totalBudget > 0 && (
                         <PopoverContent side="bottom" className="w-72 p-4 space-y-2 text-sm">
-                          <p className="font-bold text-foreground text-base mb-3">{cycle.name} project consumption</p>
+                          <p className="font-bold text-foreground text-base mb-3">{cycle.name}: Project Allocation</p>
                           {cycleProjects.map((p) => {
                             const pts = p.storyPoints ?? 0;
                             const pct = Math.round((pts / totalBudget) * 100);
