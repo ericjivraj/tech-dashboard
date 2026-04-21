@@ -310,40 +310,40 @@ export default function GanttView({ filters }: GanttViewProps) {
                     <Popover key={cycle.id}>
                       <PopoverTrigger asChild>
                         <div
-                          className={`text-xs font-medium text-foreground text-center border-l first:border-l-0 border-border/50 px-1 overflow-hidden rounded-sm cursor-pointer ${isActive ? "bg-blue-50 dark:bg-blue-950/40" : ""}`}
+                          className={`text-sm font-medium text-foreground text-center border-l first:border-l-0 border-border/50 px-2 overflow-hidden rounded-sm cursor-pointer ${isActive ? "bg-blue-50 dark:bg-blue-950/40" : ""}`}
                           style={{ width: `${widthPct}%` }}
                         >
-                          <div className={`font-semibold truncate ${isActive ? "text-blue-700 dark:text-blue-400" : "text-foreground"}`}>
-                            {cycle.name}{isActive && <span className="ml-1 text-[9px] font-medium bg-blue-600 text-white rounded-full px-1 py-0.5 leading-none align-middle">Now</span>}
+                          <div className={`font-bold truncate text-sm ${isActive ? "text-blue-700 dark:text-blue-400" : "text-foreground"}`}>
+                            {cycle.name}{isActive && <span className="ml-1 text-[10px] font-medium bg-blue-600 text-white rounded-full px-1.5 py-0.5 leading-none align-middle">Now</span>}
                           </div>
-                          <div className="text-xs font-normal truncate">
+                          <div className="text-xs font-normal truncate mt-0.5">
                             {format(parseISO(cycle.startDate), 'MMM d')} – {format(parseISO(cycle.endDate), 'MMM d')}
                           </div>
                           {overallCap && (
-                            <div className="mt-1.5 px-0.5">
-                              <div className="flex items-center gap-1">
-                                <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
+                            <div className="mt-2 px-0.5">
+                              <div className="flex items-center gap-1.5">
+                                <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
                                   <div
                                     className={`h-full rounded-full ${overallCap.pct >= 100 ? "bg-red-500" : overallCap.pct >= 80 ? "bg-amber-400" : "bg-blue-400"}`}
                                     style={{ width: `${Math.min(overallCap.pct, 100)}%` }}
                                   />
                                 </div>
-                                <span className="text-[9px] text-foreground w-7 text-right shrink-0 tabular-nums">{overallCap.label}</span>
+                                <span className="text-xs font-semibold text-foreground shrink-0 tabular-nums">{overallCap.label}</span>
                               </div>
                             </div>
                           )}
                         </div>
                       </PopoverTrigger>
                       {cycleProjects.length > 0 && cap && totalBudget > 0 && (
-                        <PopoverContent side="bottom" className="w-52 p-3 space-y-1.5 text-xs">
-                          <p className="font-semibold text-foreground text-sm mb-2">{cycle.name} — capacity</p>
+                        <PopoverContent side="bottom" className="w-72 p-4 space-y-2 text-sm">
+                          <p className="font-bold text-foreground text-base mb-3">{cycle.name} capacity</p>
                           {cycleProjects.map((p) => {
                             const pts = p.storyPoints ?? 0;
                             const pct = Math.round((pts / totalBudget) * 100);
                             return (
-                              <div key={p.id} className="flex justify-between gap-2">
+                              <div key={p.id} className="flex justify-between gap-3">
                                 <span className="truncate text-foreground">{p.title}</span>
-                                <span className="shrink-0 tabular-nums font-medium text-foreground">{pct}%</span>
+                                <span className="shrink-0 tabular-nums font-semibold text-foreground">{pct}%</span>
                               </div>
                             );
                           })}
