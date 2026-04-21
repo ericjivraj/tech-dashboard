@@ -344,11 +344,6 @@ export default function GanttView({ filters }: GanttViewProps) {
                         <div className="flex items-center gap-1.5 mt-0.5">
                           <span className="text-xs text-foreground truncate">{project.team || "No team"}</span>
                         </div>
-                        {project.cycleName && project.cycleStartDate && project.cycleEndDate && (
-                          <div className="text-xs text-foreground truncate mt-0.5">
-                            {project.cycleName} · {format(parseISO(project.cycleStartDate), 'MMM d')} – {format(parseISO(project.cycleEndDate), 'MMM d')}
-                          </div>
-                        )}
                       </div>
 
                       <div className="flex-1 relative h-7 bg-muted/10 rounded overflow-hidden">
