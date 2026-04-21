@@ -248,7 +248,7 @@ export default function GanttView({ filters }: GanttViewProps) {
 
         <div className="flex flex-wrap gap-3">
           {[
-            { color: "#3b82f6", label: "In development", desc: "Prioritized & actively being built this cycle" },
+            { color: "#3b82f6", label: "In development", desc: "Prioritized & actively in development" },
             { color: "#eab308", label: "Planned & upcoming", desc: "Prioritized & scheduled for a future cycle" },
             { color: "#ef4444", label: "Blocked", desc: "Progress halted, needs attention" },
           ].map(({ color, label, desc }) => (
