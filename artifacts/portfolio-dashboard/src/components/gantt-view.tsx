@@ -295,15 +295,15 @@ export default function GanttView({ filters }: GanttViewProps) {
                   return (
                     <div
                       key={cycle.id}
-                      className="text-xs font-medium text-muted-foreground text-center border-l first:border-l-0 border-border/50 px-1 overflow-hidden"
+                      className="text-xs font-medium text-foreground text-center border-l first:border-l-0 border-border/50 px-1 overflow-hidden"
                       style={{ width: `${widthPct}%` }}
                     >
                       <div className="font-semibold text-foreground truncate">{cycle.name}</div>
-                      <div className="text-[10px] font-normal truncate">
+                      <div className="text-xs font-normal truncate">
                         {format(parseISO(cycle.startDate), 'MMM d')} – {format(parseISO(cycle.endDate), 'MMM d')}
                       </div>
                       {hasCapacity && (
-                        <div className="text-[9px] text-muted-foreground/70 truncate mt-0.5 leading-tight">
+                        <div className="text-[10px] text-foreground truncate mt-0.5 leading-tight">
                           {[a3 && `A3 ${a3}`, be && `BE ${be}`, fe && `FE ${fe}`].filter(Boolean).join(' · ')}
                         </div>
                       )}
@@ -362,7 +362,7 @@ export default function GanttView({ filters }: GanttViewProps) {
                         {(subTeamParts.length > 0 || completionPercent != null) && (
                           <div className="flex items-center flex-wrap gap-x-2 gap-y-0.5 mt-1">
                             {completionPercent != null && (
-                              <span className="text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
+                              <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">
                                 {completionPercent}% done
                               </span>
                             )}
