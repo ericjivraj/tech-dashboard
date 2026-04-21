@@ -352,22 +352,22 @@ export default function GanttView({ filters }: GanttViewProps) {
                           )}
                         </div>
                         <div className="flex items-center gap-1.5 mt-0.5">
-                          <span className="text-[10px] text-muted-foreground truncate">{project.team || "No team"}</span>
+                          <span className="text-xs text-foreground truncate">{project.team || "No team"}</span>
                         </div>
                         {project.cycleName && project.cycleStartDate && project.cycleEndDate && (
-                          <div className="text-[10px] text-muted-foreground/70 truncate mt-0.5">
+                          <div className="text-xs text-foreground truncate mt-0.5">
                             {project.cycleName} · {format(parseISO(project.cycleStartDate), 'MMM d')} – {format(parseISO(project.cycleEndDate), 'MMM d')}
                           </div>
                         )}
                         {(subTeamParts.length > 0 || completionPercent != null) && (
                           <div className="flex items-center flex-wrap gap-x-2 gap-y-0.5 mt-1">
                             {completionPercent != null && (
-                              <span className="text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
+                              <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">
                                 {completionPercent}% done
                               </span>
                             )}
                             {subTeamParts.length > 0 && (
-                              <span className="text-[10px] text-muted-foreground">{subTeamParts.join(' · ')}</span>
+                              <span className="text-xs text-foreground">{subTeamParts.join(' · ')}</span>
                             )}
                           </div>
                         )}
