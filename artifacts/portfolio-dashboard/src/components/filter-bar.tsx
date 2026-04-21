@@ -196,42 +196,6 @@ export default function FilterBar({ filters, onFiltersChange, teams, sponsors, f
           );
         })()}
 
-        {sprints && sprints.length > 0 && (() => {
-          const visibleSprints = sprints.filter((s) => filters.cycleId === "all" || s.cycleId.toString() === filters.cycleId);
-          const activeSprintId = visibleSprints.find((s) => s.startDate <= today && s.endDate >= today)?.id ?? null;
-          const nextSprintId = visibleSprints
-            .filter((s) => s.startDate > today)
-            .reduce<typeof visibleSprints[number] | null>((earliest, s) => earliest === null || s.startDate < earliest.startDate ? s : earliest, null)?.id ?? null;
-          return (
-            <Select value={filters.sprintId} onValueChange={(v) => update({ sprintId: v })} data-testid="filter-sprint">
-              <SelectTrigger className="h-8 w-[150px] text-sm">
-                <SelectValue placeholder="Sprint" />
-              </SelectTrigger>
-              <SelectContent side="bottom" align="start" className="max-h-60 overflow-y-auto">
-                <SelectItem value="all">All Sprints</SelectItem>
-                {visibleSprints.map((s) => {
-                  const isPast = s.endDate < today;
-                  return (
-                    <SelectItem key={s.id} value={s.id.toString()}>
-                      <span className="flex items-center gap-1.5">
-                        {s.name}
-                        {s.id === activeSprintId && (
-                          <span className="inline-flex items-center rounded-full bg-blue-100 px-1.5 py-0.5 text-[10px] font-medium text-blue-700 dark:bg-blue-900 dark:text-blue-300 leading-none">Active</span>
-                        )}
-                        {s.id === nextSprintId && (
-                          <span className="inline-flex items-center rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 dark:bg-amber-900 dark:text-amber-300 leading-none">Next</span>
-                        )}
-                        {isPast && s.id !== activeSprintId && (
-                          <span className="inline-flex items-center rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300 leading-none">Done</span>
-                        )}
-                      </span>
-                    </SelectItem>
-                  );
-                })}
-              </SelectContent>
-            </Select>
-          );
-        })()}
 
         {hasActiveFilters && (
           <Button variant="ghost" size="sm" className="h-8 text-xs text-muted-foreground" onClick={clearAll} data-testid="filter-clear-all">
