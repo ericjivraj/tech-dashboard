@@ -346,6 +346,12 @@ export default function GanttView({ filters }: GanttViewProps) {
                               </div>
                             );
                           })}
+                          <div className="border-t border-border/50 pt-2 mt-1 flex justify-between gap-3">
+                            <span className="text-muted-foreground">Total allocated</span>
+                            <span className="shrink-0 tabular-nums font-semibold text-foreground">
+                              {Math.round((cycleProjects.reduce((sum, p) => sum + (p.storyPoints ?? 0), 0) / totalBudget) * 100)}%
+                            </span>
+                          </div>
                         </PopoverContent>
                       )}
                     </Popover>
