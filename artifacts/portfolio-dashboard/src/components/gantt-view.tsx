@@ -42,22 +42,13 @@ type CapacitySummaryRow = {
   frontendBudget: number | null;
 };
 
-function cyclePct(row: CapacitySummaryRow | undefined, key: "a3" | "backend" | "frontend"): string {
-  if (!row) return "";
-  const allocated = key === "a3" ? row.a3Allocated : key === "backend" ? row.backendAllocated : row.frontendAllocated;
-  const budget = key === "a3" ? row.a3Budget : key === "backend" ? row.backendBudget : row.frontendBudget;
-  if (budget == null) return "";
-  if (budget === 0) return allocated > 0 ? "over" : "0%";
-  return `${Math.round((allocated / budget) * 100)}%`;
-}
-
-function cyclePctNum(row: CapacitySummaryRow | undefined, key: "a3" | "backend" | "frontend"): number | null {
+function cycleOverallPct(row: CapacitySummaryRow | undefined): { pct: number; label: string } | null {
   if (!row) return null;
-  const allocated = key === "a3" ? row.a3Allocated : key === "backend" ? row.backendAllocated : row.frontendAllocated;
-  const budget = key === "a3" ? row.a3Budget : key === "backend" ? row.backendBudget : row.frontendBudget;
-  if (budget == null) return null;
-  if (budget === 0) return allocated > 0 ? 101 : 0;
-  return Math.round((allocated / budget) * 100);
+  const totalBudget = (row.a3Budget ?? 0) + (row.backendBudget ?? 0) + (row.frontendBudget ?? 0);
+  if (totalBudget === 0) return null;
+  const totalAllocated = row.a3Allocated + row.backendAllocated + row.frontendAllocated;
+  const pct = Math.round((totalAllocated / totalBudget) * 100);
+  return { pct, label: `${pct}%` };
 }
 
 export default function GanttView({ filters }: GanttViewProps) {
@@ -304,10 +295,7 @@ export default function GanttView({ filters }: GanttViewProps) {
                   const cEnd = Math.min(parseISO(cycle.endDate).getTime(), viewEnd.getTime());
                   const widthPct = (differenceInDays(new Date(cEnd), new Date(cStart)) / totalDays) * 100;
                   const cap = capacityByCycleId.get(cycle.id);
-                  const a3 = cyclePct(cap, "a3");
-                  const be = cyclePct(cap, "backend");
-                  const fe = cyclePct(cap, "frontend");
-                  const hasCapacity = !!(a3 || be || fe);
+                  const overallCap = cycleOverallPct(cap);
                   const isActive = parseISO(cycle.startDate) <= today && parseISO(cycle.endDate) >= today;
                   return (
                     <div
@@ -321,28 +309,17 @@ export default function GanttView({ filters }: GanttViewProps) {
                       <div className="text-xs font-normal truncate">
                         {format(parseISO(cycle.startDate), 'MMM d')} – {format(parseISO(cycle.endDate), 'MMM d')}
                       </div>
-                      {hasCapacity && (
-                        <div className="mt-1.5 space-y-1 text-left px-0.5">
-                          {([
-                            { key: "a3" as const, label: "A3" },
-                            { key: "backend" as const, label: "BE" },
-                            { key: "frontend" as const, label: "FE" },
-                          ] as const).map(({ key, label }) => {
-                            const num = cyclePctNum(cap, key);
-                            if (num === null) return null;
-                            const pctStr = cyclePct(cap, key);
-                            const fill = Math.min(num, 100);
-                            const barColor = num >= 100 ? "bg-red-500" : num >= 80 ? "bg-amber-400" : "bg-blue-400";
-                            return (
-                              <div key={key} className="flex items-center gap-1">
-                                <span className="text-[9px] text-muted-foreground w-4 shrink-0">{label}</span>
-                                <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
-                                  <div className={`h-full rounded-full ${barColor}`} style={{ width: `${fill}%` }} />
-                                </div>
-                                <span className="text-[9px] text-foreground w-6 text-right shrink-0 tabular-nums">{pctStr}</span>
-                              </div>
-                            );
-                          })}
+                      {overallCap && (
+                        <div className="mt-1.5 px-0.5">
+                          <div className="flex items-center gap-1">
+                            <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
+                              <div
+                                className={`h-full rounded-full ${overallCap.pct >= 100 ? "bg-red-500" : overallCap.pct >= 80 ? "bg-amber-400" : "bg-blue-400"}`}
+                                style={{ width: `${Math.min(overallCap.pct, 100)}%` }}
+                              />
+                            </div>
+                            <span className="text-[9px] text-foreground w-7 text-right shrink-0 tabular-nums">{overallCap.label}</span>
+                          </div>
                         </div>
                       )}
                     </div>
