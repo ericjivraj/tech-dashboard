@@ -351,11 +351,13 @@ export default function GanttView({ filters }: GanttViewProps) {
                   const isFuture = project.cycleStartDate && parseISO(project.cycleStartDate) > today;
                   const color = project.status === "blocked"
                     ? "#ef4444"
-                    : isCurrent
-                      ? "#3b82f6"
-                      : isFuture
-                        ? "#eab308"
-                        : "#94a3b8";
+                    : project.team === "Data"
+                      ? "#a855f7"
+                      : isCurrent
+                        ? "#3b82f6"
+                        : isFuture
+                          ? "#eab308"
+                          : "#94a3b8";
 
                   return (
                     <div
