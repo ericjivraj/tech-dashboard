@@ -3,8 +3,21 @@ import { pool } from "@workspace/db";
 export async function seedIfEmpty(): Promise<void> {
   const client = await pool.connect();
   try {
+    // Reseed if the database doesn't have the full expected dataset.
+    // We expect 9 cycles (B-J) and specific projects. If cycles < 9 we treat
+    // the DB as stale and replace all data.
     const { rows } = await client.query("SELECT COUNT(*) AS c FROM cycles");
-    if (parseInt(rows[0].c, 10) > 0) return;
+    if (parseInt(rows[0].c, 10) >= 9) return;
+
+    // Wipe existing data in dependency order before reseeding
+    await client.query("DELETE FROM project_updates");
+    await client.query("DELETE FROM project_sprint_allocations");
+    await client.query("DELETE FROM project_goals");
+    await client.query("DELETE FROM sprint_capacity");
+    await client.query("DELETE FROM projects");
+    await client.query("DELETE FROM goals");
+    await client.query("DELETE FROM sprints");
+    await client.query("DELETE FROM cycles");
 
     await client.query("BEGIN");
 
