@@ -421,9 +421,7 @@ export default function GanttView({ filters }: GanttViewProps) {
                           style={{
                             left: pos.left,
                             width: pos.width,
-                            ...(project.status === "blocked"
-                              ? { backgroundImage: `repeating-linear-gradient(-45deg, ${color}, ${color} 5px, rgba(0,0,0,0.18) 5px, rgba(0,0,0,0.18) 10px)` }
-                              : { backgroundColor: color })
+                            backgroundColor: color,
                           }}
                           title={`${project.title}\n${format(parseISO(effectiveStart), 'MMM d')} — ${format(parseISO(effectiveEnd), 'MMM d, yyyy')}${usingCycleFallback ? '\n(dates from cycle)' : ''}`}
                         >
