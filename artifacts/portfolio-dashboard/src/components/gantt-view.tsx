@@ -50,77 +50,13 @@ type CapacitySummaryRow = {
   frontendBudget: number | null;
 };
 
-function FillBar({ allocated, budget }: { allocated: number; budget: number | null }) {
-  if (budget == null) {
-    return <span className="text-[10px] text-muted-foreground">-</span>;
-  }
-  const overAllocatedZeroBudget = budget === 0 && allocated > 0;
-  const pct = overAllocatedZeroBudget ? 100 : budget === 0 ? 0 : Math.min(Math.round((allocated / budget) * 100), 100);
-  const overPct = overAllocatedZeroBudget ? Infinity : budget === 0 ? 0 : Math.round((allocated / budget) * 100);
-  const color = overPct >= 100 ? "bg-red-500" : overPct >= 80 ? "bg-amber-400" : "bg-blue-400";
-  const textColor = overPct >= 100 ? "text-red-600" : overPct >= 80 ? "text-amber-600" : "text-muted-foreground";
-  return (
-    <div className="space-y-0.5 min-w-0">
-      <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
-        <div className={`h-full rounded-full transition-all ${color}`} style={{ width: `${pct}%` }} />
-      </div>
-      <div className={`text-[10px] font-medium ${textColor}`}>
-        {overAllocatedZeroBudget ? "over" : `${overPct}%`}
-      </div>
-    </div>
-  );
-}
-
-function CapacityPanel({ rows, mode }: { rows: CapacitySummaryRow[]; mode: string }) {
-  if (!rows.length) return null;
-
-  const subTeams = [
-    { key: "a3" as const, label: "A3" },
-    { key: "backend" as const, label: "Backend" },
-    { key: "frontend" as const, label: "Frontend" },
-  ];
-
-  return (
-    <div className="mt-4 rounded-xl border bg-card overflow-x-auto">
-      <div className="min-w-[700px] p-4">
-        <div className="flex items-center gap-1.5 mb-3">
-          <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Dev Sub-team Capacity</h4>
-          <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded capitalize">{mode === "sprint" ? "Per Sprint" : "Per Cycle"}</span>
-        </div>
-        <div className="space-y-2">
-          {subTeams.map(({ key, label }) => (
-            <div key={key} className="flex items-start gap-2">
-              <div className="w-[230px] shrink-0 pr-4 flex items-center gap-1.5 pt-1">
-                <span className="text-xs font-medium text-muted-foreground">{label}</span>
-              </div>
-              <div className="flex-1 grid gap-2" style={{ gridTemplateColumns: `repeat(${rows.length}, 1fr)` }}>
-                {rows.map(row => (
-                  <div key={row.id} className="border-l border-border/30 pl-2 first:border-l-0 first:pl-0">
-                    <FillBar
-                      allocated={key === "a3" ? row.a3Allocated : key === "backend" ? row.backendAllocated : row.frontendAllocated}
-                      budget={key === "a3" ? row.a3Budget : key === "backend" ? row.backendBudget : row.frontendBudget}
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-        {rows.length > 0 && (
-          <div className="flex items-start gap-2 mt-1">
-            <div className="w-[230px] shrink-0 pr-4" />
-            <div className="flex-1 grid gap-2 text-[10px] text-muted-foreground" style={{ gridTemplateColumns: `repeat(${rows.length}, 1fr)` }}>
-              {rows.map(row => (
-                <div key={row.id} className="border-l border-border/30 pl-2 first:border-l-0 first:pl-0 truncate" title={row.name}>
-                  {row.name}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
+function cyclePct(row: CapacitySummaryRow | undefined, key: "a3" | "backend" | "frontend"): string {
+  if (!row) return "";
+  const allocated = key === "a3" ? row.a3Allocated : key === "backend" ? row.backendAllocated : row.frontendAllocated;
+  const budget = key === "a3" ? row.a3Budget : key === "backend" ? row.backendBudget : row.frontendBudget;
+  if (budget == null) return "";
+  if (budget === 0) return allocated > 0 ? "over" : "0%";
+  return `${Math.round((allocated / budget) * 100)}%`;
 }
 
 export default function GanttView({ filters }: GanttViewProps) {
@@ -258,17 +194,9 @@ export default function GanttView({ filters }: GanttViewProps) {
     return pos !== null;
   });
 
-  const visibleCapacityRows = (() => {
-    if (!capacitySummary || !cycles) return [];
-    if (capacitySummary.mode !== "cycle") return capacitySummary.rows as CapacitySummaryRow[];
-    const windowStart = viewStart.toISOString().slice(0, 10);
-    const windowEnd = viewEnd.toISOString().slice(0, 10);
-    return (capacitySummary.rows as CapacitySummaryRow[]).filter(row => {
-      const cycle = cycles.find(c => c.id === row.id);
-      return cycle && cycle.startDate <= windowEnd && cycle.endDate >= windowStart;
-    });
-  })();
-  const showCapacityPanel = visibleCapacityRows.length > 0;
+  const capacityByCycleId = new Map(
+    (capacitySummary?.rows as CapacitySummaryRow[] ?? []).map((r) => [r.id, r])
+  );
 
   return (
     <>
@@ -359,6 +287,11 @@ export default function GanttView({ filters }: GanttViewProps) {
                   const cStart = Math.max(parseISO(cycle.startDate).getTime(), viewStart.getTime());
                   const cEnd = Math.min(parseISO(cycle.endDate).getTime(), viewEnd.getTime());
                   const widthPct = (differenceInDays(new Date(cEnd), new Date(cStart)) / totalDays) * 100;
+                  const cap = capacityByCycleId.get(cycle.id);
+                  const a3 = cyclePct(cap, "a3");
+                  const be = cyclePct(cap, "backend");
+                  const fe = cyclePct(cap, "frontend");
+                  const hasCapacity = !!(a3 || be || fe);
                   return (
                     <div
                       key={cycle.id}
@@ -369,6 +302,11 @@ export default function GanttView({ filters }: GanttViewProps) {
                       <div className="text-[10px] font-normal truncate">
                         {format(parseISO(cycle.startDate), 'MMM d')} – {format(parseISO(cycle.endDate), 'MMM d')}
                       </div>
+                      {hasCapacity && (
+                        <div className="text-[9px] text-muted-foreground/70 truncate mt-0.5 leading-tight">
+                          {[a3 && `A3 ${a3}`, be && `BE ${be}`, fe && `FE ${fe}`].filter(Boolean).join(' · ')}
+                        </div>
+                      )}
                     </div>
                   );
                 })
@@ -483,9 +421,6 @@ export default function GanttView({ filters }: GanttViewProps) {
           </div>
         </div>
 
-        {showCapacityPanel && (
-          <CapacityPanel rows={visibleCapacityRows} mode={capacitySummary?.mode ?? "cycle"} />
-        )}
       </div>
 
       {selectedProjectId && (
