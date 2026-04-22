@@ -8,7 +8,7 @@ import PipelineView from "@/components/pipeline-view";
 import GanttView from "@/components/gantt-view";
 import FilterBar from "@/components/filter-bar";
 import { Button } from "@/components/ui/button";
-import { Plus, Link2, Check } from "lucide-react";
+import { Plus, Link2, Check, ExternalLink } from "lucide-react";
 import ProjectModal from "@/components/project-modal";
 import ProjectForm from "@/components/project-form";
 import AdminPanel from "@/components/admin-panel";
@@ -73,25 +73,38 @@ export default function Dashboard() {
         <div className="flex items-center gap-2">
           <ExportButton />
           {(isEditor || isAdmin) && (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={handleShareBusinessView}
-              data-testid="button-share-business-view"
-              className="gap-1"
-            >
-              {copiedBusinessLink ? (
-                <>
-                  <Check className="h-4 w-4" />
-                  Copied!
-                </>
-              ) : (
-                <>
-                  <Link2 className="h-4 w-4" />
-                  Share business view
-                </>
-              )}
-            </Button>
+            <div className="flex items-center">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleShareBusinessView}
+                data-testid="button-share-business-view"
+                className="gap-1 rounded-r-none border-r-0"
+              >
+                {copiedBusinessLink ? (
+                  <>
+                    <Check className="h-4 w-4" />
+                    Copied!
+                  </>
+                ) : (
+                  <>
+                    <Link2 className="h-4 w-4" />
+                    Share business view
+                  </>
+                )}
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => window.open(new URL("/business", window.location.origin).toString(), "_blank", "noopener,noreferrer")}
+                data-testid="button-open-business-view"
+                className="rounded-l-none px-2"
+                title="Open business view in new tab"
+                aria-label="Open business view in new tab"
+              >
+                <ExternalLink className="h-4 w-4" />
+              </Button>
+            </div>
           )}
           {isAdmin && (
             <Button size="sm" variant="outline" onClick={() => setAdminPanelOpen(true)} data-testid="button-admin-settings">
