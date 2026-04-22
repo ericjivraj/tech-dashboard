@@ -29,9 +29,10 @@ const COLUMNS: { id: ProjectStatus; label: string }[] = [
 
 interface KanbanViewProps {
   projects: ProjectWithDetails[];
+  readOnly?: boolean;
 }
 
-export default function KanbanView({ projects }: KanbanViewProps) {
+export default function KanbanView({ projects, readOnly = false }: KanbanViewProps) {
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
   const [projectToEdit, setProjectToEdit] = useState<ProjectWithDetails | null>(null);
 
@@ -88,12 +89,14 @@ export default function KanbanView({ projects }: KanbanViewProps) {
             open={!!selectedProjectId}
             onOpenChange={(open) => !open && setSelectedProjectId(null)}
             onEdit={(project) => {
+              if (readOnly) return;
               setSelectedProjectId(null);
               setProjectToEdit(project);
             }}
+            readOnly={readOnly}
           />
         )}
-        {projectToEdit && (
+        {!readOnly && projectToEdit && (
           <ProjectForm
             open={!!projectToEdit}
             onOpenChange={(open) => !open && setProjectToEdit(null)}

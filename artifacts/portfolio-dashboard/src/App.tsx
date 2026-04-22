@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/dashboard";
+import BusinessView from "@/pages/business";
 import Layout from "@/components/layout";
 import PasscodeGate from "@/components/passcode-gate";
 
@@ -128,6 +129,7 @@ function ClerkRoutes() {
     <Layout onSignOut={handleSignOut}>
       <Switch>
         <Route path="/" component={Dashboard} />
+        <Route path="/business" component={BusinessView} />
         <Route path="/admin/*?" component={AdminSignInPage} />
         <Route path="/sign-up/*?" component={SignUpPage} />
         <Route component={NotFound} />
@@ -161,6 +163,7 @@ function ReadOnlyApp() {
       <Layout>
         <Switch>
           <Route path="/" component={Dashboard} />
+          <Route path="/business" component={BusinessView} />
           <Route component={NotFound} />
         </Switch>
       </Layout>
