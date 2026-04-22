@@ -8,7 +8,7 @@ import PipelineView from "@/components/pipeline-view";
 import GanttView from "@/components/gantt-view";
 import FilterBar from "@/components/filter-bar";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, Link2, Check } from "lucide-react";
 import ProjectModal from "@/components/project-modal";
 import ProjectForm from "@/components/project-form";
 import AdminPanel from "@/components/admin-panel";
@@ -26,6 +26,17 @@ export default function Dashboard() {
 
   const [projectFormOpen, setProjectFormOpen] = useState(false);
   const [adminPanelOpen, setAdminPanelOpen] = useState(false);
+  const [copiedBusinessLink, setCopiedBusinessLink] = useState(false);
+
+  function handleShareBusinessView() {
+    const businessUrl = new URL("/business", window.location.origin).toString();
+    navigator.clipboard.writeText(businessUrl).then(() => {
+      setCopiedBusinessLink(true);
+      setTimeout(() => setCopiedBusinessLink(false), 2000);
+    }).catch(() => {
+      window.open(businessUrl, "_blank", "noopener,noreferrer");
+    });
+  }
 
   const isEditor = user?.isEditor === true;
   const isAdmin = user?.role === "admin";
@@ -61,6 +72,27 @@ export default function Dashboard() {
         </div>
         <div className="flex items-center gap-2">
           <ExportButton />
+          {(isEditor || isAdmin) && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleShareBusinessView}
+              data-testid="button-share-business-view"
+              className="gap-1"
+            >
+              {copiedBusinessLink ? (
+                <>
+                  <Check className="h-4 w-4" />
+                  Copied!
+                </>
+              ) : (
+                <>
+                  <Link2 className="h-4 w-4" />
+                  Share business view
+                </>
+              )}
+            </Button>
+          )}
           {isAdmin && (
             <Button size="sm" variant="outline" onClick={() => setAdminPanelOpen(true)} data-testid="button-admin-settings">
               Admin Settings
