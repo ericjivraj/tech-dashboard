@@ -247,7 +247,7 @@ export async function sendWeeklyReport(
   const { error } = await resend.emails.send({
     from: fromAddress,
     to: recipients,
-    subject: `Weekly Portfolio Report — ${date}`,
+    subject: `Weekly Portfolio Report - ${date}`,
     html: htmlBody,
     attachments: [
       {

@@ -132,8 +132,8 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
         error: "Write access is not configured. Set the EDITOR_EMAILS environment variable to authorize editors.",
       });
     } else {
-      logger.warn({ userId }, "No auth context resolved — user is not authorized");
-      res.status(403).json({ error: "Forbidden — not an authorized editor" });
+      logger.warn({ userId }, "No auth context resolved - user is not authorized");
+      res.status(403).json({ error: "Forbidden: not an authorized editor" });
     }
     return;
   }
@@ -155,12 +155,12 @@ export function requireRole(roles: Array<UserRole | "admin">) {
     const ctx = req.authContext ?? (await resolveAuthContext(userId));
 
     if (!ctx) {
-      res.status(403).json({ error: "Forbidden — not authorized" });
+      res.status(403).json({ error: "Forbidden: not authorized" });
       return;
     }
 
     if (!roles.includes(ctx.role)) {
-      res.status(403).json({ error: `Forbidden — requires one of roles: ${roles.join(", ")}` });
+      res.status(403).json({ error: `Forbidden: requires one of roles: ${roles.join(", ")}` });
       return;
     }
 

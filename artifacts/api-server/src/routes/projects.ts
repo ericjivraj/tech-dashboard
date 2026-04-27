@@ -203,7 +203,7 @@ router.post("/projects", requireAuth, async (req, res): Promise<void> => {
   if (ctx?.role === "guest") {
     const requestedTeam = parsed.data.team ?? null;
     if (requestedTeam !== ctx.team) {
-      res.status(403).json({ error: "Forbidden — guests can only create projects for their assigned team" });
+      res.status(403).json({ error: "Forbidden: guests can only create projects for their assigned team" });
       return;
     }
   }
@@ -501,11 +501,11 @@ router.patch("/projects/:id", requireAuth, async (req, res): Promise<void> => {
   if (ctx?.role === "guest") {
     const [existingProject] = await db.select({ team: projectsTable.team }).from(projectsTable).where(eq(projectsTable.id, params.data.id));
     if (!existingProject || existingProject.team !== ctx.team) {
-      res.status(403).json({ error: "Forbidden — guests can only edit projects belonging to their team" });
+      res.status(403).json({ error: "Forbidden: guests can only edit projects belonging to their team" });
       return;
     }
     if (parsed.data.team !== undefined && parsed.data.team !== ctx.team) {
-      res.status(403).json({ error: "Forbidden — guests cannot reassign a project to a different team" });
+      res.status(403).json({ error: "Forbidden: guests cannot reassign a project to a different team" });
       return;
     }
   }
@@ -598,7 +598,7 @@ router.delete("/projects/:id", requireAuth, async (req, res): Promise<void> => {
   if (ctx?.role === "guest") {
     const [existingProject] = await db.select({ team: projectsTable.team }).from(projectsTable).where(eq(projectsTable.id, params.data.id));
     if (!existingProject || existingProject.team !== ctx.team) {
-      res.status(403).json({ error: "Forbidden — guests can only delete projects belonging to their team" });
+      res.status(403).json({ error: "Forbidden: guests can only delete projects belonging to their team" });
       return;
     }
   }
@@ -652,7 +652,7 @@ router.post("/projects/:projectId/updates", requireAuth, async (req, res): Promi
 
   const ctx = req.authContext;
   if (ctx?.role === "guest" && project.team !== ctx.team) {
-    res.status(403).json({ error: "Forbidden — guests can only add updates to projects belonging to their team" });
+    res.status(403).json({ error: "Forbidden: guests can only add updates to projects belonging to their team" });
     return;
   }
 
@@ -679,7 +679,7 @@ router.delete("/projects/:projectId/updates/:updateId", requireAuth, async (req,
   if (ctx?.role === "guest") {
     const [project] = await db.select({ team: projectsTable.team }).from(projectsTable).where(eq(projectsTable.id, projectId));
     if (!project || project.team !== ctx.team) {
-      res.status(403).json({ error: "Forbidden — guests can only delete updates on projects belonging to their team" });
+      res.status(403).json({ error: "Forbidden: guests can only delete updates on projects belonging to their team" });
       return;
     }
   }
@@ -752,7 +752,7 @@ router.put("/projects/:id/allocations", requireAuth, async (req, res): Promise<v
   }
   const ctx = req.authContext;
   if (ctx?.role === "guest" && project.team !== ctx.team) {
-    res.status(403).json({ error: "Forbidden — guests can only update allocations for projects belonging to their team" });
+    res.status(403).json({ error: "Forbidden: guests can only update allocations for projects belonging to their team" });
     return;
   }
 

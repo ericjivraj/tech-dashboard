@@ -20,7 +20,7 @@ pnpm workspace monorepo using TypeScript. This is a full-stack engineering depar
 
 ## Artifacts
 
-- `artifacts/portfolio-dashboard` — React frontend, served at `/`
+- `artifacts/tech-dashboard` — React frontend, served at `/`
 - `artifacts/api-server` — Express API server, served at `/api`
 - `artifacts/mockup-sandbox` — Component preview dev server (Canvas only)
 
@@ -127,7 +127,7 @@ Database includes:
 - 20 realistic projects spread across all statuses
 - 14 timestamped project updates
 
-## Frontend Views (`artifacts/portfolio-dashboard/src/`)
+## Frontend Views (`artifacts/tech-dashboard/src/`)
 
 - **Dashboard** (`/`) — summary metrics bar + tabs: Kanban / Timeline (Gantt) / List (Pipeline)
 - **Kanban** — columns per status, project cards with confidence badges, sponsor, team, update snippets, goal tags

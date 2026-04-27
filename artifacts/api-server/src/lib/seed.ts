@@ -114,7 +114,7 @@ export async function seedIfEmpty(): Promise<void> {
              'Replace the legacy Stripe v2 integration with Stripe v4, including support for local payment methods, stronger SCA compliance, and improved webhook reliability.',
              'Finance', 'Development', 'blocked', 'at_risk', 21, '2026-03-31', '2026-05-13',
              'Ensures PCI DSS compliance ahead of Q3 audit. Unlocks new payment methods for EU market expansion.',
-             'Blocked on legal sign-off for updated payment data processing agreement (DPA). Waiting on legal team — ETA unknown. Engineering is ready to proceed.',
+             'Blocked on legal sign-off for updated payment data processing agreement (DPA). Waiting on legal team - ETA unknown. Engineering is ready to proceed.',
              7, NULL, 'Linda Foster', 30),
         (6,  'API Rate Limiting & Throttling',
              'Implement per-tenant API rate limiting at the gateway layer to prevent abuse and ensure fair usage across the platform.',

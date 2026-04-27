@@ -21,6 +21,7 @@ import { Trash2, Plus, Pencil, Check, X, Mail, Send, Loader2, Eye } from "lucide
 import { useToast } from "@/hooks/use-toast";
 import { format, parseISO } from "date-fns";
 import { TEAMS } from "@/lib/constants";
+import { runtimeConfig } from "@/lib/runtime-config";
 
 export default function AdminPanel({ open, onOpenChange }: { open: boolean, onOpenChange: (open: boolean) => void }) {
   return (
@@ -198,7 +199,7 @@ function EmailReportsTab() {
             Automatically send a portfolio summary email with a CSV attachment every week.
             Configure the day, time, and recipient list below.
           </p>
-          {!import.meta.env.VITE_RESEND_CONFIGURED && (
+          {!runtimeConfig.resendConfigured && (
             <p className="text-xs text-amber-600 mt-2">
               To enable sending, a <code className="bg-muted px-1 rounded">RESEND_API_KEY</code> environment variable must be set on the API server.
             </p>
@@ -859,7 +860,7 @@ function UsersTab() {
                 <SelectValue placeholder="Select team" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="__none__">— None —</SelectItem>
+                <SelectItem value="__none__">None</SelectItem>
                 {TEAMS.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
               </SelectContent>
             </Select>
@@ -889,7 +890,7 @@ function UsersTab() {
                   {u.role}
                 </Badge>
               </TableCell>
-              <TableCell className="text-muted-foreground text-sm">{u.team || "—"}</TableCell>
+              <TableCell className="text-muted-foreground text-sm">{u.team || ""}</TableCell>
               <TableCell className="text-muted-foreground text-sm">{format(new Date(u.createdAt), 'MMM d, yyyy')}</TableCell>
               <TableCell>
                 <Button
@@ -968,7 +969,7 @@ function SprintCapacityRow({ sprintId, sprintName }: { sprintId: number; sprintN
           min={0}
           className="h-7 text-xs"
           value={current[field] ?? ""}
-          placeholder="—"
+          placeholder=""
           onChange={e => handleChange(field, e.target.value)}
         />
       ))}
@@ -1028,9 +1029,9 @@ function SprintCapacityTab() {
                 return (
                   <div className="grid grid-cols-5 gap-2 items-center pt-2 mt-1 border-t">
                     <div className="col-span-2 text-xs font-semibold text-muted-foreground">Cycle total</div>
-                    <div className="text-xs text-center font-medium">{totals.a3Budget ?? "—"}</div>
-                    <div className="text-xs text-center font-medium">{totals.backendBudget ?? "—"}</div>
-                    <div className="text-xs text-center font-medium">{totals.frontendBudget ?? "—"}</div>
+                    <div className="text-xs text-center font-medium">{totals.a3Budget ?? ""}</div>
+                    <div className="text-xs text-center font-medium">{totals.backendBudget ?? ""}</div>
+                    <div className="text-xs text-center font-medium">{totals.frontendBudget ?? ""}</div>
                   </div>
                 );
               })()}
@@ -1099,7 +1100,7 @@ function AuditLogTab() {
                 <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
                   {format(new Date(entry.createdAt), 'MMM d, yyyy h:mm a')}
                 </TableCell>
-                <TableCell className="text-sm font-mono">{entry.userEmail || "—"}</TableCell>
+                <TableCell className="text-sm font-mono">{entry.userEmail || ""}</TableCell>
                 <TableCell>
                   <span className={`text-xs font-semibold px-2 py-0.5 rounded-full capitalize ${ACTION_COLORS[entry.action] ?? ""}`}>
                     {entry.action}

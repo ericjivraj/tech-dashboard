@@ -53,3 +53,9 @@ Thumbs.db
 # Replit
 .cache/
 .local/
+
+# Claude Code local agent state
+.claude/
+
+# pnpm local store (used by docker-compose volume; never commit)
+.pnpm-store/

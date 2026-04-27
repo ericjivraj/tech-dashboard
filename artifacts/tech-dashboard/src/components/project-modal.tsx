@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { formatConfidence, storyPointsToTShirt } from "@/lib/utils";
+import { storyPointsToTShirt } from "@/lib/utils";
 import { 
   useGetProject, useDeleteProject, getGetProjectQueryKey, getListProjectsQueryKey,
   useListProjectUpdates, useCreateProjectUpdate, useDeleteProjectUpdate, getListProjectUpdatesQueryKey, getGetDashboardSummaryQueryKey,
@@ -17,7 +17,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { AlertCircle, Edit, Trash2, Clock, Send, X } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
-import { CONFIDENCE_COLORS, STATUS_LABELS } from "@/lib/constants";
+import { STATUS_LABELS } from "@/lib/constants";
 
 export default function ProjectModal({ 
   projectId, 
@@ -105,11 +105,6 @@ export default function ProjectModal({
                     <Badge variant={project.status === 'done' ? 'default' : project.status === 'blocked' ? 'destructive' : 'secondary'} className="font-medium text-xs">
                       {STATUS_LABELS[project.status]}
                     </Badge>
-                    {project.confidence && (
-                      <Badge variant="secondary" className={`text-xs font-medium border-0 ${CONFIDENCE_COLORS[project.confidence]}`}>
-                        {formatConfidence(project.confidence)}
-                      </Badge>
-                    )}
                     {project.storyPoints != null && (() => {
                       const tshirt = storyPointsToTShirt(project.storyPoints);
                       return (
@@ -159,26 +154,22 @@ export default function ProjectModal({
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <span className="text-xs text-muted-foreground block mb-1">Team</span>
-                    <span className="text-sm font-medium">{project.team || "—"}</span>
+                    <span className="text-sm font-medium">{project.team || ""}</span>
                   </div>
                   <div>
                     <span className="text-xs text-muted-foreground block mb-1">Sponsor</span>
-                    <span className="text-sm font-medium">{project.sponsor || "—"}</span>
+                    <span className="text-sm font-medium">{project.sponsor || ""}</span>
                   </div>
                   <div>
                     <span className="text-xs text-muted-foreground block mb-1">Stakeholder</span>
-                    <span className="text-sm font-medium">{project.stakeholder || "—"}</span>
-                  </div>
-                  <div>
-                    <span className="text-xs text-muted-foreground block mb-1">Story Points</span>
-                    <span className="text-sm font-mono bg-muted px-1.5 py-0.5 rounded">{project.storyPoints ?? "—"}</span>
+                    <span className="text-sm font-medium">{project.stakeholder || ""}</span>
                   </div>
                   <div className="col-span-2">
                     <span className="text-xs text-muted-foreground block mb-1">Cycle</span>
                     <span className="text-sm font-medium">
                       {project.cycle
                         ? `${project.cycle.name}${project.cycle.startDate && project.cycle.endDate ? ` · ${format(parseISO(project.cycle.startDate), 'MMM d')} – ${format(parseISO(project.cycle.endDate), 'MMM d, yyyy')}` : ""}`
-                        : "—"}
+                        : ""}
                     </span>
                   </div>
                 </div>

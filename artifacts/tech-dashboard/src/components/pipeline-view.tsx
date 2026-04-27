@@ -1,6 +1,5 @@
 import { useState, useMemo } from "react";
 import { ProjectWithDetails, ProjectStatus } from "@workspace/api-client-react";
-import { formatConfidence, storyPointsToTShirt } from "@/lib/utils";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -9,7 +8,7 @@ import { format, parseISO } from "date-fns";
 import { ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import ProjectModal from "./project-modal";
 import ProjectForm from "./project-form";
-import { CONFIDENCE_COLORS, STATUS_LABELS, PIPELINE_STATUS_ORDER } from "@/lib/constants";
+import { STATUS_LABELS, PIPELINE_STATUS_ORDER } from "@/lib/constants";
 
 const COLUMN_TOOLTIPS: Record<string, string> = {
   "Project Name": "The name and any blocked reason for the project",
@@ -17,23 +16,14 @@ const COLUMN_TOOLTIPS: Record<string, string> = {
   "Team / Sponsor": "The team responsible for delivery, and the sponsor driving this project",
   "Stakeholder": "Business stakeholder for this project",
   "Goals": "Business goals this project contributes to",
-  "Confidence": "Team's confidence in being on track with the predicted delivery timeframe",
-  "Points": "Estimated story points for scope",
   "Timing": "Assigned cycle and date range",
   "Latest Update": "Most recent project update",
 };
 
-const SORTABLE_COLUMNS = new Set(["Status", "Confidence", "Team / Sponsor", "Points"]);
-
-const CONFIDENCE_ORDER: Record<string, number> = {
-  high: 3,
-  medium: 2,
-  low: 1,
-  at_risk: 0,
-};
+const SORTABLE_COLUMNS = new Set(["Status", "Team / Sponsor"]);
 
 type SortOrder = "asc" | "desc" | null;
-type SortColumn = "Status" | "Confidence" | "Team / Sponsor" | "Points" | null;
+type SortColumn = "Status" | "Team / Sponsor" | null;
 
 interface SortState {
   column: SortColumn;
@@ -63,28 +53,10 @@ export default function PipelineView({ projects }: PipelineViewProps) {
     return [...projects].sort((a, b) => {
       const dir = sort.order === "asc" ? 1 : -1;
 
-      if (sort.column === "Points") {
-        const aHas = a.storyPoints != null;
-        const bHas = b.storyPoints != null;
-        if (!aHas && !bHas) return 0;
-        if (!aHas) return 1;
-        if (!bHas) return -1;
-        return dir * (a.storyPoints! - b.storyPoints!);
-      }
-
       if (sort.column === "Status") {
         const aIdx = PIPELINE_STATUS_ORDER.indexOf(a.status as ProjectStatus);
         const bIdx = PIPELINE_STATUS_ORDER.indexOf(b.status as ProjectStatus);
         return dir * (aIdx - bIdx);
-      }
-
-      if (sort.column === "Confidence") {
-        const aScore = a.confidence ? (CONFIDENCE_ORDER[a.confidence] ?? -1) : -1;
-        const bScore = b.confidence ? (CONFIDENCE_ORDER[b.confidence] ?? -1) : -1;
-        if (aScore === -1 && bScore === -1) return 0;
-        if (aScore === -1) return 1;
-        if (bScore === -1) return -1;
-        return dir * (aScore - bScore);
       }
 
       if (sort.column === "Team / Sponsor") {
@@ -202,7 +174,7 @@ export default function PipelineView({ projects }: PipelineViewProps) {
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-col gap-0.5">
-                      <span className="text-sm font-medium">{project.team || "—"}</span>
+                      <span className="text-sm font-medium">{project.team || ""}</span>
                       {project.sponsor && <span className="text-xs text-muted-foreground">Sponsor: {project.sponsor}</span>}
                     </div>
                   </TableCell>
@@ -210,7 +182,7 @@ export default function PipelineView({ projects }: PipelineViewProps) {
                     {project.stakeholder ? (
                       <span className="text-sm text-foreground">{project.stakeholder}</span>
                     ) : (
-                      <span className="text-muted-foreground text-sm">—</span>
+                      <span className="text-muted-foreground text-sm"></span>
                     )}
                   </TableCell>
                   <TableCell>
@@ -218,26 +190,8 @@ export default function PipelineView({ projects }: PipelineViewProps) {
                       {project.goals?.map(g => (
                         <div key={g.id} className="w-2 h-2 rounded-full" style={{ backgroundColor: g.color }} title={g.name} />
                       ))}
-                      {(!project.goals || project.goals.length === 0) && <span className="text-muted-foreground text-xs">—</span>}
+                      {(!project.goals || project.goals.length === 0) && <span className="text-muted-foreground text-xs"></span>}
                     </div>
-                  </TableCell>
-                  <TableCell>
-                    {project.confidence ? (
-                      <Badge variant="secondary" className={`text-xs font-medium border-0 ${CONFIDENCE_COLORS[project.confidence]}`}>
-                        {formatConfidence(project.confidence)}
-                      </Badge>
-                    ) : <span className="text-muted-foreground text-xs">—</span>}
-                  </TableCell>
-                  <TableCell>
-                    {project.storyPoints != null ? (() => {
-                      const size = storyPointsToTShirt(project.storyPoints);
-                      return (
-                        <span className="flex items-center gap-1.5" title={size.tooltip}>
-                          <Badge variant="outline" className="text-xs font-medium px-1.5 py-0">{size.label}</Badge>
-                          <span className="text-xs text-muted-foreground font-mono">{project.storyPoints}</span>
-                        </span>
-                      );
-                    })() : <span className="text-muted-foreground text-sm">—</span>}
                   </TableCell>
                   <TableCell>
                     <div className="text-xs">

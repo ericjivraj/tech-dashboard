@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
+import { runtimeConfig } from "@/lib/runtime-config";
 
-const RAW_PASSCODE = import.meta.env.VITE_SITE_PASSCODE as string | undefined;
+const RAW_PASSCODE = runtimeConfig.sitePasscode;
 const PASSCODES: string[] = RAW_PASSCODE
   ? RAW_PASSCODE.split(",").map((p) => p.trim()).filter(Boolean)
   : [];
@@ -50,7 +51,7 @@ export default function PasscodeGate({ children }: PasscodeGateProps) {
         <div className="space-y-1 text-center">
           <img
             src={`${import.meta.env.BASE_URL}logo.svg`}
-            alt="Delivery Dashboard"
+            alt="Tech Dashboard"
             className="mx-auto mb-4 h-7"
           />
           <p className="text-sm text-muted-foreground">

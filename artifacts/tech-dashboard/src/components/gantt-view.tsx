@@ -429,7 +429,7 @@ export default function GanttView({ filters }: GanttViewProps) {
                             width: pos.width,
                             backgroundColor: color,
                           }}
-                          title={`${project.title}\n${format(parseISO(effectiveStart), 'MMM d')} — ${format(parseISO(effectiveEnd), 'MMM d, yyyy')}${usingCycleFallback ? '\n(dates from cycle)' : ''}`}
+                          title={`${project.title}\n${format(parseISO(effectiveStart), 'MMM d')} to ${format(parseISO(effectiveEnd), 'MMM d, yyyy')}${usingCycleFallback ? '\n(dates from cycle)' : ''}`}
                         >
                           <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/10 rounded-b-sm" />
                         </div>

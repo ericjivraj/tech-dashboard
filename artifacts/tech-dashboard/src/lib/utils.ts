@@ -10,12 +10,12 @@ export function formatConfidence(value: string): string {
 }
 
 const TSHIRT_SIZES = [
-  { label: "XS", fullName: "Extra Small", max: 6 },
-  { label: "S",  fullName: "Small",       max: 13 },
-  { label: "M",  fullName: "Medium",      max: 39 },
-  { label: "L",  fullName: "Large",       max: 78 },
-  { label: "XL", fullName: "Extra Large", max: 156 },
-  { label: "XXL",fullName: "Extra Extra Large", max: Infinity },
+  { label: "Day",           fullName: "Day",           max: 6 },
+  { label: "Days",          fullName: "Days",          max: 13 },
+  { label: "Week",          fullName: "Week",          max: 39 },
+  { label: "Weeks",         fullName: "Weeks",         max: 78 },
+  { label: "Several Weeks", fullName: "Several Weeks", max: 156 },
+  { label: "Months",        fullName: "Months",        max: Infinity },
 ] as const;
 
 export function storyPointsToTShirt(points: number): { label: string; tooltip: string } {

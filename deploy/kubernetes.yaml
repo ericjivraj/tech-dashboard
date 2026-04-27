@@ -1,0 +1,38 @@
+---
+- name: Clone and update Git repository
+  hosts: localhost
+  tasks:
+    - name: Clone the Git repository
+      git:
+        repo: "https://{{ lookup('env', 'GITOPS_REPO_USER') }}:{{ lookup('env', 'GITOPS_REPO_TOKEN')  }}@gitlab.com/bonhams1793/aks.git"
+        dest: gitops
+        accept_hostkey: yes
+        update: yes
+
+- name: Replace kustomization.yaml with template
+  hosts: localhost
+  tasks:
+    - name: Copy kustomize.yaml.tpl to destination
+      template:
+        src: "kustomize.yaml.tpl"
+        dest: "gitops/environments/{{ lookup('env', 'DEPLOY_ENV') }}/tech-dashboard/kustomization.yaml"
+        remote_src: yes
+      delegate_to: localhost
+
+- name: Push changes to the main branch
+  hosts: localhost
+  tasks:
+    - name: Commit changes
+      shell: |
+        git config user.email "gitops@bonhams.com"
+        git config user.name "gitops"
+        git commit -a -m "TECH-DASHBOARD - {{ lookup('env', 'DEPLOY_ENV') }}. Updated kustomize.yaml.tpl. Commit ID {{ lookup('env', 'CI_COMMIT_SHORT_SHA') }} - Pipeline {{ lookup('env', 'CI_PIPELINE_URL') }}"
+      args:
+        chdir: gitops
+      delegate_to: localhost
+
+    - name: Push changes
+      command: git push origin main
+      args:
+        chdir: gitops
+      delegate_to: localhost

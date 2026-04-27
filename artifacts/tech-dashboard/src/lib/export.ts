@@ -82,34 +82,22 @@ export const PDF_COLUMNS: PdfColumn[] = [
     getValue: (p) => STATUS_LABELS[p.status] ?? p.status,
   },
   {
-    key: "confidence",
-    label: "Confidence",
-    width: 8,
-    getValue: (p) => p.confidence ? formatConfidence(p.confidence) : "—",
-  },
-  {
     key: "sponsor",
     label: "Sponsor",
     width: 9,
-    getValue: (p) => p.sponsor ?? "—",
+    getValue: (p) => p.sponsor ?? "",
   },
   {
     key: "team",
     label: "Team",
     width: 9,
-    getValue: (p) => p.team ?? "—",
+    getValue: (p) => p.team ?? "",
   },
   {
     key: "stakeholder",
     label: "Stakeholder",
     width: 9,
-    getValue: (p) => p.stakeholder ?? "—",
-  },
-  {
-    key: "size",
-    label: "Sizing",
-    width: 6,
-    getValue: (p) => (p.storyPoints != null ? storyPointsToTShirt(p.storyPoints).label : "—"),
+    getValue: (p) => p.stakeholder ?? "",
   },
   {
     key: "cycle",
@@ -127,31 +115,31 @@ export const PDF_COLUMNS: PdfColumn[] = [
     key: "goals",
     label: "Goals",
     width: 10,
-    getValue: (p) => p.goals?.map((g) => g.name).join(", ") ?? "—",
+    getValue: (p) => p.goals?.map((g) => g.name).join(", ") ?? "",
   },
   {
     key: "latestUpdate",
     label: "Latest Update",
     width: 17,
-    getValue: (p) => p.latestUpdate?.content ?? "—",
+    getValue: (p) => p.latestUpdate?.content ?? "",
   },
   {
     key: "description",
     label: "Description",
     width: 22,
-    getValue: (p) => p.description ?? "—",
+    getValue: (p) => p.description ?? "",
   },
   {
     key: "impact",
     label: "Business Impact",
     width: 22,
-    getValue: (p) => p.impact ?? "—",
+    getValue: (p) => p.impact ?? "",
   },
 ];
 
 const CORE_PDF_COLUMN_KEYS = [
-  "title", "status", "confidence", "sponsor", "team",
-  "stakeholder", "size", "cycle", "goals", "latestUpdate",
+  "title", "status", "sponsor", "team",
+  "stakeholder", "cycle", "goals", "latestUpdate",
 ];
 
 export const ALL_PDF_COLUMN_KEYS = PDF_COLUMNS.map((c) => c.key);

@@ -92,7 +92,7 @@ export VITE_CLERK_PUBLISHABLE_KEY=pk_test_replace_me
 export VITE_SITE_PASSCODE=          # leave blank to disable the passcode gate
 export PORT=5173                    # required by vite.config.ts
 export BASE_PATH=/                  # required by vite.config.ts
-pnpm --filter @workspace/portfolio-dashboard run dev
+pnpm --filter @workspace/tech-dashboard run dev
 ```
 
 The frontend is available at **http://localhost:5173** and the API at **http://localhost:3000**.

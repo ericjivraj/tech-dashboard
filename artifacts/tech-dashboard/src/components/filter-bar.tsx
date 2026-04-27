@@ -131,18 +131,6 @@ export default function FilterBar({ filters, onFiltersChange, teams, sponsors, f
           </Select>
         )}
 
-        <Select value={filters.size ?? "all"} onValueChange={(v) => update({ size: v })} data-testid="filter-size">
-          <SelectTrigger className="h-8 w-[130px] text-sm">
-            <SelectValue placeholder="Size" />
-          </SelectTrigger>
-          <SelectContent side="bottom" align="start">
-            <SelectItem value="all">All Sizes</SelectItem>
-            {["XS", "S", "M", "L", "XL", "XXL"].map((size) => (
-              <SelectItem key={size} value={size}>{size}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
         {goals && goals.length > 0 && (
           <Select value={filters.goalId} onValueChange={(v) => update({ goalId: v })} data-testid="filter-goal">
             <SelectTrigger className="h-8 w-[150px] text-sm">

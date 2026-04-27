@@ -10,10 +10,10 @@ WORKDIR /app
 FROM base AS deps
 
 COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
-COPY artifacts/api-server/package.json ./artifacts/api-server/
-COPY lib/db/package.json               ./lib/db/
-COPY lib/                              ./lib/
-COPY scripts/package.json             ./scripts/
+COPY artifacts/api-server/package.json         ./artifacts/api-server/
+COPY artifacts/tech-dashboard/package.json ./artifacts/tech-dashboard/
+COPY lib/                                       ./lib/
+COPY scripts/package.json                       ./scripts/
 
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
     pnpm install --frozen-lockfile
@@ -30,17 +30,33 @@ ENV NODE_ENV=development
 EXPOSE 3000
 
 # tsx is a devDependency of @workspace/api-server (catalog reference).
-# Running from /app root lets tsx resolve workspace packages correctly.
+# Use --filter so pnpm runs inside the api-server workspace and resolves its
+# local .bin/tsx.
 CMD ["sh", "-c", \
      "pnpm install --frozen-lockfile && \
-      pnpm exec tsx watch artifacts/api-server/src/index.ts"]
+      pnpm --filter @workspace/api-server exec tsx watch src/index.ts"]
 
 # ── Stage 4: build ────────────────────────────────────────────────────────────
+#
+# Builds both the api-server bundle (esbuild) and the tech-dashboard
+# static assets (Vite). The dashboard's dist/public is copied into the api
+# image's public/ folder in the production stage and served via express.static.
+#
+# PORT and BASE_PATH are required by vite.config.ts at config-load time even
+# for `vite build`. The values aren't used at build time — PORT only affects
+# the dev/preview server, and BASE_PATH controls the public URL base.
 FROM deps AS build
+
+ENV PORT=3000
+# BASE_PATH is baked into the Vite bundle (asset URLs and BASE_URL) so the
+# dashboard works when served under https://innovate.bonhams.com/tech-dashboard/
+# in both preprod and production. Traefik strips the prefix before forwarding
+# to the api, so app.ts stays at root (/api, /health, /).
+ENV BASE_PATH=/tech-dashboard
 
 COPY . .
 
-RUN pnpm --filter @workspace/api-server run build
+RUN pnpm --filter @workspace/api-server --filter @workspace/tech-dashboard run build
 
 # ── Stage 5: production ───────────────────────────────────────────────────────
 FROM node:24-slim AS production
@@ -61,7 +77,8 @@ COPY lib/                              ./lib/
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
     pnpm install --frozen-lockfile --prod
 
-COPY --from=build /app/artifacts/api-server/dist ./artifacts/api-server/dist
+COPY --from=build /app/artifacts/api-server/dist                  ./artifacts/api-server/dist
+COPY --from=build /app/artifacts/tech-dashboard/dist/public  ./artifacts/api-server/public
 
 WORKDIR /app/artifacts/api-server
 

@@ -1,0 +1,67 @@
+include:
+  - project: "bonhams1793/IaC/docker"
+    file: ".gitlab/ci_templates.yml"
+
+services:
+  - name: docker:dind
+
+stages:
+  - build
+  - test
+  - kubernetes-preprod
+  - kubernetes-production
+
+build-amd64:
+  variables:
+    NAME: $CI_PROJECT_NAME
+    ARCH: amd64
+    COMPOSE_FILES: docker-compose.yml
+    DOCKER_FILES: artifacts/api-server/Dockerfile
+  extends:
+    - .replace_docker_images
+    - .build
+    - .default_tags
+
+build-arm64:
+  variables:
+    NAME: $CI_PROJECT_NAME
+    ARCH: arm64
+    COMPOSE_FILES: docker-compose.yml
+    DOCKER_FILES: artifacts/api-server/Dockerfile
+  extends:
+    - .replace_docker_images
+    - .build
+    - .default_arm_tags
+
+push-multiarch:
+  variables:
+    NAME: $CI_PROJECT_NAME
+  extends:
+    - .push_multiarch
+
+format:
+  extends: .format
+
+typecheck:
+  stage: test
+  image: node:24-slim
+  before_script:
+    - corepack enable && corepack prepare pnpm@latest --activate
+    - pnpm install --frozen-lockfile
+  script:
+    - pnpm run typecheck
+
+deploy-preprod-kubernetes:
+  stage: kubernetes-preprod
+  extends: .deploy_kubernetes
+  variables:
+    DEPLOY_ENV: preprod
+    DOPPLER_TOKEN: $PREPROD_DOPPLER_GITOPS
+
+deploy-production-kubernetes:
+  stage: kubernetes-production
+  extends: .deploy_kubernetes
+  variables:
+    DEPLOY_ENV: production
+    DOPPLER_TOKEN: $PROD_DOPPLER_GITOPS
+  when: manual

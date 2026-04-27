@@ -66,6 +66,16 @@ export default defineConfig({
       strict: true,
       deny: ["**/.*"],
     },
+    // Forward /api/* to the API server so dashboard fetches hit Express
+    // instead of falling through to Vite's SPA index.html.
+    proxy: process.env.VITE_API_BASE_URL
+      ? {
+          "/api": {
+            target: process.env.VITE_API_BASE_URL,
+            changeOrigin: true,
+          },
+        }
+      : undefined,
   },
   preview: {
     port,

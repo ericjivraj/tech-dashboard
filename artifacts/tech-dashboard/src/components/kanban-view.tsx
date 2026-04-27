@@ -1,13 +1,12 @@
 import { useState } from "react";
 import { ProjectWithDetails, ProjectStatus, useGetMe } from "@workspace/api-client-react";
-import { formatConfidence, storyPointsToTShirt } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Info } from "lucide-react";
 import ProjectModal from "./project-modal";
 import ProjectForm from "./project-form";
-import { CONFIDENCE_COLORS, STATUS_LABELS } from "@/lib/constants";
+import { STATUS_LABELS } from "@/lib/constants";
 
 const COLUMN_DESCRIPTIONS: Record<ProjectStatus, string> = {
   new_request: "Newly submitted project requests awaiting triage",
@@ -121,25 +120,8 @@ function ProjectCard({ project, onClick }: { project: ProjectWithDetails; onClic
       <CardHeader className="p-3 pb-2 space-y-1">
         <div className="flex justify-between items-start gap-2">
           <CardTitle className="text-sm leading-tight line-clamp-2">{project.title}</CardTitle>
-          {project.storyPoints != null ? (() => {
-            const { label, tooltip } = storyPointsToTShirt(project.storyPoints);
-            return (
-              <Badge variant="outline" className="text-[10px] px-1.5 font-semibold shrink-0 bg-muted/50" title={tooltip}>
-                {label}
-              </Badge>
-            );
-          })() : (
-            <Badge variant="outline" className="text-[10px] px-1.5 font-semibold shrink-0 bg-muted/50 text-muted-foreground" title="No estimate">
-              —
-            </Badge>
-          )}
         </div>
         <div className="flex items-center gap-1 flex-wrap">
-          {project.confidence && !isBacklog && (
-            <Badge variant="secondary" className={`text-[10px] px-1.5 font-medium border-0 ${CONFIDENCE_COLORS[project.confidence]}`}>
-              {formatConfidence(project.confidence)}
-            </Badge>
-          )}
           {project.team && (
             <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">{project.team}</span>
           )}
