@@ -16,7 +16,7 @@ build-amd64:
     NAME: $CI_PROJECT_NAME
     ARCH: amd64
     COMPOSE_FILES: docker-compose.yml
-    DOCKER_FILES: artifacts/api-server/Dockerfile
+    DOCKER_FILES: docker/Dockerfile
   extends:
     - .replace_docker_images
     - .build
@@ -27,7 +27,7 @@ build-arm64:
     NAME: $CI_PROJECT_NAME
     ARCH: arm64
     COMPOSE_FILES: docker-compose.yml
-    DOCKER_FILES: artifacts/api-server/Dockerfile
+    DOCKER_FILES: docker/Dockerfile
   extends:
     - .replace_docker_images
     - .build
@@ -38,9 +38,6 @@ push-multiarch:
     NAME: $CI_PROJECT_NAME
   extends:
     - .push_multiarch
-
-format:
-  extends: .format
 
 typecheck:
   stage: test
