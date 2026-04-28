@@ -1,0 +1,5 @@
+{
+  "name": "node-dev",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:24",
+  "postCreateCommand": "corepack prepare pnpm@9.0.0 --activate"
+}
