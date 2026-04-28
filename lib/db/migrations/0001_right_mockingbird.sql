@@ -1,0 +1,1 @@
+ALTER TABLE "projects" ADD COLUMN "cycle_allocation_percent" numeric(5, 2);

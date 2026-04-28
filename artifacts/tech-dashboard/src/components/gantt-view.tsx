@@ -42,6 +42,30 @@ type CapacitySummaryRow = {
   frontendBudget: number | null;
 };
 
+type CycleAllocation = {
+  cycleId: number;
+  cycleName: string;
+  cycleStartDate: string;
+  cycleEndDate: string;
+  percent: number;
+};
+
+function getCycleAllocations(p: unknown): CycleAllocation[] {
+  return (p as { cycleAllocations?: CycleAllocation[] }).cycleAllocations ?? [];
+}
+
+// Effective Gantt-bar span. Priority: explicit start/end dates → cycle
+// allocations (min cycle start → max cycle end) → primary cycle.
+function getEffectiveDates(p: ProjectTimeline): { start: string; end: string } | null {
+  if (p.startDate && p.endDate) return { start: p.startDate, end: p.endDate };
+  const allocs = getCycleAllocations(p);
+  if (allocs.length > 0) {
+    return { start: allocs[0].cycleStartDate, end: allocs[allocs.length - 1].cycleEndDate };
+  }
+  if (p.cycleStartDate && p.cycleEndDate) return { start: p.cycleStartDate, end: p.cycleEndDate };
+  return null;
+}
+
 function cycleOverallPct(row: CapacitySummaryRow | undefined): { pct: number; label: string } | null {
   if (!row) return null;
   const totalBudget = (row.a3Budget ?? 0) + (row.backendBudget ?? 0) + (row.frontendBudget ?? 0);
@@ -148,11 +172,10 @@ export default function GanttView({ filters }: GanttViewProps) {
     return { left: `${Math.max(0, left)}%`, width: `${Math.max(0.5, width)}%` };
   };
 
-  let filteredProjects = projects.filter((p) => {
-    const hasOwnDates = p.startDate && p.endDate;
-    const hasCycleFallback = !p.startDate && !p.endDate && p.status === "blocked" && p.cycleStartDate && p.cycleEndDate;
-    return hasOwnDates || hasCycleFallback;
-  });
+  // Any project with explicit dates, cycle allocations, or a primary cycle is
+  // shown on the Gantt — multi-cycle projects span min(cycle starts) →
+  // max(cycle ends) automatically via getEffectiveDates().
+  let filteredProjects = projects.filter((p) => getEffectiveDates(p) !== null);
 
   if (selectedCycleId !== "all") {
     filteredProjects = filteredProjects.filter((p) => {
@@ -192,22 +215,28 @@ export default function GanttView({ filters }: GanttViewProps) {
   }
 
   const visibleProjects = filteredProjects.filter((p) => {
-    const startDate = p.startDate ?? p.cycleStartDate;
-    const endDate = p.endDate ?? p.cycleEndDate;
-    if (!startDate || !endDate) return false;
-    const pos = getBarPosition(startDate, endDate);
-    return pos !== null;
+    const dates = getEffectiveDates(p);
+    if (!dates) return false;
+    return getBarPosition(dates.start, dates.end) !== null;
   });
 
   const capacityByCycleId = new Map(
     (capacitySummary?.rows as CapacitySummaryRow[] ?? []).map((r) => [r.id, r])
   );
 
+  // A project appears under every cycle it has an allocation for (so a multi-
+  // cycle project shows up in each cycle's popover); falls back to its primary
+  // cycleId when there are no explicit allocations.
   const projectsByCycleId = new Map<number, typeof visibleProjects>();
   for (const p of visibleProjects) {
-    if (p.cycleId == null) continue;
-    if (!projectsByCycleId.has(p.cycleId)) projectsByCycleId.set(p.cycleId, []);
-    projectsByCycleId.get(p.cycleId)!.push(p);
+    const allocs = getCycleAllocations(p);
+    const cycleIdsForProject = allocs.length > 0
+      ? allocs.map((a) => a.cycleId)
+      : p.cycleId != null ? [p.cycleId] : [];
+    for (const cId of cycleIdsForProject) {
+      if (!projectsByCycleId.has(cId)) projectsByCycleId.set(cId, []);
+      projectsByCycleId.get(cId)!.push(p);
+    }
   }
 
   return (
@@ -249,7 +278,7 @@ export default function GanttView({ filters }: GanttViewProps) {
         <div className="flex flex-wrap gap-3">
           {[
             { color: "#3b82f6", label: "In development", desc: "Prioritized & actively in development" },
-            { color: "#eab308", label: "Planned & upcoming", desc: "Prioritized & scheduled for a future cycle" },
+            { color: "#eab308", label: "Planned & upcoming", desc: "Prioritized & awaiting to be in development" },
             { color: "#ef4444", label: "Blocked", desc: "Progress halted, needs attention" },
           ].map(({ color, label, desc }) => (
             <div key={label} className="flex items-start gap-2 rounded-lg border bg-card px-4 py-3 min-w-[200px]">
@@ -301,10 +330,20 @@ export default function GanttView({ filters }: GanttViewProps) {
                   const cEnd = Math.min(parseISO(cycle.endDate).getTime(), viewEnd.getTime());
                   const widthPct = (differenceInDays(new Date(cEnd), new Date(cStart)) / totalDays) * 100;
                   const cap = capacityByCycleId.get(cycle.id);
-                  const overallCap = cycleOverallPct(cap);
                   const isActive = parseISO(cycle.startDate) <= today && parseISO(cycle.endDate) >= today;
                   const cycleProjects = projectsByCycleId.get(cycle.id) ?? [];
                   const totalBudget = (cap?.a3Budget ?? 0) + (cap?.backendBudget ?? 0) + (cap?.frontendBudget ?? 0);
+
+                  // Sum each project's allocation percent specifically for this cycle
+                  // (a project may have different %s in different cycles). Falls back
+                  // to the legacy storyPoints/budget calculation when no allocations.
+                  const literalSum = cycleProjects
+                    .map((p) => getCycleAllocations(p).find((a) => a.cycleId === cycle.id)?.percent ?? null)
+                    .filter((v): v is number => v != null)
+                    .reduce((s, v) => s + v, 0);
+                  const overallCap = literalSum > 0
+                    ? { pct: literalSum, label: `${literalSum.toFixed(1)}%` }
+                    : cycleOverallPct(cap);
                   return (
                     <Popover key={cycle.id}>
                       <PopoverTrigger asChild>
@@ -333,23 +372,40 @@ export default function GanttView({ filters }: GanttViewProps) {
                           )}
                         </div>
                       </PopoverTrigger>
-                      {cycleProjects.length > 0 && cap && totalBudget > 0 && (
+                      {cycleProjects.length > 0 && (
                         <PopoverContent side="bottom" className="w-72 p-4 space-y-2 text-sm">
                           <p className="font-bold text-foreground text-base mb-3">{cycle.name}: Project Allocation</p>
                           {cycleProjects.map((p) => {
-                            const pts = p.storyPoints ?? 0;
-                            const pct = Math.round((pts / totalBudget) * 100);
+                            // Per-cycle %: look up this project's allocation row for
+                            // this specific cycle. A multi-cycle project may have
+                            // different %s per cycle.
+                            const myAlloc = getCycleAllocations(p).find((a) => a.cycleId === cycle.id);
+                            const label = myAlloc != null
+                              ? `${myAlloc.percent.toFixed(1)}%`
+                              : (totalBudget > 0
+                                ? `${Math.round(((p.storyPoints ?? 0) / totalBudget) * 100)}%`
+                                : "—");
                             return (
                               <div key={p.id} className="flex justify-between gap-3">
                                 <span className="truncate text-foreground">{p.title}</span>
-                                <span className="shrink-0 tabular-nums font-semibold text-foreground">{pct}%</span>
+                                <span className="shrink-0 tabular-nums font-semibold text-foreground">{label}</span>
                               </div>
                             );
                           })}
                           <div className="border-t border-border/50 pt-2 mt-1 flex justify-between gap-3">
                             <span className="text-muted-foreground">Total allocated</span>
                             <span className="shrink-0 tabular-nums font-semibold text-foreground">
-                              {Math.round((cycleProjects.reduce((sum, p) => sum + (p.storyPoints ?? 0), 0) / totalBudget) * 100)}%
+                              {(() => {
+                                const literals = cycleProjects
+                                  .map((p) => getCycleAllocations(p).find((a) => a.cycleId === cycle.id)?.percent ?? null)
+                                  .filter((v): v is number => v != null);
+                                if (literals.length === cycleProjects.length) {
+                                  return `${literals.reduce((s, v) => s + v, 0).toFixed(1)}%`;
+                                }
+                                return totalBudget > 0
+                                  ? `${Math.round((cycleProjects.reduce((sum, p) => sum + (p.storyPoints ?? 0), 0) / totalBudget) * 100)}%`
+                                  : "—";
+                              })()}
                             </span>
                           </div>
                         </PopoverContent>
@@ -367,8 +423,10 @@ export default function GanttView({ filters }: GanttViewProps) {
             ) : (
               <div className="space-y-3">
                 {visibleProjects.map((project) => {
-                  const effectiveStart = project.startDate ?? project.cycleStartDate!;
-                  const effectiveEnd = project.endDate ?? project.cycleEndDate!;
+                  const dates = getEffectiveDates(project);
+                  if (!dates) return null;
+                  const effectiveStart = dates.start;
+                  const effectiveEnd = dates.end;
                   const usingCycleFallback = !project.startDate && !project.endDate;
                   const pos = getBarPosition(effectiveStart, effectiveEnd);
                   if (!pos) return null;

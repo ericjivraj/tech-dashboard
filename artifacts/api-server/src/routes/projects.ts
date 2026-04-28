@@ -9,6 +9,7 @@ import {
   cyclesTable,
   sprintsTable,
   projectSprintAllocationsTable,
+  projectCycleAllocationsTable,
 } from "@workspace/db";
 import { z } from "zod";
 import {
@@ -279,6 +280,41 @@ router.get("/projects/timeline", async (req, res): Promise<void> => {
         .where(inArray(projectSprintAllocationsTable.projectId, projectIds))
     : [];
 
+  // Per-project per-cycle allocations (% of cycle capacity). Drives the Gantt
+  // bar span (min cycle start → max cycle end) and the cycle-header popover.
+  const allCycleAllocations = projectIds.length > 0
+    ? await db
+        .select()
+        .from(projectCycleAllocationsTable)
+        .where(inArray(projectCycleAllocationsTable.projectId, projectIds))
+    : [];
+
+  const extraCycleIds = [...new Set(
+    allCycleAllocations.map((a) => a.cycleId).filter((id) => !cycleIds.includes(id)),
+  )];
+  const extraCycles = extraCycleIds.length > 0
+    ? await db.select().from(cyclesTable).where(inArray(cyclesTable.id, extraCycleIds))
+    : [];
+  for (const c of extraCycles) cycleMap.set(c.id, c);
+
+  const cycleAllocationsByProject = new Map<number, { cycleId: number; cycleName: string; cycleStartDate: string; cycleEndDate: string; percent: number }[]>();
+  for (const a of allCycleAllocations) {
+    const c = cycleMap.get(a.cycleId);
+    if (!c) continue;
+    const list = cycleAllocationsByProject.get(a.projectId) ?? [];
+    list.push({
+      cycleId: a.cycleId,
+      cycleName: c.name,
+      cycleStartDate: c.startDate,
+      cycleEndDate: c.endDate,
+      percent: Number(a.allocationPercent),
+    });
+    cycleAllocationsByProject.set(a.projectId, list);
+  }
+  for (const list of cycleAllocationsByProject.values()) {
+    list.sort((a, b) => a.cycleStartDate.localeCompare(b.cycleStartDate));
+  }
+
   const allSprintIds = [...new Set(allAllocations.map((a) => a.sprintId))];
   const allocationSprints = allSprintIds.length > 0
     ? await db.select().from(sprintsTable).where(inArray(sprintsTable.id, allSprintIds))
@@ -359,6 +395,7 @@ router.get("/projects/timeline", async (req, res): Promise<void> => {
       sprintName: sprint?.name ?? null,
       sprintNumber: sprint?.sprintNumber ?? null,
       completionPercent: resolvedCompletionPercent,
+      cycleAllocations: cycleAllocationsByProject.get(p.id) ?? [],
       subTeamSummary: subTeamSummary ?? { a3Percent: null, backendPercent: null, frontendPercent: null },
       goals: goalsByProject.get(p.id) ?? [],
     };

@@ -1,0 +1,177 @@
+{
+  "goals": [],
+  "projects": [
+    {
+      "title": "PRAM",
+      "description": "TBC.",
+      "sponsor": "TBC", "team": "TBC", "stakeholder": "TBC", "impact": "TBC",
+      "status": "in_progress",
+      "cycle": "Cycle D",
+      "cycleAllocations": [
+        { "cycle": "Cycle D", "percent": 44.0 },
+        { "cycle": "Cycle E", "percent": 60.0 },
+        { "cycle": "Cycle F", "percent": 60.0 },
+        { "cycle": "Cycle G", "percent": 60.0 }
+      ],
+      "goals": [], "allocations": [], "updates": []
+    },
+    {
+      "title": "Bonhams Rebranding",
+      "description": "TBC.",
+      "sponsor": "TBC", "team": "TBC", "stakeholder": "TBC", "impact": "TBC",
+      "status": "in_progress",
+      "cycle": "Cycle D",
+      "cycleAllocations": [
+        { "cycle": "Cycle D", "percent": 15.3 },
+        { "cycle": "Cycle E", "percent": 25.0 },
+        { "cycle": "Cycle F", "percent": 25.0 },
+        { "cycle": "Cycle G", "percent": 25.0 }
+      ],
+      "goals": [], "allocations": [], "updates": []
+    },
+    {
+      "title": "BEMA: Hypercare",
+      "description": "TBC.",
+      "sponsor": "TBC", "team": "TBC", "stakeholder": "TBC", "impact": "TBC",
+      "status": "in_progress",
+      "cycle": "Cycle D",
+      "cycleAllocations": [{ "cycle": "Cycle D", "percent": 10.3 }],
+      "goals": [], "allocations": [], "updates": []
+    },
+    {
+      "title": "Upgrade Progress",
+      "description": "TBC.",
+      "sponsor": "TBC", "team": "TBC", "stakeholder": "TBC", "impact": "TBC",
+      "status": "in_progress",
+      "cycle": "Cycle D",
+      "cycleAllocations": [{ "cycle": "Cycle D", "percent": 8.6 }],
+      "goals": [], "allocations": [], "updates": []
+    },
+    {
+      "title": "PRAM: Online Auctions Hypercare",
+      "description": "TBC.",
+      "sponsor": "TBC", "team": "TBC", "stakeholder": "TBC", "impact": "TBC",
+      "status": "in_progress",
+      "cycle": "Cycle D",
+      "cycleAllocations": [{ "cycle": "Cycle D", "percent": 5.0 }],
+      "goals": [], "allocations": [], "updates": []
+    },
+    {
+      "title": "ARTA API – Post Sale Self Serve Quoting",
+      "description": "TBC.",
+      "sponsor": "TBC", "team": "TBC", "stakeholder": "TBC", "impact": "TBC",
+      "status": "in_progress",
+      "cycle": "Cycle D",
+      "cycleAllocations": [{ "cycle": "Cycle D", "percent": 4.2 }],
+      "goals": [], "allocations": [], "updates": []
+    },
+    {
+      "title": "Private Sale Remittance PDF template change",
+      "description": "TBC.",
+      "sponsor": "TBC", "team": "TBC", "stakeholder": "TBC", "impact": "TBC",
+      "status": "in_progress",
+      "cycle": "Cycle D",
+      "cycleAllocations": [{ "cycle": "Cycle D", "percent": 2.1 }],
+      "goals": [], "allocations": [], "updates": []
+    },
+    {
+      "title": "Client 'Soft' Interests",
+      "description": "TBC.",
+      "sponsor": "TBC", "team": "TBC", "stakeholder": "TBC", "impact": "TBC",
+      "status": "in_progress",
+      "cycle": "Cycle D",
+      "cycleAllocations": [{ "cycle": "Cycle D", "percent": 1.3 }],
+      "goals": [], "allocations": [], "updates": []
+    },
+    {
+      "title": "Ability to change Consignment Status to allow remove/add items into transfers",
+      "description": "TBC.",
+      "sponsor": "TBC", "team": "TBC", "stakeholder": "TBC", "impact": "TBC",
+      "status": "in_progress",
+      "cycle": "Cycle D",
+      "cycleAllocations": [{ "cycle": "Cycle D", "percent": 1.3 }],
+      "goals": [], "allocations": [], "updates": []
+    },
+    {
+      "title": "Enlarge Image Size on Condition Reports",
+      "description": "TBC.",
+      "sponsor": "TBC", "team": "TBC", "stakeholder": "TBC", "impact": "TBC",
+      "status": "in_progress",
+      "cycle": "Cycle D",
+      "cycleAllocations": [{ "cycle": "Cycle D", "percent": 1.3 }],
+      "goals": [], "allocations": [], "updates": []
+    },
+    {
+      "title": "Sale Page Document Upload for Contracts/MCA",
+      "description": "TBC.",
+      "sponsor": "TBC", "team": "TBC", "stakeholder": "TBC", "impact": "TBC",
+      "status": "in_progress",
+      "cycle": "Cycle D",
+      "cycleAllocations": [{ "cycle": "Cycle D", "percent": 1.3 }],
+      "goals": [], "allocations": [], "updates": []
+    },
+    {
+      "title": "Lotting Import File (primarily for Wine Department)",
+      "description": "TBC.",
+      "sponsor": "TBC", "team": "TBC", "stakeholder": "TBC", "impact": "TBC",
+      "status": "in_progress",
+      "cycle": "Cycle D",
+      "cycleAllocations": [{ "cycle": "Cycle D", "percent": 1.3 }],
+      "goals": [], "allocations": [], "updates": []
+    },
+    {
+      "title": "Add bank details to Buyer Statement",
+      "description": "TBC.",
+      "sponsor": "TBC", "team": "TBC", "stakeholder": "TBC", "impact": "TBC",
+      "status": "in_progress",
+      "cycle": "Cycle D",
+      "cycleAllocations": [{ "cycle": "Cycle D", "percent": 0.8 }],
+      "goals": [], "allocations": [], "updates": []
+    },
+    {
+      "title": "Disable MRL and BOS (former 205 division) as pickup locations",
+      "description": "TBC.",
+      "sponsor": "TBC", "team": "TBC", "stakeholder": "TBC", "impact": "TBC",
+      "status": "in_progress",
+      "cycle": "Cycle D",
+      "cycleAllocations": [{ "cycle": "Cycle D", "percent": 0.8 }],
+      "goals": [], "allocations": [], "updates": []
+    },
+    {
+      "title": "Export a Catalogue Proof with only Primary Images",
+      "description": "TBC.",
+      "sponsor": "TBC", "team": "TBC", "stakeholder": "TBC", "impact": "TBC",
+      "status": "in_progress",
+      "cycle": "Cycle D",
+      "cycleAllocations": [{ "cycle": "Cycle D", "percent": 0.8 }],
+      "goals": [], "allocations": [], "updates": []
+    },
+    {
+      "title": "Monthly Buyer Statements for companies 120, 200 and 300",
+      "description": "TBC.",
+      "sponsor": "TBC", "team": "TBC", "stakeholder": "TBC", "impact": "TBC",
+      "status": "in_progress",
+      "cycle": "Cycle D",
+      "cycleAllocations": [{ "cycle": "Cycle D", "percent": 0.8 }],
+      "goals": [], "allocations": [], "updates": []
+    },
+    {
+      "title": "Client Vetting",
+      "description": "TBC.",
+      "sponsor": "TBC", "team": "TBC", "stakeholder": "TBC", "impact": "TBC",
+      "status": "in_progress",
+      "cycle": "Cycle D",
+      "cycleAllocations": [{ "cycle": "Cycle D", "percent": 0.5 }],
+      "goals": [], "allocations": [], "updates": []
+    },
+    {
+      "title": "New York Office Relocation",
+      "description": "TBC.",
+      "sponsor": "TBC", "team": "TBC", "stakeholder": "TBC", "impact": "TBC",
+      "status": "in_progress",
+      "cycle": "Cycle D",
+      "cycleAllocations": [{ "cycle": "Cycle D", "percent": 0.3 }],
+      "goals": [], "allocations": [], "updates": []
+    }
+  ]
+}

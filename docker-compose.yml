@@ -30,11 +30,15 @@ services:
       dockerfile: docker/Dockerfile
       target: deps
     working_dir: /app
-    command: pnpm --filter @workspace/db run migrate
+    # Re-run pnpm install inside the container so platform-specific binaries
+    # (esbuild, rollup, lightningcss) are present for the container's arch —
+    # the host's bind-mounted node_modules has darwin binaries, not linux ones.
+    command: sh -c "pnpm install --frozen-lockfile && pnpm --filter @workspace/db run migrate"
     volumes:
       - .:/app
       - pnpm-store:/root/.local/share/pnpm/store
     environment:
+      CI: "true"
       DATABASE_URL: postgres://portfolio:${POSTGRES_PASSWORD:-localpassword}@db:5432/portfolio
     depends_on:
       db:
@@ -59,6 +63,7 @@ services:
     ports:
       - "3000:3000"
     environment:
+      CI: "true"
       NODE_ENV: development
       PORT: 3000
       DATABASE_URL: postgres://portfolio:${POSTGRES_PASSWORD:-localpassword}@db:5432/portfolio
