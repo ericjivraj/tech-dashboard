@@ -93,10 +93,22 @@ if (process.env.NODE_ENV === "production") {
     })}</script></head>`,
   );
 
+  // Serve dashboard assets at BOTH the root and the path-prefix the Vite build
+  // baked in. This way the app works whether or not Traefik's StripPrefix
+  // middleware is active in front of us, and direct pod access also works.
   app.use(express.static(dashboardDist, { index: false }));
+  app.use("/tech-dashboard", express.static(dashboardDist, { index: false }));
+
   app.use((req, res, next) => {
     if (req.method !== "GET") return next();
     if (req.path.startsWith("/api")) return next();
+    // Anything that looks like a static asset (has a non-html file extension)
+    // should 404 cleanly rather than be replaced with HTML — otherwise the
+    // browser tries to execute index.html as JS/CSS and the page silently
+    // breaks.
+    if (/\.[a-zA-Z0-9]+$/.test(req.path) && !req.path.endsWith(".html")) {
+      return next();
+    }
     res.type("html").send(renderedIndexHtml);
   });
 }
