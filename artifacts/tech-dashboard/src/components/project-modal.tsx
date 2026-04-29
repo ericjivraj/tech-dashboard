@@ -13,9 +13,30 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format, parseISO } from "date-fns";
+
+// Render free-text fields (description, impact) with any http(s) URLs auto-
+// linked. break-all on the link itself lets long URLs wrap mid-character so
+// they don't blow out the layout in narrow columns.
+function renderTextWithLinks(text: string): React.ReactNode {
+  return text.split(/(https?:\/\/[^\s]+)/g).map((part, i) =>
+    /^https?:\/\//.test(part) ? (
+      <a
+        key={i}
+        href={part}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-primary underline underline-offset-2 hover:opacity-80 break-all"
+      >
+        {part}
+      </a>
+    ) : (
+      <span key={i}>{part}</span>
+    ),
+  );
+}
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { AlertCircle, Edit, Trash2, Clock, Send, X } from "lucide-react";
+import { AlertCircle, Edit, Trash2, Clock, Send, X, Paperclip } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { STATUS_LABELS } from "@/lib/constants";
 
@@ -142,11 +163,15 @@ export default function ProjectModal({
               <div className="space-y-4">
                 <div>
                   <h4 className="text-sm font-semibold mb-1 text-muted-foreground uppercase tracking-wider">Description</h4>
-                  <p className="text-sm whitespace-pre-wrap">{project.description || "No description provided."}</p>
+                  <p className="text-sm whitespace-pre-wrap break-words">
+                    {project.description ? renderTextWithLinks(project.description) : "No description provided."}
+                  </p>
                 </div>
                 <div>
                   <h4 className="text-sm font-semibold mb-1 text-muted-foreground uppercase tracking-wider">Business Impact</h4>
-                  <p className="text-sm whitespace-pre-wrap">{project.impact || "Not specified."}</p>
+                  <p className="text-sm whitespace-pre-wrap break-words">
+                    {project.impact ? renderTextWithLinks(project.impact) : "Not specified."}
+                  </p>
                 </div>
               </div>
 
@@ -163,14 +188,6 @@ export default function ProjectModal({
                   <div>
                     <span className="text-xs text-muted-foreground block mb-1">Stakeholder</span>
                     <span className="text-sm font-medium">{project.stakeholder || ""}</span>
-                  </div>
-                  <div className="col-span-2">
-                    <span className="text-xs text-muted-foreground block mb-1">Cycle</span>
-                    <span className="text-sm font-medium">
-                      {project.cycle
-                        ? `${project.cycle.name}${project.cycle.startDate && project.cycle.endDate ? ` · ${format(parseISO(project.cycle.startDate), 'MMM d')} – ${format(parseISO(project.cycle.endDate), 'MMM d, yyyy')}` : ""}`
-                        : ""}
-                    </span>
                   </div>
                 </div>
                 
@@ -189,6 +206,30 @@ export default function ProjectModal({
                 )}
               </div>
             </div>
+
+            {(project as { attachments?: { id: number; name: string; url: string }[] }).attachments
+              && (project as { attachments?: { id: number; name: string; url: string }[] }).attachments!.length > 0 && (
+              <div className="pt-4 border-t mt-4 space-y-3">
+                <h4 className="text-sm font-semibold flex items-center gap-2">
+                  <Paperclip className="h-4 w-4" /> Attachments
+                </h4>
+                <ul className="space-y-1.5">
+                  {(project as { attachments: { id: number; name: string; url: string }[] }).attachments.map((a) => (
+                    <li key={a.id}>
+                      <a
+                        href={a.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 text-sm text-primary underline underline-offset-2 hover:opacity-80 break-all"
+                      >
+                        <Paperclip className="h-3.5 w-3.5 shrink-0" />
+                        {a.name}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
             <div className="pt-4 border-t mt-4 space-y-4">
               <h4 className="text-sm font-semibold flex items-center gap-2">

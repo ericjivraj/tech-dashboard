@@ -28,6 +28,7 @@ import {
   projectUpdatesTable,
   projectSprintAllocationsTable,
   projectCycleAllocationsTable,
+  projectAttachmentsTable,
   PROJECT_STATUSES,
   CONFIDENCE_LEVELS,
   SUB_TEAMS,
@@ -65,6 +66,10 @@ const projectInput = z.object({
   cycleAllocations: z.array(z.object({
     cycle: z.string().min(1),                                        // cycle name, e.g. "Cycle D"
     percent: z.number().min(0).max(100),
+  })).default([]),
+  attachments: z.array(z.object({
+    name: z.string().min(1),                                          // displayed link label
+    url: z.string().min(1),                                           // /attachments/foo.pdf or https://...
   })).default([]),
   startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
@@ -150,7 +155,7 @@ async function main() {
   await db.transaction(async (tx) => {
     // Wipe click-data tables in FK-safe order.
     console.log("Wiping click-data tables...");
-    await tx.execute(sql`TRUNCATE TABLE project_updates, project_cycle_allocations, project_sprint_allocations, project_goals, projects, goals RESTART IDENTITY CASCADE`);
+    await tx.execute(sql`TRUNCATE TABLE project_attachments, project_updates, project_cycle_allocations, project_sprint_allocations, project_goals, projects, goals RESTART IDENTITY CASCADE`);
 
     // Insert goals; build name → id map for project_goals lookup.
     console.log(`Inserting ${data.goals.length} goals...`);
@@ -186,6 +191,16 @@ async function main() {
             projectId: proj.id,
             cycleId: cycleByName.get(ca.cycle)!,
             allocationPercent: ca.percent.toString(),
+          })),
+        );
+      }
+
+      if (p.attachments.length) {
+        await tx.insert(projectAttachmentsTable).values(
+          p.attachments.map((a) => ({
+            projectId: proj.id,
+            name: a.name,
+            url: a.url,
           })),
         );
       }

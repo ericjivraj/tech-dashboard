@@ -10,3 +10,4 @@ export * from "./auditLog";
 export * from "./sprintCapacity";
 export * from "./projectSprintAllocations";
 export * from "./projectCycleAllocations";
+export * from "./projectAttachments";

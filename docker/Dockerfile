@@ -80,6 +80,9 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
 COPY --from=build /app/artifacts/api-server/dist                  ./artifacts/api-server/dist
 COPY --from=build /app/artifacts/tech-dashboard/dist/public  ./artifacts/api-server/public
 
+# Project attachments served at /attachments/* by app.ts.
+COPY data/attachments/                                       ./data/attachments/
+
 WORKDIR /app/artifacts/api-server
 
 EXPOSE 3000

@@ -12,6 +12,15 @@ import { useFilterPresets } from "@/lib/use-filter-presets";
 import { STATUS_LABELS } from "@/lib/constants";
 import type { ProjectStatus } from "@workspace/api-client-react";
 
+// Strategic goals come first in this fixed order; non-strategic goals follow
+// in whatever order the API returns (currently alphabetical).
+const STRATEGIC_GOAL_ORDER = [
+  "Strategic: EBITDA £20M",
+  "Strategic: Technology leader",
+  "Strategic: Brand value",
+  "Strategic: Talent retention",
+];
+
 interface FilterBarProps {
   filters: FilterState;
   onFiltersChange: (filters: FilterState) => void;
@@ -103,7 +112,8 @@ export default function FilterBar({ filters, onFiltersChange, teams, sponsors, f
           </SelectContent>
         </Select>
 
-        {teams.length > 0 && (
+        {/* Team filter hidden — only one team (Development) for now. */}
+        {false && teams.length > 0 && (
           <Select value={filters.team} onValueChange={(v) => update({ team: v })} data-testid="filter-team">
             <SelectTrigger className="h-8 w-[140px] text-sm">
               <SelectValue placeholder="Team" />
@@ -136,9 +146,19 @@ export default function FilterBar({ filters, onFiltersChange, teams, sponsors, f
             <SelectTrigger className="h-8 w-[150px] text-sm">
               <SelectValue placeholder="Business Goal" />
             </SelectTrigger>
-            <SelectContent position="popper" side="bottom" align="start">
+            <SelectContent position="popper" side="bottom" align="start" avoidCollisions={false} className="max-h-[60vh]">
               <SelectItem value="all">All Goals</SelectItem>
-              {goals.map((g) => (
+              {goals
+                .slice()
+                .sort((a, b) => {
+                  const aIdx = STRATEGIC_GOAL_ORDER.indexOf(a.name);
+                  const bIdx = STRATEGIC_GOAL_ORDER.indexOf(b.name);
+                  if (aIdx !== -1 && bIdx !== -1) return aIdx - bIdx;
+                  if (aIdx !== -1) return -1;
+                  if (bIdx !== -1) return 1;
+                  return 0;
+                })
+                .map((g) => (
                 <SelectItem key={g.id} value={g.id.toString()}>
                   <span className="flex items-center gap-2">
                     <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: g.color }} />
@@ -160,7 +180,9 @@ export default function FilterBar({ filters, onFiltersChange, teams, sponsors, f
               </SelectTrigger>
               <SelectContent side="bottom" align="start">
                 <SelectItem value="all">All Cycles</SelectItem>
-                {cycles.map((c) => {
+                {cycles
+                  .filter((c) => c.name !== "Cycle B" && c.name !== "Cycle C")
+                  .map((c) => {
                   const isPast = c.endDate < today;
                   return (
                     <SelectItem key={c.id} value={c.id.toString()}>

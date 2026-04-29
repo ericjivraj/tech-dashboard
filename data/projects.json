@@ -1,184 +1,1091 @@
 {
-  "goals": [],
+  "goals": [
+    {
+      "name": "Strategic: EBITDA £20M",
+      "color": "#ef4444"
+    },
+    {
+      "name": "Strategic: Technology leader",
+      "color": "#ef4444"
+    },
+    {
+      "name": "Strategic: Brand value",
+      "color": "#ef4444"
+    },
+    {
+      "name": "Strategic: Talent retention",
+      "color": "#ef4444"
+    },
+    {
+      "name": "Increase consignment",
+      "color": "#f59e0b"
+    },
+    {
+      "name": "Increase bidding",
+      "color": "#84cc16"
+    },
+    {
+      "name": "Post-sale efficiencies",
+      "color": "#10b981"
+    },
+    {
+      "name": "New markets",
+      "color": "#14b8a6"
+    },
+    {
+      "name": "Network synergies",
+      "color": "#06b6d4"
+    },
+    {
+      "name": "Bonhams Cars",
+      "color": "#0ea5e9"
+    },
+    {
+      "name": "Save staff time",
+      "color": "#6366f1"
+    },
+    {
+      "name": "Manage risk",
+      "color": "#8b5cf6"
+    },
+    {
+      "name": "Tech capability",
+      "color": "#a855f7"
+    },
+    {
+      "name": "Low-value high-volume",
+      "color": "#d946ef"
+    },
+    {
+      "name": "Seller proposition",
+      "color": "#ec4899"
+    },
+    {
+      "name": "Seller marketing",
+      "color": "#f97316"
+    },
+    {
+      "name": "Buyer experience",
+      "color": "#64748b"
+    }
+  ],
   "projects": [
     {
       "title": "PRAM",
-      "description": "PRAM (Progressively Replacing Auction Mobility) is a project with the goal of building Bonhams' own in-house bidding engine, gaining control of the end-to-end customer experience and improving business efficiencies for both customers and staff. This project is composed of the following components:\n\n- New Bonhams App: a brand new mobile app which will supports both Bonhams' bidding engine (BBE) auctions and Auction Mobility's bidding engine (AM). The latter will only be supported until the contract with AM ends.\n- Registration Engine: the backoffice tool for CS/SD teams to manage customers' registrations and bids for both online and live auctions\n- Online Bidding Engine: the online bidding engine system to support online auctions\n- Online Lot & Auction Details Page: online auctions lot & auction details page for both the website and the mobile app\n- Live Bidding Engine: the live bidding engine system to support live auctions\n- Auction Room Display: the auction room display which appears in the room's projector, also known as public bulletin\n- Clerk Console: the clerking screen that clerks use during live auctions\n- Auctioneer Console: the auctioneer screen that auctioneers use during live auctions\n- Live Bidding Page: the live bidding page customers will interact with online during live auctions for both the website and the mobile app\n- Live Auctions & Lot Details Page: live auctions lot & auction details page for both the website and the mobile app",
-      "sponsor": "TBC", "team": "Development", "stakeholder": "TBC",
-      "impact": "Cost savings of ~£1M/year.",
+      "description": "PRAM (Progressively Replacing Auction Mobility) builds Bonhams' own in-house bidding engine, taking control of the end-to-end customer experience and improving efficiency for both customers and staff.\n\nComponents:\n- New Bonhams App: mobile app supporting both Bonhams' (BBE) and Auction Mobility (AM) auctions; AM only until that contract ends.\n- Registration Engine: backoffice tool for CS/SD teams to manage registrations and bids for online and live auctions.\n- Online auctions: bidding engine plus lot & auction details pages (web + app).\n- Live auctions: bidding engine, lot & auction details pages, customer-facing live bidding page (web + app), Auction Room Display (projector / public bulletin), Clerk Console (clerks during live auctions) and Auctioneer Console (auctioneer screen).",
+      "sponsor": "Leadership",
+      "team": "Development",
+      "stakeholder": "Leadership",
+      "impact": "Cost savings of ~£1M/year. See attachments for additional full list of benefits for PRAM.",
       "status": "in_progress",
       "cycle": "Cycle D",
       "cycleAllocations": [
-        { "cycle": "Cycle D", "percent": 44.0 },
-        { "cycle": "Cycle E", "percent": 60.0 },
-        { "cycle": "Cycle F", "percent": 60.0 },
-        { "cycle": "Cycle G", "percent": 60.0 }
+        {
+          "cycle": "Cycle D",
+          "percent": 44.0
+        },
+        {
+          "cycle": "Cycle E",
+          "percent": 60.0
+        },
+        {
+          "cycle": "Cycle F",
+          "percent": 60.0
+        },
+        {
+          "cycle": "Cycle G",
+          "percent": 60.0
+        },
+        {
+          "cycle": "Cycle H",
+          "percent": 60.0
+        }
       ],
-      "goals": [], "allocations": [], "updates": []
+      "attachments": [
+        {
+          "name": "PRAM Online — Pre-launch presentation",
+          "url": "/attachments/pram-online.pdf"
+        }
+      ],
+      "goals": [
+        "Strategic: EBITDA £20M",
+        "Strategic: Technology leader",
+        "Strategic: Brand value",
+        "Strategic: Talent retention"
+      ],
+      "allocations": [],
+      "updates": []
     },
     {
-      "title": "Bonhams Rebranding",
-      "description": "Overall rebranding of the Bonhams brand across all touchpoints.",
-      "sponsor": "TBC", "team": "Development", "stakeholder": "TBC",
-      "impact": "Brand value.",
-      "status": "in_progress",
-      "cycle": "Cycle D",
-      "cycleAllocations": [
-        { "cycle": "Cycle D", "percent": 15.3 },
-        { "cycle": "Cycle E", "percent": 25.0 },
-        { "cycle": "Cycle F", "percent": 25.0 },
-        { "cycle": "Cycle G", "percent": 25.0 }
-      ],
-      "goals": [], "allocations": [], "updates": []
-    },
-    {
-      "title": "BEMA: Hypercare",
+      "title": "Bonhams App: Hypercare",
       "description": "The New Bonhams app was released in the first 2 weeks of April and the hypercare period is an allocated timeframe to closely monitor the app post-go-live.",
-      "sponsor": "TBC", "team": "Development", "stakeholder": "TBC",
+      "sponsor": "Leadership",
+      "team": "Development",
+      "stakeholder": "Leadership",
       "impact": "Increased customer experience.",
       "status": "in_progress",
       "cycle": "Cycle D",
-      "cycleAllocations": [{ "cycle": "Cycle D", "percent": 10.3 }],
-      "goals": [], "allocations": [], "updates": []
-    },
-    {
-      "title": "Upgrade Progress",
-      "description": "Progress is the technology that supports A3. The update of this technology underlying our entire business operations is crucial to ensure business continuity.",
-      "sponsor": "TBC", "team": "Development", "stakeholder": "TBC",
-      "impact": "Cost savings of £246K/year. Risk mitigation. Enhanced security.",
-      "status": "in_progress",
-      "cycle": "Cycle D",
-      "cycleAllocations": [{ "cycle": "Cycle D", "percent": 8.6 }],
-      "goals": [], "allocations": [], "updates": []
+      "cycleAllocations": [
+        {
+          "cycle": "Cycle D",
+          "percent": 10.3
+        }
+      ],
+      "goals": [
+        "Strategic: EBITDA £20M",
+        "Strategic: Technology leader",
+        "Strategic: Brand value",
+        "Strategic: Talent retention"
+      ],
+      "allocations": [],
+      "updates": []
     },
     {
       "title": "PRAM: Online Auctions Hypercare",
       "description": "The online bidding engine and registration engine have been completed. The hypercare period is an allocated timeframe to closely monitor online auctions post-go-live. The first online auction to experience the benefits of PRAM is 32018 Jewels Online 11–19 May.",
-      "sponsor": "TBC", "team": "Development", "stakeholder": "TBC",
+      "sponsor": "Leadership",
+      "team": "Development",
+      "stakeholder": "Leadership",
       "impact": "Increased performance, improved UI/UX, better end-to-end customer experience.",
       "status": "in_progress",
       "cycle": "Cycle D",
-      "cycleAllocations": [{ "cycle": "Cycle D", "percent": 5.0 }],
-      "goals": [], "allocations": [], "updates": []
+      "cycleAllocations": [
+        {
+          "cycle": "Cycle D",
+          "percent": 5.0
+        }
+      ],
+      "goals": [
+        "Strategic: EBITDA £20M",
+        "Strategic: Technology leader",
+        "Strategic: Brand value",
+        "Strategic: Talent retention"
+      ],
+      "allocations": [],
+      "updates": []
+    },
+    {
+      "title": "Bonhams Rebranding",
+      "description": "Overall rebranding of the Bonhams brand across all touchpoints.",
+      "sponsor": "Marketing",
+      "team": "Development",
+      "stakeholder": "Gurmej Bahia",
+      "impact": "Brand value.",
+      "status": "in_progress",
+      "cycle": "Cycle D",
+      "cycleAllocations": [
+        {
+          "cycle": "Cycle D",
+          "percent": 15.3
+        },
+        {
+          "cycle": "Cycle E",
+          "percent": 25.0
+        },
+        {
+          "cycle": "Cycle F",
+          "percent": 25.0
+        },
+        {
+          "cycle": "Cycle G",
+          "percent": 25.0
+        },
+        {
+          "cycle": "Cycle H",
+          "percent": 25.0
+        }
+      ],
+      "goals": [
+        "Strategic: Brand value"
+      ],
+      "allocations": [],
+      "updates": []
+    },
+    {
+      "title": "Client 'Soft' Interests",
+      "description": "Batch upload pre-sale soft interest to A3 to allow ingesting into Sigma.",
+      "sponsor": "Business Development",
+      "team": "Development",
+      "stakeholder": "Amy Thompson",
+      "impact": "Increase sell-through rate and improved STR and HTL ratios and improved client intelligence.",
+      "status": "in_progress",
+      "cycle": "Cycle D",
+      "cycleAllocations": [
+        {
+          "cycle": "Cycle D",
+          "percent": 1.3
+        },
+        {
+          "cycle": "Cycle E",
+          "percent": 1.3
+        }
+      ],
+      "goals": [
+        "Buyer experience"
+      ],
+      "allocations": [],
+      "updates": []
+    },
+    {
+      "title": "Client Vetting",
+      "description": "Automatic vetting registrants pre-sale with sale-specific scoring system.",
+      "sponsor": "Finance",
+      "team": "Development",
+      "stakeholder": "Liese Thomas",
+      "impact": "Reduce financial risk and improve staff efficiency.",
+      "status": "in_progress",
+      "cycle": "Cycle D",
+      "cycleAllocations": [
+        {
+          "cycle": "Cycle D",
+          "percent": 0.5
+        }
+      ],
+      "goals": [
+        "Manage risk",
+        "Save staff time"
+      ],
+      "allocations": [],
+      "updates": []
+    },
+    {
+      "title": "PRAM: Live Auctions Hypercare",
+      "description": "The online bidding engine and registration engine have been completed. The hypercare period is an allocated timeframe to closely monitor online auctions post-go-live. The first online auction to experience the benefits of PRAM is 32018 Jewels Online 11–19 May.",
+      "sponsor": "Leadership",
+      "team": "Development",
+      "stakeholder": "Leadership",
+      "impact": "Increased performance, improved UI/UX, better end-to-end customer experience.",
+      "status": "in_progress",
+      "cycle": "Cycle H",
+      "cycleAllocations": [
+        {
+          "cycle": "Cycle H",
+          "percent": 15.0
+        },
+        {
+          "cycle": "Cycle I",
+          "percent": 20.0
+        },
+        {
+          "cycle": "Cycle J",
+          "percent": 20.0
+        }
+      ],
+      "goals": [
+        "Strategic: EBITDA £20M",
+        "Strategic: Technology leader",
+        "Strategic: Brand value",
+        "Strategic: Talent retention"
+      ],
+      "allocations": [],
+      "updates": []
+    },
+    {
+      "title": "Upgrade Progress",
+      "description": "Progress is the technology that supports A3. The update of this technology underlying our entire business operations is crucial to ensure business continuity.",
+      "sponsor": "Tech",
+      "team": "Development",
+      "stakeholder": "Tech",
+      "impact": "Cost savings of £246K/year. Risk mitigation. Enhanced security.",
+      "status": "in_progress",
+      "cycle": "Cycle D",
+      "cycleAllocations": [
+        {
+          "cycle": "Cycle D",
+          "percent": 8.6
+        }
+      ],
+      "goals": [
+        "Manage risk"
+      ],
+      "allocations": [],
+      "updates": []
     },
     {
       "title": "ARTA: Post-Sale Integration",
       "description": "ARTA is a broker for shipping. The post-sale integration with ARTA will allow customers to self-serve their shipping needs without having to contact CS. Originally this project was only going to be enabled on the website but as a side-benefit of project PRAM, this integration will also be available on the mobile app.",
-      "sponsor": "TBC", "team": "Development", "stakeholder": "TBC",
+      "sponsor": "Operations",
+      "team": "Development",
+      "stakeholder": "Steve Phipps",
       "impact": "Improved post-sale experience for customers. Saving staff time.",
       "status": "in_progress",
       "cycle": "Cycle D",
-      "cycleAllocations": [{ "cycle": "Cycle D", "percent": 4.2 }],
-      "goals": [], "allocations": [], "updates": []
+      "cycleAllocations": [
+        {
+          "cycle": "Cycle D",
+          "percent": 4.2
+        }
+      ],
+      "goals": [
+        "Post-sale efficiencies"
+      ],
+      "allocations": [],
+      "updates": [],
+      "confidence": "at_risk"
     },
     {
       "title": "Private Sales Remittance PDF Template Change",
-      "description": "Updating the Remittance PDF Template.",
-      "sponsor": "TBC", "team": "Development", "stakeholder": "TBC",
-      "impact": "Supporting private sales.",
+      "description": "Updating the remittance PDF Template to hide Bonhams agent fee.",
+      "sponsor": "Finance",
+      "team": "Development",
+      "stakeholder": "Alba King",
+      "impact": "Supporting private sales, reducing risk of exposing confidential information.",
       "status": "in_progress",
       "cycle": "Cycle D",
-      "cycleAllocations": [{ "cycle": "Cycle D", "percent": 2.1 }],
-      "goals": [], "allocations": [], "updates": []
-    },
-    {
-      "title": "Client 'Soft' Interests",
-      "description": "TBC.",
-      "sponsor": "TBC", "team": "Development", "stakeholder": "TBC", "impact": "TBC",
-      "status": "in_progress",
-      "cycle": "Cycle D",
-      "cycleAllocations": [{ "cycle": "Cycle D", "percent": 1.3 }],
-      "goals": [], "allocations": [], "updates": []
+      "cycleAllocations": [
+        {
+          "cycle": "Cycle D",
+          "percent": 2.1
+        }
+      ],
+      "goals": [
+        "Save staff time"
+      ],
+      "allocations": [],
+      "updates": []
     },
     {
       "title": "Ability to change Consignment Status to allow remove/add items into transfers",
-      "description": "TBC.",
-      "sponsor": "TBC", "team": "Development", "stakeholder": "TBC", "impact": "TBC",
+      "description": "A3 to allow changing status of a consignment to allow modifying property list of shipment.",
+      "sponsor": "Operations",
+      "team": "Development",
+      "stakeholder": "Justin Denune",
+      "impact": "Allow flexibility for inter-office transfer and improve record keeping.",
       "status": "in_progress",
       "cycle": "Cycle D",
-      "cycleAllocations": [{ "cycle": "Cycle D", "percent": 1.3 }],
-      "goals": [], "allocations": [], "updates": []
+      "cycleAllocations": [
+        {
+          "cycle": "Cycle D",
+          "percent": 1.3
+        }
+      ],
+      "goals": [
+        "Save staff time"
+      ],
+      "allocations": [],
+      "updates": []
     },
     {
       "title": "Enlarge Image Size on Condition Reports",
-      "description": "TBC.",
-      "sponsor": "TBC", "team": "Development", "stakeholder": "TBC", "impact": "TBC",
+      "description": "Enlarge the condition report images on the Condition Report client-facing PDF.",
+      "sponsor": "Operations",
+      "team": "Development",
+      "stakeholder": "Anna Smith",
+      "impact": "Better client services and reduce post-sale dispute risk.",
       "status": "in_progress",
       "cycle": "Cycle D",
-      "cycleAllocations": [{ "cycle": "Cycle D", "percent": 1.3 }],
-      "goals": [], "allocations": [], "updates": []
+      "cycleAllocations": [
+        {
+          "cycle": "Cycle D",
+          "percent": 1.3
+        }
+      ],
+      "goals": [
+        "Save staff time"
+      ],
+      "allocations": [],
+      "updates": []
     },
     {
       "title": "Sale Page Document Upload for Contracts/MCA",
-      "description": "TBC.",
-      "sponsor": "TBC", "team": "Development", "stakeholder": "TBC", "impact": "TBC",
+      "description": "Create new A3 screen to see all signed documents in one place.",
+      "sponsor": "Operations",
+      "team": "Development",
+      "stakeholder": "Anna Smith",
+      "impact": "Improve efficiency for pre-sale check process and reduce KYC risk.",
       "status": "in_progress",
       "cycle": "Cycle D",
-      "cycleAllocations": [{ "cycle": "Cycle D", "percent": 1.3 }],
-      "goals": [], "allocations": [], "updates": []
+      "cycleAllocations": [
+        {
+          "cycle": "Cycle D",
+          "percent": 1.3
+        }
+      ],
+      "goals": [
+        "Save staff time"
+      ],
+      "allocations": [],
+      "updates": []
     },
     {
-      "title": "Lotting Import File (primarily for Wine Department)",
-      "description": "TBC.",
-      "sponsor": "TBC", "team": "Development", "stakeholder": "TBC", "impact": "TBC",
+      "title": "Wine Lotting Import File",
+      "description": "Allow spreadsheet upload for lotting with categories of the items.",
+      "sponsor": "Departments",
+      "team": "Development",
+      "stakeholder": "Louis Krieger",
+      "impact": "Improve efficiency for sale creation and reduce risk of human error.",
       "status": "in_progress",
       "cycle": "Cycle D",
-      "cycleAllocations": [{ "cycle": "Cycle D", "percent": 1.3 }],
-      "goals": [], "allocations": [], "updates": []
+      "cycleAllocations": [
+        {
+          "cycle": "Cycle D",
+          "percent": 1.3
+        }
+      ],
+      "goals": [
+        "Save staff time"
+      ],
+      "allocations": [],
+      "updates": []
     },
     {
-      "title": "Add bank details to Buyer Statement",
-      "description": "TBC.",
-      "sponsor": "TBC", "team": "Development", "stakeholder": "TBC", "impact": "TBC",
+      "title": "Add Bank Details to Buyer Statement",
+      "description": "Add bank transfer details to buyer statements for outstanding debts.",
+      "sponsor": "Finance",
+      "team": "Development",
+      "stakeholder": "Cheryl Uggles",
+      "impact": "",
       "status": "in_progress",
       "cycle": "Cycle D",
-      "cycleAllocations": [{ "cycle": "Cycle D", "percent": 0.8 }],
-      "goals": [], "allocations": [], "updates": []
+      "cycleAllocations": [
+        {
+          "cycle": "Cycle D",
+          "percent": 0.8
+        }
+      ],
+      "goals": [
+        "Save staff time"
+      ],
+      "allocations": [],
+      "updates": []
     },
     {
       "title": "Disable MRL and BOS (former 205 division) as pickup locations",
-      "description": "TBC.",
-      "sponsor": "TBC", "team": "Development", "stakeholder": "TBC", "impact": "TBC",
+      "description": "Remove previous divisions from invoice proforma screen to avoid staff putting incorrect pick up division.",
+      "sponsor": "Operations",
+      "team": "Development",
+      "stakeholder": "Valerie Worth",
+      "impact": "Reduce risk and improve client service.",
       "status": "in_progress",
       "cycle": "Cycle D",
-      "cycleAllocations": [{ "cycle": "Cycle D", "percent": 0.8 }],
-      "goals": [], "allocations": [], "updates": []
+      "cycleAllocations": [
+        {
+          "cycle": "Cycle D",
+          "percent": 0.8
+        }
+      ],
+      "goals": [
+        "Save staff time"
+      ],
+      "allocations": [],
+      "updates": []
     },
     {
       "title": "Export a Catalogue Proof with only Primary Images",
-      "description": "TBC.",
-      "sponsor": "TBC", "team": "Development", "stakeholder": "TBC", "impact": "TBC",
+      "description": "A3 to allow exporting lot list with primary image easily using catalogue proof.",
+      "sponsor": "Operations",
+      "team": "Development",
+      "stakeholder": "Anna Smith",
+      "impact": "Improve staff efficiency on sale creation process.",
       "status": "in_progress",
       "cycle": "Cycle D",
-      "cycleAllocations": [{ "cycle": "Cycle D", "percent": 0.8 }],
-      "goals": [], "allocations": [], "updates": []
+      "cycleAllocations": [
+        {
+          "cycle": "Cycle D",
+          "percent": 0.8
+        }
+      ],
+      "goals": [
+        "Save staff time"
+      ],
+      "allocations": [],
+      "updates": []
     },
     {
       "title": "Monthly Buyer Statements for companies 120, 200 and 300",
-      "description": "TBC.",
-      "sponsor": "TBC", "team": "Development", "stakeholder": "TBC", "impact": "TBC",
+      "description": "Roll out monthly statement also for buyers in France US and HK. It was only created in UK and helped Credit Control team massively.",
+      "sponsor": "Finance",
+      "team": "Development",
+      "stakeholder": "Cheryl Uggles",
+      "impact": "Accelerate debt collection globally and improve client services.",
       "status": "in_progress",
       "cycle": "Cycle D",
-      "cycleAllocations": [{ "cycle": "Cycle D", "percent": 0.8 }],
-      "goals": [], "allocations": [], "updates": []
+      "cycleAllocations": [
+        {
+          "cycle": "Cycle D",
+          "percent": 0.8
+        }
+      ],
+      "goals": [
+        "Save staff time"
+      ],
+      "allocations": [],
+      "updates": []
     },
     {
-      "title": "Client Vetting",
-      "description": "TBC.",
-      "sponsor": "TBC", "team": "Development", "stakeholder": "TBC", "impact": "TBC",
+      "title": "New York Office (NYC) Relocation",
+      "description": "Set up new NYC location in A3 for all internal and external records and transfer properties location for office moving.",
+      "sponsor": "Operations",
+      "team": "Development",
+      "stakeholder": "Steve Phipps",
+      "impact": "Improved asset location traceability and increase operation efficiency.",
       "status": "in_progress",
       "cycle": "Cycle D",
-      "cycleAllocations": [{ "cycle": "Cycle D", "percent": 0.5 }],
-      "goals": [], "allocations": [], "updates": []
+      "cycleAllocations": [
+        {
+          "cycle": "Cycle D",
+          "percent": 0.3
+        }
+      ],
+      "goals": [
+        "Save staff time"
+      ],
+      "allocations": [],
+      "updates": []
     },
     {
-      "title": "New York Office Relocation",
-      "description": "TBC.",
-      "sponsor": "TBC", "team": "Development", "stakeholder": "TBC", "impact": "TBC",
-      "status": "in_progress",
-      "cycle": "Cycle D",
-      "cycleAllocations": [{ "cycle": "Cycle D", "percent": 0.3 }],
-      "goals": [], "allocations": [], "updates": []
+      "title": "VMS European Regional Offices",
+      "description": "Rolling out VMS into the european regional offices.",
+      "sponsor": "Departments",
+      "team": "Development",
+      "stakeholder": "Alex Floyd",
+      "impact": "Increase consignment as a result of increasing the speed of processing submissions vs the old way of doing it (mailboxes).",
+      "status": "up_next",
+      "cycle": "Cycle E",
+      "cycleAllocations": [],
+      "goals": [
+        "Increase consignment"
+      ],
+      "allocations": [],
+      "updates": []
+    },
+    {
+      "title": "VMS Internal Notes",
+      "description": "Add an internal notes field.",
+      "sponsor": "Departments",
+      "team": "Development",
+      "stakeholder": "Alex Floyd",
+      "impact": "Allows Specialists to add notes against items for internal reference only. For example, if an item has been sent to multiple departments, a history can be seen.",
+      "status": "up_next",
+      "cycle": "Cycle E",
+      "cycleAllocations": [],
+      "goals": [
+        "Increase consignment"
+      ],
+      "allocations": [],
+      "updates": []
+    },
+    {
+      "title": "Cars SellHub 2026",
+      "description": "A separate Sell Hub dedicated to Cars/Motoring, allowing specific data capture relevant to that department with the Cars branding.",
+      "sponsor": "Cars",
+      "team": "Development",
+      "stakeholder": "Whitney Maxwell",
+      "impact": "Improving customer experience and improving data capture of cars specific clients.",
+      "status": "up_next",
+      "cycle": "Cycle E",
+      "cycleAllocations": [],
+      "goals": [
+        "Increase consignment"
+      ],
+      "allocations": [],
+      "updates": []
+    },
+    {
+      "title": "Develop into pages - Our Team & About Us page",
+      "description": "Create easy to edit staff and about us pages to allow easier updates of any changes, i.e. staff changes.",
+      "sponsor": "Cars",
+      "team": "Development",
+      "stakeholder": "Whitney Maxwell",
+      "impact": "Saves time for staff to update the pages. Will also improve client experience when understanding the best people to make contact with.",
+      "status": "up_next",
+      "cycle": "Cycle E",
+      "cycleAllocations": [],
+      "goals": [
+        "Buyer experience"
+      ],
+      "allocations": [],
+      "updates": []
+    },
+    {
+      "title": "Client Notes Batch Upload to A3",
+      "description": "The ability to batch upload client notes in from a spreadsheet to client records in A3.",
+      "sponsor": "Business Development",
+      "team": "Development",
+      "stakeholder": "Amy Thompson",
+      "impact": "Collecting more intel for clients to allow Bonhams to approach them in a more personalised way.",
+      "status": "up_next",
+      "cycle": "Cycle E",
+      "cycleAllocations": [],
+      "goals": [
+        "Save staff time"
+      ],
+      "allocations": [],
+      "updates": []
+    },
+    {
+      "title": "E2E Client Tracking",
+      "description": "",
+      "sponsor": "Marketing",
+      "team": "Development",
+      "stakeholder": "Will Hughes",
+      "impact": "",
+      "status": "up_next",
+      "cycle": "Cycle E",
+      "cycleAllocations": [],
+      "goals": [
+        "Buyer experience"
+      ],
+      "allocations": [],
+      "updates": []
+    },
+    {
+      "title": "Auto-cancellation of unsold lots and business rules around re-offer",
+      "description": "When customers have defaulted on payments, allow auto cancellation of lots.",
+      "sponsor": "Operations",
+      "team": "Development",
+      "stakeholder": "Alex Floyd",
+      "impact": "This will save staff time in chasing defaulted buyers for long periods of time and allowing lots to become available for reoffer.",
+      "status": "up_next",
+      "cycle": "Cycle E",
+      "cycleAllocations": [],
+      "goals": [
+        "Save staff time"
+      ],
+      "allocations": [],
+      "updates": []
+    },
+    {
+      "title": "Auto-reoffer of unsold lots",
+      "description": "",
+      "sponsor": "Operations",
+      "team": "Development",
+      "stakeholder": "Alex Floyd",
+      "impact": "To allow lots to be fluid and be reoffered if unsold which should allow lots not to be retained in storage and for the company to incur unnecessary storage charges.",
+      "status": "up_next",
+      "cycle": "Cycle E",
+      "cycleAllocations": [],
+      "goals": [
+        "Increase bidding"
+      ],
+      "allocations": [],
+      "updates": []
+    },
+    {
+      "title": "Bulk Image Download",
+      "description": "Create a feature in A3 image item screen to batch download all images in one go.",
+      "sponsor": "Operations",
+      "team": "Development",
+      "stakeholder": "Philip Gray",
+      "impact": "Improve staff efficiency not having to download one by one.",
+      "status": "up_next",
+      "cycle": "Cycle E",
+      "cycleAllocations": [],
+      "goals": [
+        "Save staff time"
+      ],
+      "allocations": [],
+      "updates": []
+    },
+    {
+      "title": "Remove Cropping tool from A3",
+      "description": "Photography team would like to remove the function of image cropping in A3 to make sure all image formats are aligned globally.",
+      "sponsor": "Operations",
+      "team": "Development",
+      "stakeholder": "Victoria Martens",
+      "impact": "Ensure a consistent visual experience for our audiences via alignment with global image guidelines.",
+      "status": "up_next",
+      "cycle": "Cycle E",
+      "cycleAllocations": [],
+      "goals": [
+        "Save staff time"
+      ],
+      "allocations": [],
+      "updates": []
+    },
+    {
+      "title": "Update Permissions for Add Payment Instructions",
+      "description": "Create restricted A3 role for managing vendor payment details and new auditing screen for any payment details update.",
+      "sponsor": "Finance",
+      "team": "Development",
+      "stakeholder": "Alba King",
+      "impact": "Reduce financial risk of fraudulent payments details being put into our system.",
+      "status": "up_next",
+      "cycle": "Cycle E",
+      "cycleAllocations": [],
+      "goals": [
+        "Save staff time"
+      ],
+      "allocations": [],
+      "updates": []
+    },
+    {
+      "title": "Add Vendor COBs to contracts",
+      "description": "Add Condition of Business to the end of all contracts.",
+      "sponsor": "Finance",
+      "team": "Development",
+      "stakeholder": "Alex Floyd",
+      "impact": "Improve staff efficiency not having to attach separately and reduce risk of post-sale dispute.",
+      "status": "up_next",
+      "cycle": "Cycle E",
+      "cycleAllocations": [],
+      "goals": [
+        "Save staff time",
+        "Manage risk"
+      ],
+      "allocations": [],
+      "updates": []
+    },
+    {
+      "title": "Add a new transaction type 'Missed Reserve'",
+      "description": "Create a new transaction type in A3 for Missed Reserve to enhance the calculation, data reporting and client-facing documents.",
+      "sponsor": "Finance",
+      "team": "Development",
+      "stakeholder": "Alba King",
+      "impact": "Save staff time for manual calculation, reduce risk of human error, enhance finance data accuracy and enhance client service on clarities of vendor statements.",
+      "status": "up_next",
+      "cycle": "Cycle E",
+      "cycleAllocations": [],
+      "goals": [
+        "Save staff time"
+      ],
+      "allocations": [],
+      "updates": []
+    },
+    {
+      "title": "Extended Payment Terms Globally - Phase 2 - Split Invoices",
+      "description": "Ability to split invoices within A3 to correspond to pre agreed EPTs.",
+      "sponsor": "Finance",
+      "team": "Development",
+      "stakeholder": "Cheryl Uggles",
+      "impact": "Increase staff efficiency by removing the manual process and to allow for accurate reconciliation between invoices and payment instalments received.",
+      "status": "up_next",
+      "cycle": "Cycle E",
+      "cycleAllocations": [],
+      "goals": [
+        "Save staff time"
+      ],
+      "allocations": [],
+      "updates": []
+    },
+    {
+      "title": "Shipping details to be added to Zero Rated invoices",
+      "description": "Capturing shipper information on A3 for Credit Control team to obtain proof of export easily.",
+      "sponsor": "Finance",
+      "team": "Development",
+      "stakeholder": "Cheryl Uggles",
+      "impact": "Reduce financial risk by preventing covering VAT for clients who did not export properties properly.",
+      "status": "backlog",
+      "cycle": "Cycle E",
+      "cycleAllocations": [],
+      "goals": [
+        "Save staff time"
+      ],
+      "allocations": [],
+      "updates": []
+    },
+    {
+      "title": "Tracking & Capture HMRC export reference number on exported lots",
+      "description": "End to end ability to track properties' export details and link with Proof of Export added to buyer.",
+      "sponsor": "Finance",
+      "team": "Development",
+      "stakeholder": "Lee Randall",
+      "impact": "Improve data keeping for financial auditing purposes and reduce risks.",
+      "status": "backlog",
+      "cycle": "Cycle E",
+      "cycleAllocations": [],
+      "goals": [
+        "Save staff time"
+      ],
+      "allocations": [],
+      "updates": []
+    },
+    {
+      "title": "Klarna Payments",
+      "description": "Set up a new payment method to allow customers to split their payments.",
+      "sponsor": "Finance",
+      "team": "Development",
+      "stakeholder": "Alex Lejeune",
+      "impact": "Enhanced customer flexibility, accelerated cashflow.",
+      "status": "backlog",
+      "cycle": "Cycle E",
+      "cycleAllocations": [],
+      "goals": [
+        "Buyer experience"
+      ],
+      "allocations": [],
+      "updates": []
+    },
+    {
+      "title": "Add multiple IC recipients in A3",
+      "description": "To have the ability to add more than one Intro commission recipients to consignments.",
+      "sponsor": "Finance",
+      "team": "Development",
+      "stakeholder": "Alex Floyd",
+      "impact": "Save staff time from manual calculation and reduce risk to business by improving financial reporting.",
+      "status": "backlog",
+      "cycle": "Cycle E",
+      "cycleAllocations": [],
+      "goals": [
+        "Save staff time"
+      ],
+      "allocations": [],
+      "updates": []
+    },
+    {
+      "title": "Clients can upload their banking/ID directly to their account and have it fully register in A3",
+      "description": "Create secure link where client can upload payment info and KYC and data will be transferred automatically to A3.",
+      "sponsor": "Finance",
+      "team": "Development",
+      "stakeholder": "Anna Smith",
+      "impact": "Improve staff efficiency by saving time from them having to manually download and upload every document.",
+      "status": "backlog",
+      "cycle": "Cycle E",
+      "cycleAllocations": [],
+      "goals": [
+        "Buyer experience",
+        "Save staff time"
+      ],
+      "allocations": [],
+      "updates": []
+    },
+    {
+      "title": "Minimum starting bid for a No Reserve item is currently £10. Increase minimum starting bid to £100",
+      "description": "Increase minimum starting bid to £100 for no reserve lot.",
+      "sponsor": "Operations",
+      "team": "Development",
+      "stakeholder": "Alex Floyd",
+      "impact": "If the starting bid was £50 and these same 1,020 lots had all sold at £50 that would have generated minimum £51k Hammer and minimum £22.1k Income.",
+      "status": "backlog",
+      "cycle": "Cycle E",
+      "cycleAllocations": [],
+      "goals": [
+        "Increase bidding"
+      ],
+      "allocations": [],
+      "updates": []
+    },
+    {
+      "title": "Evergreen contracts",
+      "description": "A contract with rolling agreement to allow addendum to the contract quickly without having to recreating contract for every items added.",
+      "sponsor": "Operations",
+      "team": "Development",
+      "stakeholder": "Anna Smith",
+      "impact": "Saving staff time and improve client services.",
+      "status": "backlog",
+      "cycle": "Cycle E",
+      "cycleAllocations": [],
+      "goals": [
+        "Save staff time",
+        "Buyer experience"
+      ],
+      "allocations": [],
+      "updates": []
+    },
+    {
+      "title": "Consistency across all categories - Website view",
+      "description": "Enforce consistency of all department item cataloguing template for web text.",
+      "sponsor": "Operations",
+      "team": "Development",
+      "stakeholder": "Anna Smith",
+      "impact": "Enhance the audience experience of our web catalogue page interface with consistency and unified style.",
+      "status": "backlog",
+      "cycle": "Cycle E",
+      "cycleAllocations": [],
+      "goals": [
+        "Buyer experience"
+      ],
+      "allocations": [],
+      "updates": []
+    },
+    {
+      "title": "Review Templates and layouts per category",
+      "description": "Enforce consistency of all department item cataloguing template in A3.",
+      "sponsor": "Operations",
+      "team": "Development",
+      "stakeholder": "Anna Smith",
+      "impact": "Templates and style to be standardised per category globally so that all cataloging for the same department aligns.",
+      "status": "backlog",
+      "cycle": "Cycle E",
+      "cycleAllocations": [],
+      "goals": [
+        "Save staff time"
+      ],
+      "allocations": [],
+      "updates": []
+    },
+    {
+      "title": "Remove unused item types",
+      "description": "Remove the unused item types in A3 to avoid confusing catalogers and leading to incorrect templates being used.",
+      "sponsor": "Operations",
+      "team": "Development",
+      "stakeholder": "Anna Smith",
+      "impact": "Improve staff efficiency and data accuracy.",
+      "status": "backlog",
+      "cycle": "Cycle E",
+      "cycleAllocations": [],
+      "goals": [
+        "Save staff time",
+        "Buyer experience"
+      ],
+      "allocations": [],
+      "updates": []
+    },
+    {
+      "title": "Unlock Source Notes to be editable in OM",
+      "description": "To allow editing on the source notes after the object is added onto object manager.",
+      "sponsor": "Departments",
+      "team": "Development",
+      "stakeholder": "Alex Floyd",
+      "impact": "Allow more flexibility on cataloguing and improve data accuracy.",
+      "status": "backlog",
+      "cycle": "Cycle E",
+      "cycleAllocations": [],
+      "goals": [
+        "Save staff time",
+        "Buyer experience"
+      ],
+      "allocations": [],
+      "updates": []
+    },
+    {
+      "title": "Retaining cataloguing data for items that are removed from Valuation Reports",
+      "description": "Allow an option for saving these updates, as specialists will need to re-use these information should the items are re-added back into a valuation.",
+      "sponsor": "Departments",
+      "team": "Development",
+      "stakeholder": "Alex Floyd",
+      "impact": "Improve data keeping and enhance staff efficiency by not having to re-type information and allow colleagues to see previous information saved.",
+      "status": "backlog",
+      "cycle": "Cycle E",
+      "cycleAllocations": [],
+      "goals": [
+        "Save staff time",
+        "Buyer experience"
+      ],
+      "allocations": [],
+      "updates": []
+    },
+    {
+      "title": "VMS: direct triage for Books & Manuscripts",
+      "description": "VMS submission to be directly sent to specialist queue automatically.",
+      "sponsor": "Departments",
+      "team": "Development",
+      "stakeholder": "Alex Floyd",
+      "impact": "High volume of submissions for Books & Manuscripts (eg 1.3k submissions in Paris Oct-Dec 2025) which currently goes through centralised global triage. Direct Triage will increase VMS's efficiency massively.",
+      "status": "backlog",
+      "cycle": "Cycle E",
+      "cycleAllocations": [],
+      "goals": [
+        "Save staff time"
+      ],
+      "allocations": [],
+      "updates": []
+    },
+    {
+      "title": "Private Sale Portal on Website",
+      "description": "Enhance current Private Sale page to allow richer content and better curated lot pages and CTAs to contact specialist.",
+      "sponsor": "Departments",
+      "team": "Development",
+      "stakeholder": "Alex Floyd",
+      "impact": "Increased average transaction value, as a premium presentation signals the quality and exclusivity of the item, supporting higher price expectations. Higher conversion rate from browsing to enquiry, as a more compelling lot page reduces friction in the decision-making process.",
+      "status": "backlog",
+      "cycle": "Cycle E",
+      "cycleAllocations": [],
+      "goals": [
+        "Buyer experience",
+        "Increase consignment"
+      ],
+      "allocations": [],
+      "updates": []
+    },
+    {
+      "title": "Client self serve printer friendly catalogue/lot selection",
+      "description": "Ability for clients to print at home a pdf of the catalogue with the ability to select lots on the auction page and mass print the full cataloguing and images of those lots.",
+      "sponsor": "Departments",
+      "team": "Development",
+      "stakeholder": "Alex Floyd",
+      "impact": "Improved experience for high-value clients and collectors who expect a tangible or archival-quality catalogue as part of the service.",
+      "status": "backlog",
+      "cycle": "Cycle E",
+      "cycleAllocations": [],
+      "goals": [
+        "Buyer experience"
+      ],
+      "allocations": [],
+      "updates": []
+    },
+    {
+      "title": "Cars logo on the bonhams network page",
+      "description": "To add the Bonhams Cars logo to the Auction Network page on Bonhams.com.",
+      "sponsor": "Cars",
+      "team": "Development",
+      "stakeholder": "Catherine Avrili",
+      "impact": "Additional exposure to lead more traffic to Bonhams Cars.",
+      "status": "backlog",
+      "cycle": "Cycle E",
+      "cycleAllocations": [],
+      "goals": [
+        "Buyer experience",
+        "Increase consignment"
+      ],
+      "allocations": [],
+      "updates": []
+    },
+    {
+      "title": "Search page for cars.bonhams.com",
+      "description": "To create a search page where lots from both live an online will the shown. The request it to follow the same behaviour as Bonhams.com however there will be things to consider such as Lot cards to be lot cars cards and filtering will have to be reviewed tor reflect the 3 cars categories. example here for Sotheby's https://rmsothebys.com/search?MotorVehicles#/?SortBy=Value&OfferStatus=On%20Offer&CategoryTag=All%20Motor%20Vehicles&page=1&AuctionType=1&AuctionType=2&AuctionType=3",
+      "sponsor": "Cars",
+      "team": "Development",
+      "stakeholder": "Whitney Maxwell",
+      "impact": "To allow a client to have a cars targeted search option rather than a generic function.",
+      "status": "backlog",
+      "cycle": "Cycle E",
+      "cycleAllocations": [],
+      "goals": [
+        "Buyer experience"
+      ],
+      "allocations": [],
+      "updates": []
+    },
+    {
+      "title": "Alerting consigning specialists when a customers requests images",
+      "description": "Clients can request condition images for lots when they are not yet available. Specialists would like to be alerted when a client has requested them.",
+      "sponsor": "Cars",
+      "team": "Development",
+      "stakeholder": "Whitney Maxwell",
+      "impact": "Allow Specialists to personalise any contact/communication with clients. They can track the popularity of the lot.",
+      "status": "backlog",
+      "cycle": "Cycle E",
+      "cycleAllocations": [],
+      "goals": [
+        "Buyer experience"
+      ],
+      "allocations": [],
+      "updates": []
+    },
+    {
+      "title": "Cars-specific browsing app",
+      "description": "A mobile app specifically for cars.",
+      "sponsor": "Cars",
+      "team": "Development",
+      "stakeholder": "Whitney Maxwell",
+      "impact": "A dedicated app to serve the Cars department and their client base to allow clients the functionality to access cars/binkes/automobilia lots easily.",
+      "status": "backlog",
+      "cycle": "Cycle E",
+      "cycleAllocations": [],
+      "goals": [
+        "Buyer experience"
+      ],
+      "allocations": [],
+      "updates": []
+    },
+    {
+      "title": "Cars VMS",
+      "description": "To tailor the VMS specifically for cars/motoring and centralise the submissions for cars away from inboxes.",
+      "sponsor": "Cars",
+      "team": "Development",
+      "stakeholder": "Whitney Maxwell",
+      "impact": "A centralised system for all motoring submissions with the ability to have full visibility of items similar to that of the existing VMS.",
+      "status": "backlog",
+      "cycle": "Cycle E",
+      "cycleAllocations": [],
+      "goals": [
+        "Save staff time",
+        "Buyer experience",
+        "Increase consignment"
+      ],
+      "allocations": [],
+      "updates": []
     }
   ]
 }

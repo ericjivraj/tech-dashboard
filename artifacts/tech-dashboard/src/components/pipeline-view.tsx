@@ -16,7 +16,6 @@ const COLUMN_TOOLTIPS: Record<string, string> = {
   "Team / Sponsor": "The team responsible for delivery, and the sponsor driving this project",
   "Stakeholder": "Business stakeholder for this project",
   "Goals": "Business goals this project contributes to",
-  "Timing": "Assigned cycle and date range",
   "Latest Update": "Most recent project update",
 };
 
@@ -191,23 +190,6 @@ export default function PipelineView({ projects }: PipelineViewProps) {
                         <div key={g.id} className="w-2 h-2 rounded-full" style={{ backgroundColor: g.color }} title={g.name} />
                       ))}
                       {(!project.goals || project.goals.length === 0) && <span className="text-muted-foreground text-xs"></span>}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="text-xs">
-                      {project.cycle ? (
-                        <span className="font-medium text-foreground">
-                          {project.cycle.name}
-                          {project.cycle.startDate && project.cycle.endDate && (
-                            <span className="text-muted-foreground font-normal">
-                              {" · "}
-                              {format(parseISO(project.cycle.startDate), 'MMM d')} – {format(parseISO(project.cycle.endDate), 'MMM d')}
-                            </span>
-                          )}
-                        </span>
-                      ) : (
-                        <span className="text-muted-foreground">Unscheduled</span>
-                      )}
                     </div>
                   </TableCell>
                   <TableCell>

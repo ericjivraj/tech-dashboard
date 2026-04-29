@@ -10,6 +10,7 @@ import {
   sprintsTable,
   projectSprintAllocationsTable,
   projectCycleAllocationsTable,
+  projectAttachmentsTable,
 } from "@workspace/db";
 import { z } from "zod";
 import {
@@ -69,6 +70,11 @@ async function getProjectWithDetails(projectId: number) {
     if (s) sprint = { id: s.id, name: s.name, sprintNumber: s.sprintNumber };
   }
 
+  const attachmentRows = await db
+    .select({ id: projectAttachmentsTable.id, name: projectAttachmentsTable.name, url: projectAttachmentsTable.url })
+    .from(projectAttachmentsTable)
+    .where(eq(projectAttachmentsTable.projectId, projectId));
+
   return {
     ...project,
     goals: goalRows.map((r) => r.goal),
@@ -82,6 +88,7 @@ async function getProjectWithDetails(projectId: number) {
       : null,
     cycle,
     sprint,
+    attachments: attachmentRows,
   };
 }
 
@@ -315,6 +322,22 @@ router.get("/projects/timeline", async (req, res): Promise<void> => {
     list.sort((a, b) => a.cycleStartDate.localeCompare(b.cycleStartDate));
   }
 
+  // Attachments shown in the project modal. URL may be a relative
+  // /attachments/<file> path or a full external link.
+  const allAttachments = projectIds.length > 0
+    ? await db
+        .select()
+        .from(projectAttachmentsTable)
+        .where(inArray(projectAttachmentsTable.projectId, projectIds))
+    : [];
+
+  const attachmentsByProject = new Map<number, { id: number; name: string; url: string }[]>();
+  for (const a of allAttachments) {
+    const list = attachmentsByProject.get(a.projectId) ?? [];
+    list.push({ id: a.id, name: a.name, url: a.url });
+    attachmentsByProject.set(a.projectId, list);
+  }
+
   const allSprintIds = [...new Set(allAllocations.map((a) => a.sprintId))];
   const allocationSprints = allSprintIds.length > 0
     ? await db.select().from(sprintsTable).where(inArray(sprintsTable.id, allSprintIds))
@@ -396,6 +419,7 @@ router.get("/projects/timeline", async (req, res): Promise<void> => {
       sprintNumber: sprint?.sprintNumber ?? null,
       completionPercent: resolvedCompletionPercent,
       cycleAllocations: cycleAllocationsByProject.get(p.id) ?? [],
+      attachments: attachmentsByProject.get(p.id) ?? [],
       subTeamSummary: subTeamSummary ?? { a3Percent: null, backendPercent: null, frontendPercent: null },
       goals: goalsByProject.get(p.id) ?? [],
     };

@@ -137,17 +137,12 @@ function ProjectCard({ project, onClick }: { project: ProjectWithDetails; onClic
         )}
       </CardContent>
       <CardFooter className="p-3 pt-0 flex flex-col gap-1.5 items-start text-[10px] text-muted-foreground">
-        <div className="flex justify-between items-center w-full">
-          <div className="flex items-center gap-1.5 truncate">
-            {project.cycle ? <span className="font-medium">{project.cycle.name}</span> : <span>Unscheduled</span>}
+        {project.sponsor && (
+          <div className="flex items-center gap-1 w-full" title={project.sponsor}>
+            <span className="text-muted-foreground/60 shrink-0">Sponsor:</span>
+            <span className="truncate font-medium">{project.sponsor}</span>
           </div>
-          {project.sponsor && (
-            <div className="flex items-center gap-1 truncate max-w-[90px]" title={project.sponsor}>
-              <span className="text-muted-foreground/60 shrink-0">Sponsor:</span>
-              <span className="truncate font-medium">{project.sponsor}</span>
-            </div>
-          )}
-        </div>
+        )}
         {project.stakeholder && (
           <div className="flex items-center gap-1 w-full" title={project.stakeholder}>
             <span className="text-muted-foreground/60 shrink-0">Stakeholder:</span>

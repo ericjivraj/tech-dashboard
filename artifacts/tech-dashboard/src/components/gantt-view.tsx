@@ -55,14 +55,16 @@ function getCycleAllocations(p: unknown): CycleAllocation[] {
 }
 
 // Effective Gantt-bar span. Priority: explicit start/end dates → cycle
-// allocations (min cycle start → max cycle end) → primary cycle.
+// allocations (min cycle start → max cycle end). A project with only a primary
+// cycle assigned (and no allocations or dates) is treated as not yet
+// committed to a timeline and hidden from the Gantt — it still appears in the
+// kanban view under its status column.
 function getEffectiveDates(p: ProjectTimeline): { start: string; end: string } | null {
   if (p.startDate && p.endDate) return { start: p.startDate, end: p.endDate };
   const allocs = getCycleAllocations(p);
   if (allocs.length > 0) {
     return { start: allocs[0].cycleStartDate, end: allocs[allocs.length - 1].cycleEndDate };
   }
-  if (p.cycleStartDate && p.cycleEndDate) return { start: p.cycleStartDate, end: p.cycleEndDate };
   return null;
 }
 
@@ -172,10 +174,13 @@ export default function GanttView({ filters }: GanttViewProps) {
     return { left: `${Math.max(0, left)}%`, width: `${Math.max(0.5, width)}%` };
   };
 
-  // Any project with explicit dates, cycle allocations, or a primary cycle is
-  // shown on the Gantt — multi-cycle projects span min(cycle starts) →
-  // max(cycle ends) automatically via getEffectiveDates().
-  let filteredProjects = projects.filter((p) => getEffectiveDates(p) !== null);
+  // Show any project with explicit dates, cycle allocations, or a primary
+  // cycle assignment. Projects without dates/allocations still appear as rows
+  // (no bar) so they're discoverable in the timeline view; bar rendering and
+  // cycle-header % only count projects with explicit allocations or dates.
+  let filteredProjects = projects.filter(
+    (p) => getEffectiveDates(p) !== null || p.cycleId != null,
+  );
 
   if (selectedCycleId !== "all") {
     filteredProjects = filteredProjects.filter((p) => {
@@ -216,7 +221,7 @@ export default function GanttView({ filters }: GanttViewProps) {
 
   const visibleProjects = filteredProjects.filter((p) => {
     const dates = getEffectiveDates(p);
-    if (!dates) return false;
+    if (!dates) return true; // no bar, but still rendered as a row
     return getBarPosition(dates.start, dates.end) !== null;
   });
 
@@ -224,18 +229,16 @@ export default function GanttView({ filters }: GanttViewProps) {
     (capacitySummary?.rows as CapacitySummaryRow[] ?? []).map((r) => [r.id, r])
   );
 
-  // A project appears under every cycle it has an allocation for (so a multi-
-  // cycle project shows up in each cycle's popover); falls back to its primary
-  // cycleId when there are no explicit allocations.
+  // A project appears under every cycle it has an explicit allocation for.
+  // Projects with only a primary cycle (no allocations) are NOT counted toward
+  // any cycle's % bar or popover — they show as a bar-less row only.
   const projectsByCycleId = new Map<number, typeof visibleProjects>();
   for (const p of visibleProjects) {
     const allocs = getCycleAllocations(p);
-    const cycleIdsForProject = allocs.length > 0
-      ? allocs.map((a) => a.cycleId)
-      : p.cycleId != null ? [p.cycleId] : [];
-    for (const cId of cycleIdsForProject) {
-      if (!projectsByCycleId.has(cId)) projectsByCycleId.set(cId, []);
-      projectsByCycleId.get(cId)!.push(p);
+    if (allocs.length === 0) continue;
+    for (const a of allocs) {
+      if (!projectsByCycleId.has(a.cycleId)) projectsByCycleId.set(a.cycleId, []);
+      projectsByCycleId.get(a.cycleId)!.push(p);
     }
   }
 
@@ -277,9 +280,9 @@ export default function GanttView({ filters }: GanttViewProps) {
 
         <div className="flex flex-wrap gap-3">
           {[
-            { color: "#3b82f6", label: "In development", desc: "Prioritized & actively in development" },
-            { color: "#eab308", label: "Planned & upcoming", desc: "Prioritized & awaiting to be in development" },
-            { color: "#ef4444", label: "Blocked", desc: "Progress halted, needs attention" },
+            { color: "#22c55e", label: "In development", desc: "Prioritized and in progress" },
+            { color: "#eab308", label: "Planned next", desc: "Prioritized awaiting scheduling" },
+            { color: "#ef4444", label: "Blocked", desc: "Delayed and at risk" },
           ].map(({ color, label, desc }) => (
             <div key={label} className="flex items-start gap-2 rounded-lg border bg-card px-4 py-3 min-w-[200px]">
               <span className="w-4 h-4 rounded shrink-0 mt-0.5" style={{ backgroundColor: color }} />
@@ -362,7 +365,7 @@ export default function GanttView({ filters }: GanttViewProps) {
                               <div className="flex items-center gap-1.5">
                                 <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
                                   <div
-                                    className={`h-full rounded-full ${overallCap.pct >= 100 ? "bg-red-500" : overallCap.pct >= 80 ? "bg-amber-400" : "bg-blue-400"}`}
+                                    className="h-full rounded-full bg-blue-400"
                                     style={{ width: `${Math.min(overallCap.pct, 100)}%` }}
                                   />
                                 </div>
@@ -424,19 +427,21 @@ export default function GanttView({ filters }: GanttViewProps) {
               <div className="space-y-3">
                 {visibleProjects.map((project) => {
                   const dates = getEffectiveDates(project);
-                  if (!dates) return null;
-                  const effectiveStart = dates.start;
-                  const effectiveEnd = dates.end;
+                  const effectiveStart = dates?.start;
+                  const effectiveEnd = dates?.end;
                   const usingCycleFallback = !project.startDate && !project.endDate;
-                  const pos = getBarPosition(effectiveStart, effectiveEnd);
-                  if (!pos) return null;
+                  const pos = dates ? getBarPosition(dates.start, dates.end) : null;
                   const isCurrent = project.cycleStartDate && project.cycleEndDate
                     && parseISO(project.cycleStartDate) <= today && parseISO(project.cycleEndDate) >= today;
                   const isFuture = project.cycleStartDate && parseISO(project.cycleStartDate) > today;
-                  const color = project.status === "blocked"
+                  // Red also surfaces "at risk" projects (those with confidence
+                  // set to "at_risk") even when status is still in_progress —
+                  // visual flag without forcing them out of the In Development
+                  // kanban column.
+                  const color = project.status === "blocked" || project.confidence === "at_risk"
                     ? "#ef4444"
                     : isCurrent
-                      ? "#3b82f6"
+                      ? "#22c55e"
                       : isFuture
                         ? "#eab308"
                         : "#94a3b8";
@@ -480,17 +485,19 @@ export default function GanttView({ filters }: GanttViewProps) {
                             />
                           ) : null;
                         })}
-                        <div
-                          className="absolute top-1 bottom-1 rounded-sm shadow-sm transition-opacity opacity-90 hover:opacity-100"
-                          style={{
-                            left: pos.left,
-                            width: pos.width,
-                            backgroundColor: color,
-                          }}
-                          title={`${project.title}\n${format(parseISO(effectiveStart), 'MMM d')} to ${format(parseISO(effectiveEnd), 'MMM d, yyyy')}${usingCycleFallback ? '\n(dates from cycle)' : ''}`}
-                        >
-                          <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/10 rounded-b-sm" />
-                        </div>
+                        {pos && effectiveStart && effectiveEnd && (
+                          <div
+                            className="absolute top-1 bottom-1 rounded-sm shadow-sm transition-opacity opacity-90 hover:opacity-100"
+                            style={{
+                              left: pos.left,
+                              width: pos.width,
+                              backgroundColor: color,
+                            }}
+                            title={`${project.title}\n${format(parseISO(effectiveStart), 'MMM d')} to ${format(parseISO(effectiveEnd), 'MMM d, yyyy')}${usingCycleFallback ? '\n(dates from cycle)' : ''}`}
+                          >
+                            <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/10 rounded-b-sm" />
+                          </div>
+                        )}
                       </div>
                     </div>
                   );

@@ -68,6 +68,17 @@ if (clerkKeyLooksReal) {
 app.use(healthRouter);
 app.use("/api", router);
 
+// Project attachments. In dev, served from the host-mounted repo at
+// `/app/data/attachments/`; in prod, the Dockerfile copies the directory in
+// at the same path. Mounted at both `/attachments` and
+// `/tech-dashboard/attachments` for parity with the dashboard's path-prefix
+// behaviour.
+const attachmentsDir = path.resolve("/app/data/attachments");
+if (fs.existsSync(attachmentsDir)) {
+  app.use("/attachments", express.static(attachmentsDir));
+  app.use("/tech-dashboard/attachments", express.static(attachmentsDir));
+}
+
 // In production the api also serves the built Vite dashboard from ./public
 // (copied in by the Dockerfile's production stage). In development the dev
 // server runs separately under Vite, so this block is skipped.
