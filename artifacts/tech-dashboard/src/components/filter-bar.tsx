@@ -92,7 +92,7 @@ export default function FilterBar({ filters, onFiltersChange, teams, sponsors, f
         <div className="relative flex-1 min-w-[200px] max-w-[300px]">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
           <Input
-            placeholder="Search projects..."
+            placeholder="Search anything..."
             value={filters.search}
             onChange={(e) => update({ search: e.target.value })}
             className="h-8 pl-8 text-sm"

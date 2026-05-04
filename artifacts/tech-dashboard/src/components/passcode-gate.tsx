@@ -9,9 +9,10 @@ const SESSION_KEY = "delivery_dashboard_unlocked";
 
 interface PasscodeGateProps {
   children: React.ReactNode;
+  bypass?: boolean;
 }
 
-export default function PasscodeGate({ children }: PasscodeGateProps) {
+export default function PasscodeGate({ children, bypass = false }: PasscodeGateProps) {
   const [unlocked, setUnlocked] = useState(() => {
     if (PASSCODES.length === 0) return true;
     return sessionStorage.getItem(SESSION_KEY) === "1";
@@ -22,12 +23,12 @@ export default function PasscodeGate({ children }: PasscodeGateProps) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (!unlocked && inputRef.current) {
+    if (!unlocked && !bypass && inputRef.current) {
       inputRef.current.focus();
     }
-  }, [unlocked]);
+  }, [unlocked, bypass]);
 
-  if (unlocked) {
+  if (bypass || unlocked) {
     return <>{children}</>;
   }
 

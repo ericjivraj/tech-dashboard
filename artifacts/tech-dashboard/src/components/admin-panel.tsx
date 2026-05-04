@@ -32,34 +32,18 @@ export default function AdminPanel({ open, onOpenChange }: { open: boolean, onOp
         </DialogHeader>
         
         <Tabs defaultValue="goals" className="flex-1 flex flex-col min-h-0">
-          <TabsList className="grid w-full grid-cols-7">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="goals" data-testid="admin-tab-goals">Goals</TabsTrigger>
             <TabsTrigger value="cycles" data-testid="admin-tab-cycles">Cycles</TabsTrigger>
-            <TabsTrigger value="sprints" data-testid="admin-tab-sprints">Sprints</TabsTrigger>
-            <TabsTrigger value="capacity" data-testid="admin-tab-capacity">Capacity</TabsTrigger>
-            <TabsTrigger value="email-reports" data-testid="admin-tab-email-reports">Email</TabsTrigger>
-            <TabsTrigger value="users" data-testid="admin-tab-users">Users</TabsTrigger>
             <TabsTrigger value="audit-log" data-testid="admin-tab-audit-log">Audit Log</TabsTrigger>
           </TabsList>
-          
+
           <div className="flex-1 overflow-y-auto mt-4 min-h-[400px]">
             <TabsContent value="goals" className="m-0 border-0 p-0 h-full">
               <GoalsTab />
             </TabsContent>
             <TabsContent value="cycles" className="m-0 border-0 p-0 h-full">
               <CyclesTab />
-            </TabsContent>
-            <TabsContent value="sprints" className="m-0 border-0 p-0 h-full">
-              <SprintsTab />
-            </TabsContent>
-            <TabsContent value="capacity" className="m-0 border-0 p-0 h-full">
-              <SprintCapacityTab />
-            </TabsContent>
-            <TabsContent value="email-reports" className="m-0 border-0 p-0 h-full">
-              <EmailReportsTab />
-            </TabsContent>
-            <TabsContent value="users" className="m-0 border-0 p-0 h-full">
-              <UsersTab />
             </TabsContent>
             <TabsContent value="audit-log" className="m-0 border-0 p-0 h-full">
               <AuditLogTab />
@@ -1074,17 +1058,24 @@ function AuditLogTab() {
             <TableHead>Time</TableHead>
             <TableHead>User</TableHead>
             <TableHead>Action</TableHead>
-            <TableHead>Entity</TableHead>
+            <TableHead>Project</TableHead>
             <TableHead>Changes</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {entries?.map(entry => {
             const diff = entry.diff as Record<string, unknown> | null;
+            const before = (diff?.before ?? null) as Record<string, unknown> | null;
+            const after = (diff?.after ?? null) as Record<string, unknown> | null;
+            const entityName =
+              (after?.title as string | undefined) ??
+              (before?.title as string | undefined) ??
+              (after?.name as string | undefined) ??
+              (before?.name as string | undefined) ??
+              null;
+
             let diffSummary = "";
-            if (entry.action === "update" && diff?.before && diff?.after) {
-              const before = diff.before as Record<string, unknown>;
-              const after = diff.after as Record<string, unknown>;
+            if (entry.action === "update" && before && after) {
               const changed = Object.entries(after)
                 .filter(([k, v]) => JSON.stringify(v) !== JSON.stringify(before[k]) && k !== "updatedAt")
                 .map(([k]) => k);
@@ -1106,8 +1097,8 @@ function AuditLogTab() {
                     {entry.action}
                   </span>
                 </TableCell>
-                <TableCell className="text-sm capitalize">
-                  {entry.entityType} #{entry.entityId}
+                <TableCell className="text-sm">
+                  {entityName ?? <span className="capitalize text-muted-foreground">{entry.entityType} #{entry.entityId}</span>}
                 </TableCell>
                 <TableCell className="text-xs text-muted-foreground max-w-xs truncate" title={diffSummary}>
                   {diffSummary}

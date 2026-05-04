@@ -1,7 +1,8 @@
-import { useEffect, useRef, useCallback } from "react";
-import { ClerkProvider, SignIn, useClerk } from "@clerk/react";
+import { useCallback, useEffect, useRef } from "react";
+import { ClerkProvider, SignIn, useAuth, useClerk } from "@clerk/react";
 import { Switch, Route, useLocation, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
+import { useGetMe } from "@workspace/api-client-react";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
@@ -9,6 +10,7 @@ import Dashboard from "@/pages/dashboard";
 import BusinessView from "@/pages/business";
 import Layout from "@/components/layout";
 import PasscodeGate from "@/components/passcode-gate";
+import AdminLoginForm from "@/components/admin-login-form";
 
 const queryClient = new QueryClient();
 
@@ -69,12 +71,23 @@ const signInAppearance = {
   },
 };
 
-function AdminSignInPage() {
-  return (
-    <div className="flex min-h-[100dvh] items-center justify-center bg-muted/30 px-4">
-      <SignIn routing="path" path={`${basePath}/admin`} signUpUrl={`${basePath}/sign-up`} appearance={signInAppearance} />
-    </div>
-  );
+function AdminPage() {
+  const { isLoaded, isSignedIn } = useAuth();
+  if (!isLoaded) return null;
+  if (!isSignedIn) {
+    return (
+      <div className="flex min-h-[100dvh] items-center justify-center bg-muted/30 px-4">
+        <SignIn
+          routing="path"
+          path={`${basePath}/admin`}
+          signUpUrl={`${basePath}/sign-up`}
+          forceRedirectUrl={`${basePath}/admin`}
+          appearance={signInAppearance}
+        />
+      </div>
+    );
+  }
+  return <Dashboard />;
 }
 
 function SignUpPage() {
@@ -130,7 +143,7 @@ function ClerkRoutes() {
       <Switch>
         <Route path="/" component={Dashboard} />
         <Route path="/business" component={BusinessView} />
-        <Route path="/admin/*?" component={AdminSignInPage} />
+        <Route path="/admin/*?" component={AdminPage} />
         <Route path="/sign-up/*?" component={SignUpPage} />
         <Route component={NotFound} />
       </Switch>
@@ -157,30 +170,70 @@ function ClerkProviderWithRoutes() {
   );
 }
 
+function CookieAdminPage() {
+  const { data: me, isLoading } = useGetMe();
+  if (isLoading) return null;
+  if (!me?.isEditor) {
+    return <AdminLoginForm />;
+  }
+  return <Dashboard />;
+}
+
+function ReadOnlyAppShell() {
+  const { data: me } = useGetMe();
+  const queryClient = useQueryClient();
+
+  const handleSignOut = useCallback(async () => {
+    try {
+      await fetch("/api/admin/logout", {
+        method: "POST",
+        credentials: "include",
+      });
+    } finally {
+      await queryClient.invalidateQueries();
+    }
+  }, [queryClient]);
+
+  const onSignOut = me?.isEditor ? handleSignOut : undefined;
+
+  return (
+    <Layout onSignOut={onSignOut}>
+      <Switch>
+        <Route path="/" component={Dashboard} />
+        <Route path="/business" component={BusinessView} />
+        <Route path="/admin" component={CookieAdminPage} />
+        <Route component={NotFound} />
+      </Switch>
+    </Layout>
+  );
+}
+
 function ReadOnlyApp() {
   return (
     <QueryClientProvider client={queryClient}>
-      <Layout>
-        <Switch>
-          <Route path="/" component={Dashboard} />
-          <Route path="/business" component={BusinessView} />
-          <Route component={NotFound} />
-        </Switch>
-      </Layout>
+      <ReadOnlyAppShell />
     </QueryClientProvider>
+  );
+}
+
+function GatedRoutes() {
+  const [location] = useLocation();
+  const isAdminPath = location === "/admin" || location.startsWith("/admin/");
+  return (
+    <PasscodeGate bypass={isAdminPath}>
+      {clerkPubKey ? <ClerkProviderWithRoutes /> : <ReadOnlyApp />}
+    </PasscodeGate>
   );
 }
 
 function App() {
   return (
-    <PasscodeGate>
-      <TooltipProvider>
-        <WouterRouter base={basePath}>
-          {clerkPubKey ? <ClerkProviderWithRoutes /> : <ReadOnlyApp />}
-        </WouterRouter>
-        <Toaster />
-      </TooltipProvider>
-    </PasscodeGate>
+    <TooltipProvider>
+      <WouterRouter base={basePath}>
+        <GatedRoutes />
+      </WouterRouter>
+      <Toaster />
+    </TooltipProvider>
   );
 }
 

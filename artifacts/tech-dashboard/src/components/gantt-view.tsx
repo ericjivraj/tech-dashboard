@@ -1,5 +1,33 @@
-import { useState } from "react";
-import { useGetProjectsTimeline, useListCycles, useListSprints, useGetCapacitySummary, ProjectWithDetails, ProjectTimeline } from "@workspace/api-client-react";
+import { useRef, useState } from "react";
+import {
+  useGetProjectsTimeline,
+  useListCycles,
+  useListSprints,
+  useGetCapacitySummary,
+  useGetMe,
+  useUpdateProject,
+  getGetProjectsTimelineQueryKey,
+  getListProjectsQueryKey,
+  ProjectWithDetails,
+  ProjectTimeline,
+} from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
+import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import ProjectModal from "./project-modal";
 import ProjectForm from "./project-form";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -7,10 +35,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Info } from "lucide-react";
+import { Info, GripVertical } from "lucide-react";
 import { format, parseISO, startOfYear, endOfYear, differenceInDays, startOfQuarter, endOfQuarter } from "date-fns";
 import type { FilterState } from "@/lib/filter-types";
 import { storyPointsToTShirt } from "@/lib/utils";
+import { matchesSearch } from "@/lib/search";
+import { computeInsertOrder } from "@/lib/order";
+import { isProjectBlocked } from "@/lib/blocked";
 
 
 const QUARTERS = [
@@ -105,6 +136,70 @@ export default function GanttView({ filters }: GanttViewProps) {
     selectedCycleId !== "all" ? { cycleId: parseInt(selectedCycleId) } : {},
   );
 
+  const { data: me } = useGetMe();
+  const isEditor = me?.isEditor === true;
+
+  const queryClient = useQueryClient();
+  const updateProject = useUpdateProject();
+  const justDraggedRef = useRef(false);
+  const timelineQueryKey = getGetProjectsTimelineQueryKey({
+    year: currentYear,
+    ...(timelineCycleId != null ? { cycleId: timelineCycleId } : {}),
+    ...timelineWindowDates,
+  });
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  function handleDragEnd(event: DragEndEvent) {
+    justDraggedRef.current = true;
+    setTimeout(() => {
+      justDraggedRef.current = false;
+    }, 100);
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const movedId = Number(active.id);
+    const overId = Number(over.id);
+
+    const ordered = (projects ?? [])
+      .slice()
+      .sort((a, b) => a.timelineOrder - b.timelineOrder || a.id - b.id);
+    const moved = ordered.find((p) => p.id === movedId);
+    if (!moved) return;
+
+    const overIdx = ordered.findIndex((p) => p.id === overId);
+    if (overIdx === -1) return;
+    const movedIdx = ordered.findIndex((p) => p.id === movedId);
+    const adjusted = movedIdx !== -1 && movedIdx < overIdx ? overIdx - 1 : overIdx;
+
+    const newTimelineOrder = computeInsertOrder(ordered, adjusted, movedId, (p) => p.timelineOrder);
+    if (newTimelineOrder === moved.timelineOrder) return;
+
+    const previous = queryClient.getQueryData<ProjectTimeline[]>(timelineQueryKey);
+    if (previous) {
+      queryClient.setQueryData<ProjectTimeline[]>(
+        timelineQueryKey,
+        previous.map((p) => (p.id === movedId ? { ...p, timelineOrder: newTimelineOrder } : p)),
+      );
+    }
+
+    updateProject.mutate(
+      { id: movedId, data: { timelineOrder: newTimelineOrder } },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: timelineQueryKey });
+        },
+        onError: () => {
+          if (previous) queryClient.setQueryData(timelineQueryKey, previous);
+          queryClient.invalidateQueries({ queryKey: timelineQueryKey });
+        },
+      },
+    );
+  }
+
   if (isLoading) {
     return <Skeleton className="h-[400px] w-full rounded-xl" />;
   }
@@ -191,8 +286,7 @@ export default function GanttView({ filters }: GanttViewProps) {
   }
 
   if (filters.search) {
-    const q = filters.search.toLowerCase();
-    filteredProjects = filteredProjects.filter((p) => p.title.toLowerCase().includes(q));
+    filteredProjects = filteredProjects.filter((p) => matchesSearch(p, filters.search));
   }
   if (filters.status !== "all") {
     filteredProjects = filteredProjects.filter((p) => p.status === filters.status);
@@ -423,85 +517,66 @@ export default function GanttView({ filters }: GanttViewProps) {
               <div className="flex h-40 items-center justify-center">
                 <p className="text-muted-foreground text-sm">No projects match the current filters in this period</p>
               </div>
+            ) : isEditor ? (
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+              >
+                <SortableContext
+                  items={visibleProjects.map((p) => p.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  <div className="space-y-3">
+                    {visibleProjects.map((project) => (
+                      <SortableGanttRow
+                        key={project.id}
+                        project={project}
+                        onClick={() => {
+                          if (justDraggedRef.current) return;
+                          setSelectedProjectId(project.id);
+                        }}
+                      >
+                        <GanttRowContent
+                          project={project}
+                          today={today}
+                          viewStart={viewStart}
+                          totalDays={totalDays}
+                          showSprintHeaders={showSprintHeaders}
+                          sprintsForCycle={sprintsForCycle}
+                          cyclesInView={cyclesInView}
+                          getBarPosition={getBarPosition}
+                          dragHandle={
+                            <DragHandle />
+                          }
+                        />
+                      </SortableGanttRow>
+                    ))}
+                  </div>
+                </SortableContext>
+              </DndContext>
             ) : (
               <div className="space-y-3">
-                {visibleProjects.map((project) => {
-                  const dates = getEffectiveDates(project);
-                  const effectiveStart = dates?.start;
-                  const effectiveEnd = dates?.end;
-                  const usingCycleFallback = !project.startDate && !project.endDate;
-                  const pos = dates ? getBarPosition(dates.start, dates.end) : null;
-                  const isCurrent = project.cycleStartDate && project.cycleEndDate
-                    && parseISO(project.cycleStartDate) <= today && parseISO(project.cycleEndDate) >= today;
-                  const isFuture = project.cycleStartDate && parseISO(project.cycleStartDate) > today;
-                  // Red also surfaces "at risk" projects (those with confidence
-                  // set to "at_risk") even when status is still in_progress —
-                  // visual flag without forcing them out of the In Development
-                  // kanban column.
-                  const color = project.status === "blocked" || project.confidence === "at_risk"
-                    ? "#ef4444"
-                    : isCurrent
-                      ? "#22c55e"
-                      : isFuture
-                        ? "#eab308"
-                        : "#94a3b8";
-
-                  return (
-                    <div
-                      key={project.id}
-                      className={`flex items-center group relative -mx-4 px-4 py-1 rounded cursor-pointer ${project.status === "blocked" ? "bg-red-50/40 dark:bg-red-950/20 hover:bg-red-50/60" : "hover:bg-muted/20"}`}
-                      data-testid={`gantt-row-${project.id}`}
-                      onClick={() => setSelectedProjectId(project.id)}
-                    >
-                      <div className="w-[230px] shrink-0 pr-4">
-                        <div className="flex items-center gap-1.5">
-                          <div className="text-sm font-medium truncate" title={project.title}>{project.title}</div>
-                          {project.status === "blocked" && (
-                            <span className="inline-flex shrink-0 items-center rounded-full bg-red-100 px-1.5 py-0.5 text-[9px] font-semibold text-red-700 dark:bg-red-900 dark:text-red-300 leading-none">Blocked</span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-1.5 mt-0.5">
-                          <span className="text-xs text-foreground truncate">{project.team || "No team"}</span>
-                        </div>
-                      </div>
-
-                      <div className="flex-1 relative h-7 bg-muted/10 rounded overflow-hidden">
-                        {showSprintHeaders ? sprintsForCycle.map((sprint) => {
-                          const left = (differenceInDays(parseISO(sprint.startDate), viewStart) / totalDays) * 100;
-                          return (
-                            <div
-                              key={sprint.id}
-                              className="absolute top-0 bottom-0 border-l border-border/40"
-                              style={{ left: `${Math.max(0, left)}%` }}
-                            />
-                          );
-                        }) : cyclesInView.map((cycle) => {
-                          const left = (differenceInDays(parseISO(cycle.startDate), viewStart) / totalDays) * 100;
-                          return left > 0 ? (
-                            <div
-                              key={cycle.id}
-                              className="absolute top-0 bottom-0 border-l border-border/40"
-                              style={{ left: `${left}%` }}
-                            />
-                          ) : null;
-                        })}
-                        {pos && effectiveStart && effectiveEnd && (
-                          <div
-                            className="absolute top-1 bottom-1 rounded-sm shadow-sm transition-opacity opacity-90 hover:opacity-100"
-                            style={{
-                              left: pos.left,
-                              width: pos.width,
-                              backgroundColor: color,
-                            }}
-                            title={`${project.title}\n${format(parseISO(effectiveStart), 'MMM d')} to ${format(parseISO(effectiveEnd), 'MMM d, yyyy')}${usingCycleFallback ? '\n(dates from cycle)' : ''}`}
-                          >
-                            <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/10 rounded-b-sm" />
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
+                {visibleProjects.map((project) => (
+                  <div
+                    key={project.id}
+                    className={`flex items-center group relative -mx-4 px-4 py-1 rounded cursor-pointer ${isProjectBlocked(project) ? "bg-red-50/40 dark:bg-red-950/20 hover:bg-red-50/60" : "hover:bg-muted/20"}`}
+                    data-testid={`gantt-row-${project.id}`}
+                    onClick={() => setSelectedProjectId(project.id)}
+                  >
+                    <GanttRowContent
+                      project={project}
+                      today={today}
+                      viewStart={viewStart}
+                      totalDays={totalDays}
+                      showSprintHeaders={showSprintHeaders}
+                      sprintsForCycle={sprintsForCycle}
+                      cyclesInView={cyclesInView}
+                      getBarPosition={getBarPosition}
+                      dragHandle={null}
+                    />
+                  </div>
+                ))}
               </div>
             )}
           </div>
@@ -526,6 +601,151 @@ export default function GanttView({ filters }: GanttViewProps) {
         projectToEdit={projectToEdit}
       />
       </>
+    </>
+  );
+}
+
+function SortableGanttRow({
+  project,
+  onClick,
+  children,
+}: {
+  project: ProjectTimeline;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: project.id,
+  });
+  const style: React.CSSProperties = {
+    transform: CSS.Translate.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`flex items-center group relative -mx-4 px-4 py-1 rounded ${isProjectBlocked(project) ? "bg-red-50/40 dark:bg-red-950/20 hover:bg-red-50/60" : "hover:bg-muted/20"}`}
+      data-testid={`gantt-row-${project.id}`}
+      onClick={onClick}
+      {...attributes}
+      {...listeners}
+    >
+      {children}
+    </div>
+  );
+}
+
+function DragHandle() {
+  return (
+    <div
+      className="text-muted-foreground/40 group-hover:text-muted-foreground cursor-grab active:cursor-grabbing pr-1.5 shrink-0"
+      aria-hidden
+    >
+      <GripVertical className="h-4 w-4" />
+    </div>
+  );
+}
+
+interface GanttRowContentProps {
+  project: ProjectTimeline;
+  today: Date;
+  viewStart: Date;
+  totalDays: number;
+  showSprintHeaders: boolean;
+  sprintsForCycle: { id: number; startDate: string; endDate: string }[];
+  cyclesInView: { id: number; startDate: string }[];
+  getBarPosition: (start: string, end: string) => { left: string; width: string } | null;
+  dragHandle: React.ReactNode;
+}
+
+function GanttRowContent({
+  project,
+  today,
+  viewStart,
+  totalDays,
+  showSprintHeaders,
+  sprintsForCycle,
+  cyclesInView,
+  getBarPosition,
+  dragHandle,
+}: GanttRowContentProps) {
+  const dates = getEffectiveDates(project);
+  const effectiveStart = dates?.start;
+  const effectiveEnd = dates?.end;
+  const usingCycleFallback = !project.startDate && !project.endDate;
+  const pos = dates ? getBarPosition(dates.start, dates.end) : null;
+  const isCurrent =
+    project.cycleStartDate &&
+    project.cycleEndDate &&
+    parseISO(project.cycleStartDate) <= today &&
+    parseISO(project.cycleEndDate) >= today;
+  const isFuture = project.cycleStartDate && parseISO(project.cycleStartDate) > today;
+  const color =
+    isProjectBlocked(project) || project.confidence === "at_risk"
+      ? "#ef4444"
+      : isCurrent
+        ? "#22c55e"
+        : isFuture
+          ? "#eab308"
+          : "#94a3b8";
+
+  return (
+    <>
+      {dragHandle}
+      <div className="w-[230px] shrink-0 pr-4">
+        <div className="flex items-center gap-1.5">
+          <div className="text-sm font-medium truncate" title={project.title}>
+            {project.title}
+          </div>
+          {isProjectBlocked(project) && (
+            <span className="inline-flex shrink-0 items-center rounded-full bg-red-100 px-1.5 py-0.5 text-[9px] font-semibold text-red-700 dark:bg-red-900 dark:text-red-300 leading-none">
+              Blocked
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-1.5 mt-0.5">
+          <span className="text-xs text-foreground truncate">{project.team || "No team"}</span>
+        </div>
+      </div>
+
+      <div className="flex-1 relative h-7 bg-muted/10 rounded overflow-hidden">
+        {showSprintHeaders
+          ? sprintsForCycle.map((sprint) => {
+              const left = (differenceInDays(parseISO(sprint.startDate), viewStart) / totalDays) * 100;
+              return (
+                <div
+                  key={sprint.id}
+                  className="absolute top-0 bottom-0 border-l border-border/40"
+                  style={{ left: `${Math.max(0, left)}%` }}
+                />
+              );
+            })
+          : cyclesInView.map((cycle) => {
+              const left = (differenceInDays(parseISO(cycle.startDate), viewStart) / totalDays) * 100;
+              return left > 0 ? (
+                <div
+                  key={cycle.id}
+                  className="absolute top-0 bottom-0 border-l border-border/40"
+                  style={{ left: `${left}%` }}
+                />
+              ) : null;
+            })}
+        {pos && effectiveStart && effectiveEnd && (
+          <div
+            className="absolute top-1 bottom-1 rounded-sm shadow-sm transition-opacity opacity-90 hover:opacity-100"
+            style={{
+              left: pos.left,
+              width: pos.width,
+              backgroundColor: color,
+            }}
+            title={`${project.title}\n${format(parseISO(effectiveStart), "MMM d")} to ${format(parseISO(effectiveEnd), "MMM d, yyyy")}${usingCycleFallback ? "\n(dates from cycle)" : ""}`}
+          >
+            <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/10 rounded-b-sm" />
+          </div>
+        )}
+      </div>
     </>
   );
 }

@@ -458,7 +458,7 @@ paths:
           required: false
           schema:
             type: ["string", "null"]
-            enum: [done, in_progress, up_next, backlog, blocked, new_request, null]
+            enum: [done, in_progress, up_next, backlog, new_request, null]
         - name: team
           in: query
           required: false
@@ -760,6 +760,46 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
 
   /projects/{projectId}/updates/{updateId}:
+    patch:
+      operationId: updateProjectUpdate
+      tags: [updates]
+      summary: Edit a project update (editor only)
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: updateId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProjectUpdateBody"
+      responses:
+        "200":
+          description: Updated project update
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectUpdate"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
     delete:
       operationId: deleteProjectUpdate
       tags: [updates]
@@ -1279,7 +1319,7 @@ components:
           type: ["string", "null"]
         status:
           type: string
-          enum: [done, in_progress, up_next, backlog, blocked, new_request]
+          enum: [done, in_progress, up_next, backlog, new_request]
         confidence:
           type: ["string", "null"]
           enum: [high, medium, low, at_risk, null]
@@ -1303,6 +1343,12 @@ components:
           type: ["integer", "null"]
         completionPercent:
           type: ["integer", "null"]
+        displayOrder:
+          type: integer
+        listOrder:
+          type: integer
+        timelineOrder:
+          type: integer
         createdAt:
           type: string
           format: date-time
@@ -1326,6 +1372,9 @@ components:
         - cycleId
         - sprintId
         - completionPercent
+        - displayOrder
+        - listOrder
+        - timelineOrder
         - createdAt
         - updatedAt
 
@@ -1347,6 +1396,8 @@ components:
                   type: string
                 authorName:
                   type: ["string", "null"]
+                blocked:
+                  type: boolean
                 createdAt:
                   type: string
                   format: date-time
@@ -1354,6 +1405,7 @@ components:
                 - id
                 - content
                 - authorName
+                - blocked
                 - createdAt
             cycle:
               type: ["object", "null"]
@@ -1405,7 +1457,7 @@ components:
           type: ["string", "null"]
         status:
           type: string
-          enum: [done, in_progress, up_next, backlog, blocked, new_request]
+          enum: [done, in_progress, up_next, backlog, new_request]
         confidence:
           type: ["string", "null"]
           enum: [high, medium, low, at_risk, null]
@@ -1450,7 +1502,7 @@ components:
           type: ["string", "null"]
         status:
           type: ["string", "null"]
-          enum: [done, in_progress, up_next, backlog, blocked, new_request, null]
+          enum: [done, in_progress, up_next, backlog, new_request, null]
         confidence:
           type: ["string", "null"]
           enum: [high, medium, low, at_risk, null]
@@ -1474,6 +1526,12 @@ components:
           type: ["integer", "null"]
         completionPercent:
           type: ["integer", "null"]
+        displayOrder:
+          type: ["integer", "null"]
+        listOrder:
+          type: ["integer", "null"]
+        timelineOrder:
+          type: ["integer", "null"]
         goalIds:
           type: ["array", "null"]
           items:
@@ -1490,6 +1548,8 @@ components:
           type: string
         authorName:
           type: ["string", "null"]
+        blocked:
+          type: boolean
         createdAt:
           type: string
           format: date-time
@@ -1498,6 +1558,7 @@ components:
         - projectId
         - content
         - authorName
+        - blocked
         - createdAt
 
     CreateProjectUpdateBody:
@@ -1507,8 +1568,18 @@ components:
           type: string
         authorName:
           type: ["string", "null"]
+        blocked:
+          type: boolean
       required:
         - content
+
+    UpdateProjectUpdateBody:
+      type: object
+      properties:
+        content:
+          type: string
+        blocked:
+          type: boolean
 
     DashboardSummary:
       type: object
@@ -1596,7 +1667,7 @@ components:
           type: string
         status:
           type: string
-          enum: [done, in_progress, up_next, backlog, blocked, new_request]
+          enum: [done, in_progress, up_next, backlog, new_request]
         confidence:
           type: ["string", "null"]
           enum: [high, medium, low, at_risk, null]
@@ -1628,6 +1699,14 @@ components:
           type: ["integer", "null"]
         completionPercent:
           type: ["integer", "null"]
+        displayOrder:
+          type: integer
+        listOrder:
+          type: integer
+        timelineOrder:
+          type: integer
+        blocked:
+          type: boolean
         subTeamSummary:
           type: ["object", "null"]
           properties:
@@ -1664,6 +1743,10 @@ components:
         - sprintName
         - sprintNumber
         - completionPercent
+        - displayOrder
+        - listOrder
+        - timelineOrder
+        - blocked
         - subTeamSummary
         - goals
 

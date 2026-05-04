@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import express, { type Express } from "express";
+import cookieParser from "cookie-parser";
 import cors from "cors";
 import pinoHttp from "pino-http";
 import { clerkMiddleware } from "@clerk/express";
@@ -35,9 +36,7 @@ app.use(CLERK_PROXY_PATH, clerkProxyMiddleware());
 
 const allowedOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(",").map((o) => o.trim())
-  : process.env.REPLIT_DEV_DOMAIN
-    ? [`https://${process.env.REPLIT_DEV_DOMAIN}`]
-    : [];
+  : [];
 
 app.use(
   cors({
@@ -53,6 +52,7 @@ app.use(
 );
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 
 const clerkSecretKey = process.env.CLERK_SECRET_KEY;
 const clerkKeyLooksReal =
@@ -99,7 +99,7 @@ if (process.env.NODE_ENV === "production") {
     `<script>window.__APP_CONFIG__=${JSON.stringify({
       clerkPublishableKey: process.env.CLERK_PUBLISHABLE_KEY ?? "",
       clerkProxyUrl: process.env.CLERK_PROXY_URL ?? "",
-      sitePasscode: process.env.SITE_PASSCODE ?? "",
+      sitePasscode: process.env.TD_SITE_PASSCODE ?? "",
       resendConfigured: Boolean(process.env.RESEND_API_KEY),
     })}</script></head>`,
   );

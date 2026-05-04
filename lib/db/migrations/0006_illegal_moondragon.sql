@@ -1,0 +1,1 @@
+ALTER TABLE "project_updates" ADD COLUMN "blocked" boolean DEFAULT false NOT NULL;

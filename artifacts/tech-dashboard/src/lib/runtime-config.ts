@@ -22,13 +22,13 @@ export const runtimeConfig = {
     injected?.clerkPublishableKey ?? import.meta.env.VITE_CLERK_PUBLISHABLE_KEY,
   clerkProxyUrl:
     injected?.clerkProxyUrl ?? import.meta.env.VITE_CLERK_PROXY_URL,
-  // Hardcoded fallback while devops finishes wiring SITE_PASSCODE through Doppler.
-  // `||` (not `??`) so an empty string from app.ts injection (when SITE_PASSCODE
+  // Hardcoded fallback while devops finishes wiring TD_SITE_PASSCODE through Doppler.
+  // `||` (not `??`) so an empty string from app.ts injection (when TD_SITE_PASSCODE
   // env var is unset) falls through to the next option. Once Doppler injects a
   // real value, that wins automatically.
   sitePasscode:
     injected?.sitePasscode ||
-    (import.meta.env.VITE_SITE_PASSCODE as string | undefined) ||
+    (import.meta.env.VITE_TD_SITE_PASSCODE as string | undefined) ||
     "tech-dashboard-2026",
   resendConfigured:
     injected?.resendConfigured ?? Boolean(import.meta.env.VITE_RESEND_CONFIGURED),

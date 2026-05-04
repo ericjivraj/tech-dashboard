@@ -210,7 +210,6 @@ export const ProjectStatus = {
   in_progress: "in_progress",
   up_next: "up_next",
   backlog: "backlog",
-  blocked: "blocked",
   new_request: "new_request",
 } as const;
 
@@ -258,6 +257,9 @@ export interface Project {
   sprintId: number | null;
   /** @nullable */
   completionPercent: number | null;
+  displayOrder: number;
+  listOrder: number;
+  timelineOrder: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -270,6 +272,7 @@ export type ProjectWithDetailsLatestUpdate = {
   content: string;
   /** @nullable */
   authorName: string | null;
+  blocked: boolean;
   createdAt: string;
 } | null;
 
@@ -310,7 +313,6 @@ export const CreateProjectBodyStatus = {
   in_progress: "in_progress",
   up_next: "up_next",
   backlog: "backlog",
-  blocked: "blocked",
   new_request: "new_request",
 } as const;
 
@@ -372,7 +374,6 @@ export const UpdateProjectBodyStatus = {
   in_progress: "in_progress",
   up_next: "up_next",
   backlog: "backlog",
-  blocked: "blocked",
   new_request: "new_request",
 } as const;
 
@@ -422,6 +423,12 @@ export interface UpdateProjectBody {
   /** @nullable */
   completionPercent?: number | null;
   /** @nullable */
+  displayOrder?: number | null;
+  /** @nullable */
+  listOrder?: number | null;
+  /** @nullable */
+  timelineOrder?: number | null;
+  /** @nullable */
   goalIds?: number[] | null;
 }
 
@@ -431,6 +438,7 @@ export interface ProjectUpdate {
   content: string;
   /** @nullable */
   authorName: string | null;
+  blocked: boolean;
   createdAt: string;
 }
 
@@ -438,6 +446,12 @@ export interface CreateProjectUpdateBody {
   content: string;
   /** @nullable */
   authorName?: string | null;
+  blocked?: boolean;
+}
+
+export interface UpdateProjectUpdateBody {
+  content?: string;
+  blocked?: boolean;
 }
 
 export type DashboardSummaryPointsByStatus = {
@@ -486,7 +500,6 @@ export const ProjectTimelineStatus = {
   in_progress: "in_progress",
   up_next: "up_next",
   backlog: "backlog",
-  blocked: "blocked",
   new_request: "new_request",
 } as const;
 
@@ -550,6 +563,10 @@ export interface ProjectTimeline {
   sprintNumber: number | null;
   /** @nullable */
   completionPercent: number | null;
+  displayOrder: number;
+  listOrder: number;
+  timelineOrder: number;
+  blocked: boolean;
   /** @nullable */
   subTeamSummary: ProjectTimelineSubTeamSummary;
   goals: Goal[];
@@ -687,7 +704,6 @@ export const ListProjectsStatus = {
   in_progress: "in_progress",
   up_next: "up_next",
   backlog: "backlog",
-  blocked: "blocked",
   new_request: "new_request",
 } as const;
 

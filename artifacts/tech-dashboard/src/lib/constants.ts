@@ -1,11 +1,10 @@
 import type { ProjectStatus } from "@workspace/api-client-react";
 
 export const STATUS_LABELS: Record<ProjectStatus, string> = {
-  new_request: "New Request",
+  new_request: "New Requests",
   backlog: "Priorities",
   up_next: "Priorities Next Dev",
   in_progress: "In Progress",
-  blocked: "Blocked",
   done: "Done",
 };
 
@@ -14,12 +13,10 @@ export const STATUS_ORDER: ProjectStatus[] = [
   "backlog",
   "up_next",
   "in_progress",
-  "blocked",
   "done",
 ];
 
 export const PIPELINE_STATUS_ORDER: ProjectStatus[] = [
-  "blocked",
   "in_progress",
   "up_next",
   "backlog",

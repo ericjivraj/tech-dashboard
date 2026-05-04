@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { and, eq, inArray, lte, gte } from "drizzle-orm";
+import { and, desc, eq, inArray, lte, gte } from "drizzle-orm";
 import { db } from "@workspace/db";
 import {
   projectsTable,
@@ -23,6 +23,8 @@ import {
   CreateProjectUpdateBody,
   CreateProjectUpdateParams,
   DeleteProjectUpdateParams,
+  UpdateProjectUpdateParams,
+  UpdateProjectUpdateBody,
   ListProjectUpdatesParams,
 } from "@workspace/api-zod";
 import { requireAuth } from "../middlewares/requireAuth";
@@ -83,6 +85,7 @@ async function getProjectWithDetails(projectId: number) {
           id: latestUpdate.id,
           content: latestUpdate.content,
           authorName: latestUpdate.authorName,
+          blocked: latestUpdate.blocked,
           createdAt: latestUpdate.createdAt,
         }
       : null,
@@ -113,9 +116,9 @@ router.get("/projects", async (req, res): Promise<void> => {
       .select()
       .from(projectsTable)
       .where(and(...conditions))
-      .orderBy(projectsTable.createdAt);
+      .orderBy(projectsTable.listOrder, projectsTable.id);
   } else {
-    projects = await db.select().from(projectsTable).orderBy(projectsTable.createdAt);
+    projects = await db.select().from(projectsTable).orderBy(projectsTable.listOrder, projectsTable.id);
   }
 
   if (goalId && projects.length > 0) {
@@ -184,6 +187,7 @@ router.get("/projects", async (req, res): Promise<void> => {
             id: latestUpdate.id,
             content: latestUpdate.content,
             authorName: latestUpdate.authorName,
+            blocked: latestUpdate.blocked,
             createdAt: latestUpdate.createdAt,
           }
         : null,
@@ -249,7 +253,10 @@ router.get("/projects/timeline", async (req, res): Promise<void> => {
   const windowStartDate = typeof req.query.startDate === "string" && req.query.startDate ? req.query.startDate : null;
   const windowEndDate = typeof req.query.endDate === "string" && req.query.endDate ? req.query.endDate : null;
 
-  const projects = await db.select().from(projectsTable).orderBy(projectsTable.startDate);
+  const projects = await db
+    .select()
+    .from(projectsTable)
+    .orderBy(projectsTable.timelineOrder, projectsTable.id);
 
   if (projects.length === 0) {
     res.json([]);
@@ -344,6 +351,18 @@ router.get("/projects/timeline", async (req, res): Promise<void> => {
     : [];
   const allocationSprintMap = new Map(allocationSprints.map((s) => [s.id, s]));
 
+  const updateRows = projectIds.length > 0
+    ? await db
+        .select()
+        .from(projectUpdatesTable)
+        .where(inArray(projectUpdatesTable.projectId, projectIds))
+        .orderBy(projectUpdatesTable.createdAt)
+    : [];
+  const latestUpdateByProject = new Map<number, typeof projectUpdatesTable.$inferSelect>();
+  for (const u of updateRows) {
+    latestUpdateByProject.set(u.projectId, u);
+  }
+
   const today = new Date().toISOString().split("T")[0];
 
   const windowSprintIds: Set<number> | null = (() => {
@@ -418,6 +437,10 @@ router.get("/projects/timeline", async (req, res): Promise<void> => {
       sprintName: sprint?.name ?? null,
       sprintNumber: sprint?.sprintNumber ?? null,
       completionPercent: resolvedCompletionPercent,
+      displayOrder: p.displayOrder,
+      listOrder: p.listOrder,
+      timelineOrder: p.timelineOrder,
+      blocked: latestUpdateByProject.get(p.id)?.blocked === true,
       cycleAllocations: cycleAllocationsByProject.get(p.id) ?? [],
       attachments: attachmentsByProject.get(p.id) ?? [],
       subTeamSummary: subTeamSummary ?? { a3Percent: null, backendPercent: null, frontendPercent: null },
@@ -438,9 +461,9 @@ router.get("/projects/export", async (req, res): Promise<void> => {
       .select()
       .from(projectsTable)
       .where(eq(projectsTable.status, status as typeof projectsTable.$inferSelect.status))
-      .orderBy(projectsTable.createdAt);
+      .orderBy(projectsTable.listOrder, projectsTable.id);
   } else {
-    projects = await db.select().from(projectsTable).orderBy(projectsTable.createdAt);
+    projects = await db.select().from(projectsTable).orderBy(projectsTable.listOrder, projectsTable.id);
   }
 
   if (projects.length === 0) {
@@ -630,7 +653,13 @@ router.patch("/projects/:id", requireAuth, async (req, res): Promise<void> => {
     goalsUpdated = true;
   }
 
-  if (fieldUpdated || goalsUpdated) {
+  const ORDER_FIELDS = new Set(["displayOrder", "listOrder", "timelineOrder"]);
+  const onlyOrderingChanged =
+    fieldUpdated &&
+    !goalsUpdated &&
+    Object.keys(updates).every((k) => ORDER_FIELDS.has(k));
+
+  if ((fieldUpdated || goalsUpdated) && !onlyOrderingChanged) {
     const diff: Record<string, unknown> = { before, after };
     if (goalsUpdated) {
       diff.goalIdsBefore = goalIdsBefore;
@@ -690,7 +719,7 @@ router.get("/projects/:projectId/updates", async (req, res): Promise<void> => {
     .select()
     .from(projectUpdatesTable)
     .where(eq(projectUpdatesTable.projectId, params.data.projectId))
-    .orderBy(projectUpdatesTable.createdAt);
+    .orderBy(desc(projectUpdatesTable.createdAt));
   res.json(updates);
 });
 
@@ -722,10 +751,58 @@ router.post("/projects/:projectId/updates", requireAuth, async (req, res): Promi
     .values({
       projectId: params.data.projectId,
       content: parsed.data.content,
-      authorName: parsed.data.authorName ?? null,
+      authorName: parsed.data.authorName ?? ctx?.email ?? null,
+      blocked: parsed.data.blocked === true,
     })
     .returning();
   res.status(201).json(update);
+});
+
+router.patch("/projects/:projectId/updates/:updateId", requireAuth, async (req, res): Promise<void> => {
+  const params = UpdateProjectUpdateParams.safeParse(req.params);
+  if (!params.success) {
+    res.status(400).json({ error: params.error.message });
+    return;
+  }
+  const parsed = UpdateProjectUpdateBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+  const { projectId, updateId } = params.data;
+
+  const ctx = req.authContext;
+  if (ctx?.role === "guest") {
+    const [project] = await db.select({ team: projectsTable.team }).from(projectsTable).where(eq(projectsTable.id, projectId));
+    if (!project || project.team !== ctx.team) {
+      res.status(403).json({ error: "Forbidden: guests can only edit updates on projects belonging to their team" });
+      return;
+    }
+  }
+
+  const fields: Record<string, unknown> = {};
+  if (parsed.data.content !== undefined) fields.content = parsed.data.content;
+  if (parsed.data.blocked !== undefined) fields.blocked = parsed.data.blocked;
+  if (Object.keys(fields).length === 0) {
+    res.status(400).json({ error: "No updatable fields provided" });
+    return;
+  }
+
+  const [update] = await db
+    .update(projectUpdatesTable)
+    .set(fields)
+    .where(
+      and(
+        eq(projectUpdatesTable.id, updateId),
+        eq(projectUpdatesTable.projectId, projectId),
+      ),
+    )
+    .returning();
+  if (!update) {
+    res.status(404).json({ error: "Update not found or does not belong to this project" });
+    return;
+  }
+  res.json(update);
 });
 
 router.delete("/projects/:projectId/updates/:updateId", requireAuth, async (req, res): Promise<void> => {

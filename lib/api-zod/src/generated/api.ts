@@ -236,7 +236,6 @@ export const ListProjectsQueryParams = zod.object({
       zod.literal("in_progress"),
       zod.literal("up_next"),
       zod.literal("backlog"),
-      zod.literal("blocked"),
       zod.literal("new_request"),
       zod.literal(null),
     ])
@@ -259,7 +258,6 @@ export const ListProjectsResponseItem = zod
       "in_progress",
       "up_next",
       "backlog",
-      "blocked",
       "new_request",
     ]),
     confidence: zod
@@ -280,6 +278,9 @@ export const ListProjectsResponseItem = zod
     cycleId: zod.number().nullable(),
     sprintId: zod.number().nullable(),
     completionPercent: zod.number().nullable(),
+    displayOrder: zod.number(),
+    listOrder: zod.number(),
+    timelineOrder: zod.number(),
     createdAt: zod.coerce.date(),
     updatedAt: zod.coerce.date(),
   })
@@ -298,6 +299,7 @@ export const ListProjectsResponseItem = zod
           id: zod.number(),
           content: zod.string(),
           authorName: zod.string().nullable(),
+          blocked: zod.boolean(),
           createdAt: zod.coerce.date(),
         })
         .nullable(),
@@ -333,7 +335,6 @@ export const CreateProjectBody = zod.object({
     "in_progress",
     "up_next",
     "backlog",
-    "blocked",
     "new_request",
   ]),
   confidence: zod
@@ -376,7 +377,6 @@ export const GetProjectResponse = zod
       "in_progress",
       "up_next",
       "backlog",
-      "blocked",
       "new_request",
     ]),
     confidence: zod
@@ -397,6 +397,9 @@ export const GetProjectResponse = zod
     cycleId: zod.number().nullable(),
     sprintId: zod.number().nullable(),
     completionPercent: zod.number().nullable(),
+    displayOrder: zod.number(),
+    listOrder: zod.number(),
+    timelineOrder: zod.number(),
     createdAt: zod.coerce.date(),
     updatedAt: zod.coerce.date(),
   })
@@ -415,6 +418,7 @@ export const GetProjectResponse = zod
           id: zod.number(),
           content: zod.string(),
           authorName: zod.string().nullable(),
+          blocked: zod.boolean(),
           createdAt: zod.coerce.date(),
         })
         .nullable(),
@@ -454,7 +458,6 @@ export const UpdateProjectBody = zod.object({
       zod.literal("in_progress"),
       zod.literal("up_next"),
       zod.literal("backlog"),
-      zod.literal("blocked"),
       zod.literal("new_request"),
       zod.literal(null),
     ])
@@ -477,6 +480,9 @@ export const UpdateProjectBody = zod.object({
   cycleId: zod.number().nullish(),
   sprintId: zod.number().nullish(),
   completionPercent: zod.number().nullish(),
+  displayOrder: zod.number().nullish(),
+  listOrder: zod.number().nullish(),
+  timelineOrder: zod.number().nullish(),
   goalIds: zod.array(zod.number()).nullish(),
 });
 
@@ -492,7 +498,6 @@ export const UpdateProjectResponse = zod
       "in_progress",
       "up_next",
       "backlog",
-      "blocked",
       "new_request",
     ]),
     confidence: zod
@@ -513,6 +518,9 @@ export const UpdateProjectResponse = zod
     cycleId: zod.number().nullable(),
     sprintId: zod.number().nullable(),
     completionPercent: zod.number().nullable(),
+    displayOrder: zod.number(),
+    listOrder: zod.number(),
+    timelineOrder: zod.number(),
     createdAt: zod.coerce.date(),
     updatedAt: zod.coerce.date(),
   })
@@ -531,6 +539,7 @@ export const UpdateProjectResponse = zod
           id: zod.number(),
           content: zod.string(),
           authorName: zod.string().nullable(),
+          blocked: zod.boolean(),
           createdAt: zod.coerce.date(),
         })
         .nullable(),
@@ -647,6 +656,7 @@ export const ListProjectUpdatesResponseItem = zod.object({
   projectId: zod.number(),
   content: zod.string(),
   authorName: zod.string().nullable(),
+  blocked: zod.boolean(),
   createdAt: zod.coerce.date(),
 });
 export const ListProjectUpdatesResponse = zod.array(
@@ -663,6 +673,29 @@ export const CreateProjectUpdateParams = zod.object({
 export const CreateProjectUpdateBody = zod.object({
   content: zod.string(),
   authorName: zod.string().nullish(),
+  blocked: zod.boolean().optional(),
+});
+
+/**
+ * @summary Edit a project update (editor only)
+ */
+export const UpdateProjectUpdateParams = zod.object({
+  projectId: zod.coerce.number(),
+  updateId: zod.coerce.number(),
+});
+
+export const UpdateProjectUpdateBody = zod.object({
+  content: zod.string().optional(),
+  blocked: zod.boolean().optional(),
+});
+
+export const UpdateProjectUpdateResponse = zod.object({
+  id: zod.number(),
+  projectId: zod.number(),
+  content: zod.string(),
+  authorName: zod.string().nullable(),
+  blocked: zod.boolean(),
+  createdAt: zod.coerce.date(),
 });
 
 /**
@@ -739,7 +772,6 @@ export const GetProjectsTimelineResponseItem = zod.object({
     "in_progress",
     "up_next",
     "backlog",
-    "blocked",
     "new_request",
   ]),
   confidence: zod
@@ -765,6 +797,10 @@ export const GetProjectsTimelineResponseItem = zod.object({
   sprintName: zod.string().nullable(),
   sprintNumber: zod.number().nullable(),
   completionPercent: zod.number().nullable(),
+  displayOrder: zod.number(),
+  listOrder: zod.number(),
+  timelineOrder: zod.number(),
+  blocked: zod.boolean(),
   subTeamSummary: zod
     .object({
       a3Percent: zod.number().nullable(),

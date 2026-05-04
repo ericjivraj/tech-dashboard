@@ -22,13 +22,19 @@ import { useToast } from "@/hooks/use-toast";
 import { TEAMS, SPONSORS, STATUS_LABELS, STATUS_ORDER } from "@/lib/constants";
 import { format, parseISO } from "date-fns";
 
+const SHOW_CONFIDENCE = false;
+const SHOW_STORY_POINTS = false;
+const SHOW_DATES = false;
+const SHOW_SPRINT = false;
+const SHOW_SUB_TEAM_ALLOCATION = false;
+
 const formSchema = z.object({
   title: z.string().min(1, "Title is required"),
   description: z.string().optional().nullable(),
   sponsor: z.string().optional().nullable(),
   team: z.string().optional().nullable(),
   stakeholder: z.string().optional().nullable(),
-  status: z.enum(["done", "in_progress", "up_next", "backlog", "blocked", "new_request"]),
+  status: z.enum(["done", "in_progress", "up_next", "backlog", "new_request"]),
   confidence: z.enum(["high", "medium", "low", "at_risk"]).optional().nullable(),
   storyPoints: z.coerce.number().optional().nullable(),
   startDate: z.string().optional().nullable(),
@@ -49,14 +55,16 @@ type AllocationEntry = {
   frontend: number;
 };
 
-export default function ProjectForm({ 
-  open, 
+export default function ProjectForm({
+  open,
   onOpenChange,
-  projectToEdit
-}: { 
-  open: boolean, 
+  projectToEdit,
+  initialStatus,
+}: {
+  open: boolean,
   onOpenChange: (open: boolean) => void,
-  projectToEdit?: ProjectWithDetails | null
+  projectToEdit?: ProjectWithDetails | null,
+  initialStatus?: ProjectStatus,
 }) {
   const { data: goals } = useListGoals();
   const { data: cycles } = useListCycles();
@@ -137,7 +145,7 @@ export default function ProjectForm({
         sponsor: projectToEdit.sponsor,
         team: projectToEdit.team,
         stakeholder: projectToEdit.stakeholder || "",
-        status: projectToEdit.status as "done" | "in_progress" | "up_next" | "backlog" | "blocked" | "new_request",
+        status: projectToEdit.status as "done" | "in_progress" | "up_next" | "backlog" | "new_request",
         confidence: projectToEdit.confidence as "high" | "medium" | "low" | "at_risk" | null,
         storyPoints: projectToEdit.storyPoints,
         startDate: projectToEdit.startDate?.split('T')[0] || "",
@@ -156,7 +164,7 @@ export default function ProjectForm({
         sponsor: "",
         team: isGuest && guestTeam ? guestTeam : "",
         stakeholder: "",
-        status: "new_request",
+        status: initialStatus ?? "new_request",
         confidence: "medium",
         storyPoints: null,
         startDate: "",
@@ -170,7 +178,7 @@ export default function ProjectForm({
       });
       setAllocations([]);
     }
-  }, [projectToEdit, form, isGuest, guestTeam]);
+  }, [projectToEdit, form, isGuest, guestTeam, initialStatus, open]);
 
   useEffect(() => {
     if (!projectToEdit || !existingAllocations || !sprints) return;
@@ -226,12 +234,32 @@ export default function ProjectForm({
   };
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    const trim = (v: string | null | undefined) => {
+      if (v == null) return null;
+      const t = v.trim();
+      return t === "" ? null : t;
+    };
     const payload = {
       ...values,
+      title: values.title.trim(),
+      description: trim(values.description),
+      sponsor: trim(values.sponsor),
+      team: trim(values.team),
+      stakeholder: trim(values.stakeholder),
+      impact: trim(values.impact),
+      blockedReason: trim(values.blockedReason),
+      startDate: trim(values.startDate),
+      endDate: trim(values.endDate),
       storyPoints: values.storyPoints ? Number(values.storyPoints) : null,
       cycleId: values.cycleId ? Number(values.cycleId) : null,
       sprintId: values.sprintId ? Number(values.sprintId) : null,
       completionPercent: values.completionPercent != null ? Number(values.completionPercent) : null,
+    };
+
+    const errorToast = (err: unknown) => {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast({ title: "Save failed", description: msg, variant: "destructive" });
+      console.error("Project save failed:", err);
     };
 
     if (projectToEdit) {
@@ -248,8 +276,9 @@ export default function ProjectForm({
           queryClient.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey() });
           queryClient.invalidateQueries({ queryKey: getGetProjectsTimelineQueryKey() });
           queryClient.invalidateQueries({ queryKey: ["/api/capacity/summary"] });
-          if (!updateProject.isError) toast({ title: "Project updated" });
-        }
+          toast({ title: "Project updated" });
+        },
+        onError: errorToast,
       });
     } else {
       createProject.mutate({ data: payload }, {
@@ -265,8 +294,9 @@ export default function ProjectForm({
           queryClient.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey() });
           queryClient.invalidateQueries({ queryKey: getGetProjectsTimelineQueryKey() });
           queryClient.invalidateQueries({ queryKey: ["/api/capacity/summary"] });
-          if (!createProject.isError) toast({ title: "Project created" });
-        }
+          toast({ title: "Project created" });
+        },
+        onError: errorToast,
       });
     }
   };
@@ -281,7 +311,19 @@ export default function ProjectForm({
         </DialogHeader>
         
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 mt-4">
+          <form
+            onSubmit={form.handleSubmit(onSubmit, (errors) => {
+              const firstField = Object.keys(errors)[0];
+              const firstMsg = (errors[firstField as keyof typeof errors] as { message?: string } | undefined)?.message;
+              toast({
+                title: "Couldn't save — please check the form",
+                description: firstField ? `${firstField}: ${firstMsg ?? "invalid"}` : undefined,
+                variant: "destructive",
+              });
+              console.error("Project form validation errors:", errors);
+            })}
+            className="space-y-4 mt-4"
+          >
             <FormField
               control={form.control}
               name="title"
@@ -296,7 +338,7 @@ export default function ProjectForm({
               )}
             />
             
-            <div className="grid grid-cols-2 gap-4">
+            <div className={SHOW_CONFIDENCE ? "grid grid-cols-2 gap-4" : ""}>
               <FormField
                 control={form.control}
                 name="status"
@@ -321,47 +363,34 @@ export default function ProjectForm({
                   </FormItem>
                 )}
               />
-              
-              <FormField
-                control={form.control}
-                name="confidence"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Confidence</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value || undefined}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select confidence" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="high">High</SelectItem>
-                        <SelectItem value="medium">Medium</SelectItem>
-                        <SelectItem value="low">Low</SelectItem>
-                        <SelectItem value="at_risk">At Risk</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+
+              {SHOW_CONFIDENCE && (
+                <FormField
+                  control={form.control}
+                  name="confidence"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Confidence</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value || undefined}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select confidence" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="high">High</SelectItem>
+                          <SelectItem value="medium">Medium</SelectItem>
+                          <SelectItem value="low">Low</SelectItem>
+                          <SelectItem value="at_risk">At Risk</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
             </div>
 
-            {currentStatus === "blocked" && (
-              <FormField
-                control={form.control}
-                name="blockedReason"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-destructive">Blocked Reason</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Why is this blocked?" {...field} value={field.value || ""} className="border-destructive/50" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
 
             <div className="grid grid-cols-2 gap-4">
               <FormField
@@ -428,56 +457,67 @@ export default function ProjectForm({
               )}
             />
 
-            <div className="grid grid-cols-3 gap-4">
-              <FormField
-                control={form.control}
-                name="storyPoints"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Story Points</FormLabel>
-                    <FormControl>
-                      <Input type="number" {...field} value={field.value || ""} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
+            {(SHOW_STORY_POINTS || SHOW_DATES) && (
+              <div className="grid grid-cols-3 gap-4">
+                {SHOW_STORY_POINTS && (
+                  <FormField
+                    control={form.control}
+                    name="storyPoints"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Story Points</FormLabel>
+                        <FormControl>
+                          <Input type="number" {...field} value={field.value || ""} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 )}
-              />
-              <FormField
-                control={form.control}
-                name="startDate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Start Date</FormLabel>
-                    <FormControl>
-                      <Input type="date" {...field} value={field.value || ""} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
+                {SHOW_DATES && (
+                  <FormField
+                    control={form.control}
+                    name="startDate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Start Date</FormLabel>
+                        <FormControl>
+                          <Input type="date" {...field} value={field.value || ""} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 )}
-              />
-              <FormField
-                control={form.control}
-                name="endDate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>End Date</FormLabel>
-                    <FormControl>
-                      <Input type="date" {...field} value={field.value || ""} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
+                {SHOW_DATES && (
+                  <FormField
+                    control={form.control}
+                    name="endDate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>End Date</FormLabel>
+                        <FormControl>
+                          <Input type="date" {...field} value={field.value || ""} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 )}
-              />
-            </div>
+              </div>
+            )}
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className={SHOW_SPRINT ? "grid grid-cols-2 gap-4" : ""}>
               <FormField
                 control={form.control}
                 name="cycleId"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Cycle</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value?.toString() || ""}>
+                    <Select
+                      onValueChange={(v) => field.onChange(v === "none" ? null : Number(v))}
+                      value={field.value != null ? field.value.toString() : "none"}
+                    >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select cycle" />
@@ -494,32 +534,37 @@ export default function ProjectForm({
                   </FormItem>
                 )}
               />
-              <FormField
-                control={form.control}
-                name="sprintId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Sprint</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value?.toString() || ""}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select sprint" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="none">None</SelectItem>
-                        {sprints?.filter(s => !form.watch("cycleId") || s.cycleId.toString() === form.watch("cycleId")?.toString()).map(s => (
-                          <SelectItem key={s.id} value={s.id.toString()}>{s.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              {SHOW_SPRINT && (
+                <FormField
+                  control={form.control}
+                  name="sprintId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Sprint</FormLabel>
+                      <Select
+                        onValueChange={(v) => field.onChange(v === "none" ? null : Number(v))}
+                        value={field.value != null ? field.value.toString() : "none"}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select sprint" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="none">None</SelectItem>
+                          {sprints?.filter(s => !form.watch("cycleId") || s.cycleId.toString() === form.watch("cycleId")?.toString()).map(s => (
+                            <SelectItem key={s.id} value={s.id.toString()}>{s.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
             </div>
 
-            {isDevTeam && (
+            {SHOW_SUB_TEAM_ALLOCATION && isDevTeam && (
               <div className="rounded-lg border border-blue-200 bg-blue-50/30 dark:border-blue-800/30 dark:bg-blue-950/10 p-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-200">Sub-team Allocation</h4>

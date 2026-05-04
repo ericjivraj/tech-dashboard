@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import { getAuth, createClerkClient } from "@clerk/express";
 import { resolveAuthContext } from "../middlewares/requireAuth";
+import { readSessionFromRequest } from "../lib/adminAuth";
 
 const clerkClientInstance = createClerkClient({
   secretKey: process.env.CLERK_SECRET_KEY,
@@ -9,8 +10,27 @@ const clerkClientInstance = createClerkClient({
 const router: IRouter = Router();
 
 router.get("/auth/me", async (req, res): Promise<void> => {
-  const auth = getAuth(req);
-  const userId = auth?.userId ?? null;
+  const adminSession = readSessionFromRequest(req);
+  if (adminSession) {
+    res.json({
+      isAuthenticated: true,
+      isEditor: true,
+      userId: `admin:${adminSession.username}`,
+      email: adminSession.email,
+      firstName: adminSession.firstName ?? adminSession.username,
+      lastName: adminSession.lastName,
+      role: "admin",
+      team: null,
+    });
+    return;
+  }
+
+  let userId: string | null = null;
+  try {
+    userId = getAuth(req)?.userId ?? null;
+  } catch {
+    userId = null;
+  }
 
   if (!userId) {
     res.json({ isAuthenticated: false, isEditor: false, userId: null, email: null, firstName: null, lastName: null, role: null, team: null });

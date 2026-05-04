@@ -7,6 +7,7 @@ import FilterBar from "@/components/filter-bar";
 import { DEFAULT_FILTERS, type FilterState } from "@/lib/filter-types";
 import { STATUS_LABELS, TEAMS, SPONSORS } from "@/lib/constants";
 import { storyPointsToTShirt } from "@/lib/utils";
+import { matchesSearch } from "@/lib/search";
 
 export default function BusinessView() {
   const { data: summary, isLoading: isLoadingSummary } = useGetDashboardSummary();
@@ -19,7 +20,7 @@ export default function BusinessView() {
   const filteredProjects = useMemo(() => {
     if (!allProjects) return [];
     return allProjects.filter((p) => {
-      if (filters.search && !p.title.toLowerCase().includes(filters.search.toLowerCase())) return false;
+      if (filters.search && !matchesSearch(p, filters.search)) return false;
       if (filters.status !== "all" && p.status !== filters.status) return false;
       if (filters.team !== "all" && p.team !== filters.team) return false;
       if (filters.sponsor !== "all" && p.sponsor !== filters.sponsor) return false;
@@ -36,7 +37,7 @@ export default function BusinessView() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Technology Overview</h1>
-          <p className="text-muted-foreground mt-1">The centralized view for all technology projects.</p>
+          <p className="text-muted-foreground mt-1">The centralized view for all technology projects. All projects undergo final prioritization by Senior Leadership (C-Suite).</p>
         </div>
       </div>
 
@@ -72,14 +73,13 @@ export default function BusinessView() {
 
           <div className="rounded-xl border bg-card text-card-foreground shadow-sm px-6 py-4" data-testid="status-breakdown">
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Projects by Status</p>
-            <div className="grid grid-cols-3 sm:grid-cols-6 gap-4">
+            <div className="grid grid-cols-3 sm:grid-cols-5 gap-4">
               {(
                 [
                   { key: "new_request", color: "bg-purple-400" },
                   { key: "backlog", color: "bg-slate-400" },
                   { key: "up_next", color: "bg-indigo-400" },
                   { key: "in_progress", color: "bg-blue-500" },
-                  { key: "blocked", color: "bg-red-500" },
                   { key: "done", color: "bg-emerald-500" },
                 ] as const
               ).map(({ key, color }) => {

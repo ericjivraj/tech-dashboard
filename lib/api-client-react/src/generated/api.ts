@@ -45,6 +45,7 @@ import type {
   UpdateCycleBody,
   UpdateGoalBody,
   UpdateProjectBody,
+  UpdateProjectUpdateBody,
   UpdateSprintBody,
   UpdateUserBody,
   UpsertProjectAllocationsBody,
@@ -2267,6 +2268,120 @@ export const useCreateProjectUpdate = <
   TContext
 > => {
   return useMutation(getCreateProjectUpdateMutationOptions(options));
+};
+
+/**
+ * @summary Edit a project update (editor only)
+ */
+export const getUpdateProjectUpdateUrl = (
+  projectId: number,
+  updateId: number,
+) => {
+  return `/api/projects/${projectId}/updates/${updateId}`;
+};
+
+export const updateProjectUpdate = async (
+  projectId: number,
+  updateId: number,
+  updateProjectUpdateBody: UpdateProjectUpdateBody,
+  options?: RequestInit,
+): Promise<ProjectUpdate> => {
+  return customFetch<ProjectUpdate>(
+    getUpdateProjectUpdateUrl(projectId, updateId),
+    {
+      ...options,
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(updateProjectUpdateBody),
+    },
+  );
+};
+
+export const getUpdateProjectUpdateMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateProjectUpdate>>,
+    TError,
+    {
+      projectId: number;
+      updateId: number;
+      data: BodyType<UpdateProjectUpdateBody>;
+    },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateProjectUpdate>>,
+  TError,
+  {
+    projectId: number;
+    updateId: number;
+    data: BodyType<UpdateProjectUpdateBody>;
+  },
+  TContext
+> => {
+  const mutationKey = ["updateProjectUpdate"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateProjectUpdate>>,
+    {
+      projectId: number;
+      updateId: number;
+      data: BodyType<UpdateProjectUpdateBody>;
+    }
+  > = (props) => {
+    const { projectId, updateId, data } = props ?? {};
+
+    return updateProjectUpdate(projectId, updateId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateProjectUpdateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateProjectUpdate>>
+>;
+export type UpdateProjectUpdateMutationBody = BodyType<UpdateProjectUpdateBody>;
+export type UpdateProjectUpdateMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Edit a project update (editor only)
+ */
+export const useUpdateProjectUpdate = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateProjectUpdate>>,
+    TError,
+    {
+      projectId: number;
+      updateId: number;
+      data: BodyType<UpdateProjectUpdateBody>;
+    },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateProjectUpdate>>,
+  TError,
+  {
+    projectId: number;
+    updateId: number;
+    data: BodyType<UpdateProjectUpdateBody>;
+  },
+  TContext
+> => {
+  return useMutation(getUpdateProjectUpdateMutationOptions(options));
 };
 
 /**

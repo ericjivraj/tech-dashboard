@@ -4,6 +4,7 @@ import { eq, sql } from "drizzle-orm";
 import { db, usersTable } from "@workspace/db";
 import type { UserRole } from "@workspace/db";
 import { logger } from "../lib/logger";
+import { formatDisplayName, readSessionFromRequest } from "../lib/adminAuth";
 
 const clerkClientInstance = createClerkClient({
   secretKey: process.env.CLERK_SECRET_KEY,
@@ -114,9 +115,35 @@ export async function resolveAuthContext(clerkUserId: string): Promise<AuthConte
   }
 }
 
+function safeGetClerkUserId(req: Request): string | null {
+  try {
+    return getAuth(req)?.userId ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function adminCookieAuthContext(req: Request): AuthContext | null {
+  const session = readSessionFromRequest(req);
+  if (!session) return null;
+  return {
+    userId: `admin:${session.username}`,
+    email: formatDisplayName(session),
+    role: "admin",
+    team: null,
+    dbUserId: null,
+  };
+}
+
 export async function requireAuth(req: Request, res: Response, next: NextFunction): Promise<void> {
-  const auth = getAuth(req);
-  const userId = auth?.userId;
+  const adminCtx = adminCookieAuthContext(req);
+  if (adminCtx) {
+    req.authContext = adminCtx;
+    next();
+    return;
+  }
+
+  const userId = safeGetClerkUserId(req);
 
   if (!userId) {
     res.status(401).json({ error: "Authentication required" });
@@ -144,15 +171,20 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
 
 export function requireRole(roles: Array<UserRole | "admin">) {
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    const auth = getAuth(req);
-    const userId = auth?.userId;
+    let ctx: AuthContext | null = req.authContext ?? null;
 
-    if (!userId) {
-      res.status(401).json({ error: "Authentication required" });
-      return;
+    if (!ctx) {
+      ctx = adminCookieAuthContext(req);
     }
 
-    const ctx = req.authContext ?? (await resolveAuthContext(userId));
+    if (!ctx) {
+      const userId = safeGetClerkUserId(req);
+      if (!userId) {
+        res.status(401).json({ error: "Authentication required" });
+        return;
+      }
+      ctx = await resolveAuthContext(userId);
+    }
 
     if (!ctx) {
       res.status(403).json({ error: "Forbidden: not authorized" });
