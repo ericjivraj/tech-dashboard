@@ -22,7 +22,8 @@ export default function AdminLoginForm() {
     setError(null);
     setSubmitting(true);
     try {
-      const res = await fetch("/api/admin/login", {
+      const basePath = import.meta.env.BASE_URL.replace(/\/+$/, "");
+      const res = await fetch(`${basePath}/api/admin/login`, {
         method: "POST",
         headers: { "content-type": "application/json" },
         credentials: "include",

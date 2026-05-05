@@ -185,7 +185,7 @@ function ReadOnlyAppShell() {
 
   const handleSignOut = useCallback(async () => {
     try {
-      await fetch("/api/admin/logout", {
+      await fetch(`${basePath}/api/admin/logout`, {
         method: "POST",
         credentials: "include",
       });
