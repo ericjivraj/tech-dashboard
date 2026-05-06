@@ -40,9 +40,9 @@ import { computeInsertOrder } from "@/lib/order";
 import { isProjectBlocked } from "@/lib/blocked";
 
 const COLUMN_DESCRIPTIONS: Record<ProjectStatus, string> = {
-  new_request: "Newly submitted project requests awaiting triage by the respective sponsor function",
-  backlog: "Projects that have been deemed important by the sponsor function and/or senior leadership",
-  up_next: "Projects that have been confirmed as a priority by the sponsor function and/or senior leadership for the next available development cycle",
+  new_request: "Newly submitted project requests awaiting triage by the respective function",
+  backlog: "Projects that have been deemed important by the function and/or senior leadership",
+  up_next: "Projects that have been confirmed as a priority by the function and/or senior leadership for the next available development cycle",
   in_progress: "Projects prioritized by senior leadership and actively in development",
   done: "Completed and delivered projects",
 };
@@ -410,13 +410,13 @@ function ProjectCard({
       <CardFooter className="p-3 pt-0 flex flex-col gap-1.5 items-start text-[10px] text-muted-foreground">
         {project.sponsor && (
           <div className="flex items-center gap-1 w-full" title={project.sponsor}>
-            <span className="text-muted-foreground/60 shrink-0">Sponsor:</span>
+            <span className="text-muted-foreground/60 shrink-0">Function:</span>
             <span className="truncate font-medium">{project.sponsor}</span>
           </div>
         )}
         {project.stakeholder && (
           <div className="flex items-center gap-1 w-full" title={project.stakeholder}>
-            <span className="text-muted-foreground/60 shrink-0">Stakeholder:</span>
+            <span className="text-muted-foreground/60 shrink-0">Sponsor:</span>
             <span className="truncate font-medium">{project.stakeholder}</span>
           </div>
         )}

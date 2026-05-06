@@ -470,11 +470,11 @@ export default function ProjectForm({
                 name="sponsor"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Sponsor</FormLabel>
+                    <FormLabel>Function</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value || ""}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select sponsor" />
+                          <SelectValue placeholder="Select function" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -494,9 +494,9 @@ export default function ProjectForm({
               name="stakeholder"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Stakeholder</FormLabel>
+                  <FormLabel>Sponsor</FormLabel>
                   <FormControl>
-                    <Input placeholder="Primary stakeholder contact" {...field} value={field.value || ""} />
+                    <Input placeholder="Primary sponsor contact" {...field} value={field.value || ""} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

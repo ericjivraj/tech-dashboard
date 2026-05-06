@@ -130,10 +130,10 @@ export default function FilterBar({ filters, onFiltersChange, teams, sponsors, f
         {sponsors.length > 0 && (
           <Select value={filters.sponsor} onValueChange={(v) => update({ sponsor: v })} data-testid="filter-sponsor">
             <SelectTrigger className="h-8 w-[140px] text-sm">
-              <SelectValue placeholder="Sponsor" />
+              <SelectValue placeholder="Function" />
             </SelectTrigger>
             <SelectContent side="bottom" align="start">
-              <SelectItem value="all">All Sponsors</SelectItem>
+              <SelectItem value="all">All Functions</SelectItem>
               {sponsors.map((s) => (
                 <SelectItem key={s} value={s}>{s}</SelectItem>
               ))}

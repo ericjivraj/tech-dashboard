@@ -39,16 +39,16 @@ import { STATUS_LABELS, PIPELINE_STATUS_ORDER } from "@/lib/constants";
 const COLUMN_TOOLTIPS: Record<string, string> = {
   "Project Name": "The name and any blocked reason for the project",
   "Status": "Current workflow status of the project",
-  "Team / Sponsor": "The team responsible for delivery, and the sponsor driving this project",
-  "Stakeholder": "Business stakeholder for this project",
+  "Team / Function": "The team responsible for delivery, and the function driving this project",
+  "Sponsor": "Business sponsor for this project",
   "Goals": "Business goals this project contributes to",
   "Latest Update": "Most recent project update",
 };
 
-const SORTABLE_COLUMNS = new Set(["Status", "Team / Sponsor"]);
+const SORTABLE_COLUMNS = new Set(["Status", "Team / Function"]);
 
 type SortOrder = "asc" | "desc" | null;
-type SortColumn = "Status" | "Team / Sponsor" | null;
+type SortColumn = "Status" | "Team / Function" | null;
 
 interface SortState {
   column: SortColumn;
@@ -99,7 +99,7 @@ export default function PipelineView({ projects }: PipelineViewProps) {
         return dir * (aIdx - bIdx);
       }
 
-      if (sort.column === "Team / Sponsor") {
+      if (sort.column === "Team / Function") {
         const aTeam = (a.team ?? "").toLowerCase();
         const bTeam = (b.team ?? "").toLowerCase();
         if (!aTeam && !bTeam) return 0;
@@ -188,7 +188,7 @@ export default function PipelineView({ projects }: PipelineViewProps) {
       return (
         <TableHead
           key={col}
-          className={col === "Project Name" ? "w-[280px]" : col === "Latest Update" ? "w-[200px]" : col === "Stakeholder" ? "w-[120px]" : undefined}
+          className={col === "Project Name" ? "w-[280px]" : col === "Latest Update" ? "w-[200px]" : col === "Sponsor" ? "w-[120px]" : undefined}
         >
           <span className="flex items-center gap-1">
             {col}
@@ -408,7 +408,7 @@ function ProjectRowCells({ project }: { project: ProjectWithDetails }) {
       <TableCell>
         <div className="flex flex-col gap-0.5">
           <span className="text-sm font-medium">{project.team || ""}</span>
-          {project.sponsor && <span className="text-xs text-muted-foreground">Sponsor: {project.sponsor}</span>}
+          {project.sponsor && <span className="text-xs text-muted-foreground">Function: {project.sponsor}</span>}
         </div>
       </TableCell>
       <TableCell>
