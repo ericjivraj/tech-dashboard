@@ -1343,6 +1343,9 @@ components:
           type: ["integer", "null"]
         completionPercent:
           type: ["integer", "null"]
+        ragStatus:
+          type: string
+          enum: [green, amber, red]
         displayOrder:
           type: integer
         listOrder:
@@ -1372,6 +1375,7 @@ components:
         - cycleId
         - sprintId
         - completionPercent
+        - ragStatus
         - displayOrder
         - listOrder
         - timelineOrder
@@ -1438,11 +1442,24 @@ components:
                 - id
                 - name
                 - sprintNumber
+            cycleAllocations:
+              type: array
+              items:
+                type: object
+                properties:
+                  cycleId:
+                    type: integer
+                  percent:
+                    type: number
+                required:
+                  - cycleId
+                  - percent
           required:
             - goals
             - latestUpdate
             - cycle
             - sprint
+            - cycleAllocations
 
     CreateProjectBody:
       type: object
@@ -1526,12 +1543,27 @@ components:
           type: ["integer", "null"]
         completionPercent:
           type: ["integer", "null"]
+        ragStatus:
+          type: ["string", "null"]
+          enum: [green, amber, red, null]
         displayOrder:
           type: ["integer", "null"]
         listOrder:
           type: ["integer", "null"]
         timelineOrder:
           type: ["integer", "null"]
+        cycleAllocations:
+          type: ["array", "null"]
+          items:
+            type: object
+            properties:
+              cycleId:
+                type: integer
+              percent:
+                type: number
+            required:
+              - cycleId
+              - percent
         goalIds:
           type: ["array", "null"]
           items:
@@ -1699,6 +1731,9 @@ components:
           type: ["integer", "null"]
         completionPercent:
           type: ["integer", "null"]
+        ragStatus:
+          type: string
+          enum: [green, amber, red]
         displayOrder:
           type: integer
         listOrder:
@@ -1743,6 +1778,7 @@ components:
         - sprintName
         - sprintNumber
         - completionPercent
+        - ragStatus
         - displayOrder
         - listOrder
         - timelineOrder

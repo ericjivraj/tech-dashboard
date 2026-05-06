@@ -281,7 +281,11 @@ export default function GanttView({ filters }: GanttViewProps) {
     filteredProjects = filteredProjects.filter((p) => {
       const cycle = cycles?.find((c) => c.id.toString() === selectedCycleId);
       if (!cycle) return false;
-      return p.cycleName === cycle.name;
+      // Strict: only projects whose primary cycle is the selected cycle
+      // or that have an explicit per-cycle allocation row for it.
+      if (p.cycleName === cycle.name) return true;
+      if (getCycleAllocations(p).some((a) => a.cycleId === cycle.id)) return true;
+      return false;
     });
   }
 
@@ -303,7 +307,11 @@ export default function GanttView({ filters }: GanttViewProps) {
   if (filters.cycleId !== "all" && cycles) {
     const cycle = cycles.find((c) => c.id.toString() === filters.cycleId);
     if (cycle) {
-      filteredProjects = filteredProjects.filter((p) => p.cycleName === cycle.name);
+      filteredProjects = filteredProjects.filter((p) => {
+        if (p.cycleName === cycle.name) return true;
+        if (getCycleAllocations(p).some((a) => a.cycleId === cycle.id)) return true;
+        return false;
+      });
     }
   }
   if ((filters.sprintId ?? "all") !== "all") {
@@ -374,9 +382,9 @@ export default function GanttView({ filters }: GanttViewProps) {
 
         <div className="flex flex-wrap gap-3">
           {[
-            { color: "#22c55e", label: "In development", desc: "Prioritized and in progress" },
-            { color: "#eab308", label: "Planned next", desc: "Prioritized awaiting scheduling" },
-            { color: "#ef4444", label: "Blocked", desc: "Delayed and at risk" },
+            { color: "#22c55e", label: "Green", desc: "On track" },
+            { color: "#f59e0b", label: "Amber", desc: "At risk, needs attention" },
+            { color: "#ef4444", label: "Red", desc: "Critical, escalation required" },
           ].map(({ color, label, desc }) => (
             <div key={label} className="flex items-start gap-2 rounded-lg border bg-card px-4 py-3 min-w-[200px]">
               <span className="w-4 h-4 rounded shrink-0 mt-0.5" style={{ backgroundColor: color }} />
@@ -676,20 +684,12 @@ function GanttRowContent({
   const effectiveEnd = dates?.end;
   const usingCycleFallback = !project.startDate && !project.endDate;
   const pos = dates ? getBarPosition(dates.start, dates.end) : null;
-  const isCurrent =
-    project.cycleStartDate &&
-    project.cycleEndDate &&
-    parseISO(project.cycleStartDate) <= today &&
-    parseISO(project.cycleEndDate) >= today;
-  const isFuture = project.cycleStartDate && parseISO(project.cycleStartDate) > today;
   const color =
-    isProjectBlocked(project) || project.confidence === "at_risk"
+    project.ragStatus === "red"
       ? "#ef4444"
-      : isCurrent
-        ? "#22c55e"
-        : isFuture
-          ? "#eab308"
-          : "#94a3b8";
+      : project.ragStatus === "amber"
+        ? "#f59e0b"
+        : "#22c55e";
 
   return (
     <>

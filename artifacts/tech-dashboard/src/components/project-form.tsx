@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import RichTextEditor from "./rich-text-editor";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -24,7 +25,7 @@ import { format, parseISO } from "date-fns";
 
 const SHOW_CONFIDENCE = false;
 const SHOW_STORY_POINTS = false;
-const SHOW_DATES = false;
+const SHOW_DATES = true;
 const SHOW_SPRINT = false;
 const SHOW_SUB_TEAM_ALLOCATION = false;
 
@@ -35,6 +36,8 @@ const formSchema = z.object({
   team: z.string().optional().nullable(),
   stakeholder: z.string().optional().nullable(),
   status: z.enum(["done", "in_progress", "up_next", "backlog", "new_request"]),
+  ragStatus: z.enum(["green", "amber", "red"]).default("green"),
+  cycleAllocations: z.array(z.object({ cycleId: z.number(), percent: z.coerce.number().min(0).max(100) })).default([]),
   confidence: z.enum(["high", "medium", "low", "at_risk"]).optional().nullable(),
   storyPoints: z.coerce.number().optional().nullable(),
   startDate: z.string().optional().nullable(),
@@ -99,6 +102,7 @@ export default function ProjectForm({
       team: "",
       stakeholder: "",
       status: "new_request",
+      ragStatus: "green",
       confidence: "medium",
       storyPoints: null,
       startDate: "",
@@ -108,7 +112,8 @@ export default function ProjectForm({
       cycleId: null,
       sprintId: null,
       completionPercent: null,
-      goalIds: []
+      goalIds: [],
+      cycleAllocations: [],
     }
   });
 
@@ -146,6 +151,7 @@ export default function ProjectForm({
         team: projectToEdit.team,
         stakeholder: projectToEdit.stakeholder || "",
         status: projectToEdit.status as "done" | "in_progress" | "up_next" | "backlog" | "new_request",
+        ragStatus: (projectToEdit.ragStatus as "green" | "amber" | "red") ?? "green",
         confidence: projectToEdit.confidence as "high" | "medium" | "low" | "at_risk" | null,
         storyPoints: projectToEdit.storyPoints,
         startDate: projectToEdit.startDate?.split('T')[0] || "",
@@ -155,7 +161,8 @@ export default function ProjectForm({
         cycleId: projectToEdit.cycleId,
         sprintId: projectToEdit.sprintId,
         completionPercent: projectToEdit.completionPercent ?? null,
-        goalIds: projectToEdit.goals?.map(g => g.id) || []
+        goalIds: projectToEdit.goals?.map(g => g.id) || [],
+        cycleAllocations: (projectToEdit as unknown as { cycleAllocations?: { cycleId: number; percent: number }[] }).cycleAllocations ?? [],
       });
     } else {
       form.reset({
@@ -165,6 +172,7 @@ export default function ProjectForm({
         team: isGuest && guestTeam ? guestTeam : "",
         stakeholder: "",
         status: initialStatus ?? "new_request",
+        ragStatus: "green",
         confidence: "medium",
         storyPoints: null,
         startDate: "",
@@ -174,7 +182,8 @@ export default function ProjectForm({
         cycleId: null,
         sprintId: null,
         completionPercent: null,
-        goalIds: []
+        goalIds: [],
+        cycleAllocations: [],
       });
       setAllocations([]);
     }
@@ -338,7 +347,7 @@ export default function ProjectForm({
               )}
             />
             
-            <div className={SHOW_CONFIDENCE ? "grid grid-cols-2 gap-4" : ""}>
+            <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="status"
@@ -357,6 +366,43 @@ export default function ProjectForm({
                             {STATUS_LABELS[status]}
                           </SelectItem>
                         ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="ragStatus"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>RAG status</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select RAG status" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="green">
+                          <span className="inline-flex items-center gap-2">
+                            <span className="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                            Green, on track
+                          </span>
+                        </SelectItem>
+                        <SelectItem value="amber">
+                          <span className="inline-flex items-center gap-2">
+                            <span className="inline-block w-2.5 h-2.5 rounded-full bg-amber-500" />
+                            Amber, at risk, needs attention
+                          </span>
+                        </SelectItem>
+                        <SelectItem value="red">
+                          <span className="inline-flex items-center gap-2">
+                            <span className="inline-block w-2.5 h-2.5 rounded-full bg-red-500" />
+                            Red, critical, escalation required
+                          </span>
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -458,7 +504,7 @@ export default function ProjectForm({
             />
 
             {(SHOW_STORY_POINTS || SHOW_DATES) && (
-              <div className="grid grid-cols-3 gap-4">
+              <div className={SHOW_STORY_POINTS && SHOW_DATES ? "grid grid-cols-3 gap-4" : SHOW_DATES ? "grid grid-cols-2 gap-4" : ""}>
                 {SHOW_STORY_POINTS && (
                   <FormField
                     control={form.control}
@@ -564,6 +610,125 @@ export default function ProjectForm({
               )}
             </div>
 
+            <FormField
+              control={form.control}
+              name="cycleAllocations"
+              render={({ field }) => {
+                const allocations = field.value ?? [];
+                const getPercent = (cycleId: number) => {
+                  const found = allocations.find((a) => a.cycleId === cycleId);
+                  return found ? found.percent : 0;
+                };
+                const setPercent = (cycleId: number, raw: string) => {
+                  const pct = raw === "" ? 0 : Number(raw);
+                  if (Number.isNaN(pct) || pct < 0 || pct > 100) return;
+                  const others = allocations.filter((a) => a.cycleId !== cycleId);
+                  if (pct === 0) {
+                    field.onChange(others);
+                  } else {
+                    field.onChange([...others, { cycleId, percent: pct }]);
+                  }
+                };
+                const total = allocations.reduce((sum, a) => sum + (Number(a.percent) || 0), 0);
+
+                const startStr = (form.watch("startDate") as string | null | undefined) ?? "";
+                const endStr = (form.watch("endDate") as string | null | undefined) ?? "";
+                const canAutoDistribute = Boolean(startStr && endStr && (cycles ?? []).length > 0);
+
+                const autoDistributeFromDates = () => {
+                  if (!startStr || !endStr || !cycles) return;
+                  const start = parseISO(startStr);
+                  const end = parseISO(endStr);
+                  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end < start) return;
+                  const next: { cycleId: number; percent: number }[] = [];
+                  for (const c of cycles) {
+                    const cStart = parseISO(c.startDate);
+                    const cEnd = parseISO(c.endDate);
+                    const overlapStart = start > cStart ? start : cStart;
+                    const overlapEnd = end < cEnd ? end : cEnd;
+                    if (overlapStart > overlapEnd) continue;
+                    const overlapMs = overlapEnd.getTime() - overlapStart.getTime();
+                    const cycleMs = cEnd.getTime() - cStart.getTime();
+                    if (cycleMs <= 0) continue;
+                    const pct = Math.round((overlapMs / cycleMs) * 1000) / 10;
+                    if (pct > 0) next.push({ cycleId: c.id, percent: pct });
+                  }
+                  field.onChange(next);
+                };
+
+                const removeBar = () => {
+                  form.setValue("startDate", "");
+                  form.setValue("endDate", "");
+                  field.onChange([]);
+                };
+
+                return (
+                  <FormItem>
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <FormLabel className="m-0">Timeline bar (% of cycle capacity per cycle)</FormLabel>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-7 text-xs"
+                          disabled={!canAutoDistribute}
+                          onClick={autoDistributeFromDates}
+                          title={canAutoDistribute ? "Compute % per cycle from start/end dates" : "Set start and end dates first"}
+                        >
+                          Auto-distribute from dates
+                        </Button>
+                        {(allocations.length > 0 || startStr || endStr) && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 text-xs text-muted-foreground hover:text-destructive"
+                            onClick={removeBar}
+                            title="Clear dates and allocations (removes the bar from Timeline view)"
+                          >
+                            Remove bar
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                    <div className="rounded-md border bg-muted/20 p-3 space-y-2">
+                      {(cycles ?? []).length === 0 && (
+                        <p className="text-xs text-muted-foreground">No cycles available.</p>
+                      )}
+                      {(cycles ?? []).map((c) => (
+                        <div key={c.id} className="grid grid-cols-[1fr_90px] items-center gap-3">
+                          <span className="text-sm">{c.name}</span>
+                          <div className="relative">
+                            <Input
+                              type="number"
+                              min={0}
+                              max={100}
+                              step={0.1}
+                              className="h-8 pr-7 text-sm tabular-nums"
+                              value={getPercent(c.id) || ""}
+                              placeholder="0"
+                              onChange={(e) => setPercent(c.id, e.target.value)}
+                            />
+                            <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">%</span>
+                          </div>
+                        </div>
+                      ))}
+                      {allocations.length > 0 && (
+                        <p className="text-xs text-muted-foreground pt-1 border-t border-border/50">
+                          Total across cycles: {total.toFixed(1)}%
+                        </p>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1.5">
+                      Set start &amp; end dates above, then click <span className="font-medium">Auto-distribute</span> to fill the % per cycle from date overlap. You can fine-tune any value after.
+                    </p>
+                    <FormMessage />
+                  </FormItem>
+                );
+              }}
+            />
+
             {SHOW_SUB_TEAM_ALLOCATION && isDevTeam && (
               <div className="rounded-lg border border-blue-200 bg-blue-50/30 dark:border-blue-800/30 dark:bg-blue-950/10 p-4 space-y-3">
                 <div className="flex items-center justify-between">
@@ -664,7 +829,11 @@ export default function ProjectForm({
                 <FormItem>
                   <FormLabel>Description</FormLabel>
                   <FormControl>
-                    <Textarea className="min-h-[100px]" {...field} value={field.value || ""} />
+                    <RichTextEditor
+                      value={field.value || ""}
+                      onChange={field.onChange}
+                      minHeight="120px"
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -678,7 +847,11 @@ export default function ProjectForm({
                 <FormItem>
                   <FormLabel>Business Impact</FormLabel>
                   <FormControl>
-                    <Textarea className="min-h-[80px]" {...field} value={field.value || ""} />
+                    <RichTextEditor
+                      value={field.value || ""}
+                      onChange={field.onChange}
+                      minHeight="80px"
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

@@ -227,6 +227,15 @@ export const ProjectConfidence = {
   at_risk: "at_risk",
 } as const;
 
+export type ProjectRagStatus =
+  (typeof ProjectRagStatus)[keyof typeof ProjectRagStatus];
+
+export const ProjectRagStatus = {
+  green: "green",
+  amber: "amber",
+  red: "red",
+} as const;
+
 export interface Project {
   id: number;
   title: string;
@@ -257,6 +266,7 @@ export interface Project {
   sprintId: number | null;
   /** @nullable */
   completionPercent: number | null;
+  ragStatus: ProjectRagStatus;
   displayOrder: number;
   listOrder: number;
   timelineOrder: number;
@@ -295,6 +305,11 @@ export type ProjectWithDetailsSprint = {
   sprintNumber: number;
 } | null;
 
+export type ProjectWithDetailsCycleAllocationsItem = {
+  cycleId: number;
+  percent: number;
+};
+
 export type ProjectWithDetails = Project & {
   goals: Goal[];
   /** @nullable */
@@ -303,6 +318,7 @@ export type ProjectWithDetails = Project & {
   cycle: ProjectWithDetailsCycle;
   /** @nullable */
   sprint: ProjectWithDetailsSprint;
+  cycleAllocations: ProjectWithDetailsCycleAllocationsItem[];
 };
 
 export type CreateProjectBodyStatus =
@@ -391,6 +407,24 @@ export const UpdateProjectBodyConfidence = {
   at_risk: "at_risk",
 } as const;
 
+/**
+ * @nullable
+ */
+export type UpdateProjectBodyRagStatus =
+  | (typeof UpdateProjectBodyRagStatus)[keyof typeof UpdateProjectBodyRagStatus]
+  | null;
+
+export const UpdateProjectBodyRagStatus = {
+  green: "green",
+  amber: "amber",
+  red: "red",
+} as const;
+
+export type UpdateProjectBodyCycleAllocationsItem = {
+  cycleId: number;
+  percent: number;
+};
+
 export interface UpdateProjectBody {
   /** @nullable */
   title?: string | null;
@@ -423,11 +457,15 @@ export interface UpdateProjectBody {
   /** @nullable */
   completionPercent?: number | null;
   /** @nullable */
+  ragStatus?: UpdateProjectBodyRagStatus;
+  /** @nullable */
   displayOrder?: number | null;
   /** @nullable */
   listOrder?: number | null;
   /** @nullable */
   timelineOrder?: number | null;
+  /** @nullable */
+  cycleAllocations?: UpdateProjectBodyCycleAllocationsItem[] | null;
   /** @nullable */
   goalIds?: number[] | null;
 }
@@ -517,6 +555,15 @@ export const ProjectTimelineConfidence = {
   at_risk: "at_risk",
 } as const;
 
+export type ProjectTimelineRagStatus =
+  (typeof ProjectTimelineRagStatus)[keyof typeof ProjectTimelineRagStatus];
+
+export const ProjectTimelineRagStatus = {
+  green: "green",
+  amber: "amber",
+  red: "red",
+} as const;
+
 /**
  * @nullable
  */
@@ -563,6 +610,7 @@ export interface ProjectTimeline {
   sprintNumber: number | null;
   /** @nullable */
   completionPercent: number | null;
+  ragStatus: ProjectTimelineRagStatus;
   displayOrder: number;
   listOrder: number;
   timelineOrder: number;

@@ -278,6 +278,7 @@ export const ListProjectsResponseItem = zod
     cycleId: zod.number().nullable(),
     sprintId: zod.number().nullable(),
     completionPercent: zod.number().nullable(),
+    ragStatus: zod.enum(["green", "amber", "red"]),
     displayOrder: zod.number(),
     listOrder: zod.number(),
     timelineOrder: zod.number(),
@@ -318,6 +319,12 @@ export const ListProjectsResponseItem = zod
           sprintNumber: zod.number(),
         })
         .nullable(),
+      cycleAllocations: zod.array(
+        zod.object({
+          cycleId: zod.number(),
+          percent: zod.number(),
+        }),
+      ),
     }),
   );
 export const ListProjectsResponse = zod.array(ListProjectsResponseItem);
@@ -397,6 +404,7 @@ export const GetProjectResponse = zod
     cycleId: zod.number().nullable(),
     sprintId: zod.number().nullable(),
     completionPercent: zod.number().nullable(),
+    ragStatus: zod.enum(["green", "amber", "red"]),
     displayOrder: zod.number(),
     listOrder: zod.number(),
     timelineOrder: zod.number(),
@@ -437,6 +445,12 @@ export const GetProjectResponse = zod
           sprintNumber: zod.number(),
         })
         .nullable(),
+      cycleAllocations: zod.array(
+        zod.object({
+          cycleId: zod.number(),
+          percent: zod.number(),
+        }),
+      ),
     }),
   );
 
@@ -480,9 +494,25 @@ export const UpdateProjectBody = zod.object({
   cycleId: zod.number().nullish(),
   sprintId: zod.number().nullish(),
   completionPercent: zod.number().nullish(),
+  ragStatus: zod
+    .union([
+      zod.literal("green"),
+      zod.literal("amber"),
+      zod.literal("red"),
+      zod.literal(null),
+    ])
+    .nullish(),
   displayOrder: zod.number().nullish(),
   listOrder: zod.number().nullish(),
   timelineOrder: zod.number().nullish(),
+  cycleAllocations: zod
+    .array(
+      zod.object({
+        cycleId: zod.number(),
+        percent: zod.number(),
+      }),
+    )
+    .nullish(),
   goalIds: zod.array(zod.number()).nullish(),
 });
 
@@ -518,6 +548,7 @@ export const UpdateProjectResponse = zod
     cycleId: zod.number().nullable(),
     sprintId: zod.number().nullable(),
     completionPercent: zod.number().nullable(),
+    ragStatus: zod.enum(["green", "amber", "red"]),
     displayOrder: zod.number(),
     listOrder: zod.number(),
     timelineOrder: zod.number(),
@@ -558,6 +589,12 @@ export const UpdateProjectResponse = zod
           sprintNumber: zod.number(),
         })
         .nullable(),
+      cycleAllocations: zod.array(
+        zod.object({
+          cycleId: zod.number(),
+          percent: zod.number(),
+        }),
+      ),
     }),
   );
 
@@ -797,6 +834,7 @@ export const GetProjectsTimelineResponseItem = zod.object({
   sprintName: zod.string().nullable(),
   sprintNumber: zod.number().nullable(),
   completionPercent: zod.number().nullable(),
+  ragStatus: zod.enum(["green", "amber", "red"]),
   displayOrder: zod.number(),
   listOrder: zod.number(),
   timelineOrder: zod.number(),

@@ -10,7 +10,6 @@ import {
   sprintsTable,
   projectSprintAllocationsTable,
   projectCycleAllocationsTable,
-  projectAttachmentsTable,
 } from "@workspace/db";
 import { z } from "zod";
 import {
@@ -72,10 +71,10 @@ async function getProjectWithDetails(projectId: number) {
     if (s) sprint = { id: s.id, name: s.name, sprintNumber: s.sprintNumber };
   }
 
-  const attachmentRows = await db
-    .select({ id: projectAttachmentsTable.id, name: projectAttachmentsTable.name, url: projectAttachmentsTable.url })
-    .from(projectAttachmentsTable)
-    .where(eq(projectAttachmentsTable.projectId, projectId));
+  const cycleAllocRows = await db
+    .select()
+    .from(projectCycleAllocationsTable)
+    .where(eq(projectCycleAllocationsTable.projectId, projectId));
 
   return {
     ...project,
@@ -91,7 +90,10 @@ async function getProjectWithDetails(projectId: number) {
       : null,
     cycle,
     sprint,
-    attachments: attachmentRows,
+    cycleAllocations: cycleAllocRows.map((r) => ({
+      cycleId: r.cycleId,
+      percent: Number(r.allocationPercent),
+    })),
   };
 }
 
@@ -329,22 +331,6 @@ router.get("/projects/timeline", async (req, res): Promise<void> => {
     list.sort((a, b) => a.cycleStartDate.localeCompare(b.cycleStartDate));
   }
 
-  // Attachments shown in the project modal. URL may be a relative
-  // /attachments/<file> path or a full external link.
-  const allAttachments = projectIds.length > 0
-    ? await db
-        .select()
-        .from(projectAttachmentsTable)
-        .where(inArray(projectAttachmentsTable.projectId, projectIds))
-    : [];
-
-  const attachmentsByProject = new Map<number, { id: number; name: string; url: string }[]>();
-  for (const a of allAttachments) {
-    const list = attachmentsByProject.get(a.projectId) ?? [];
-    list.push({ id: a.id, name: a.name, url: a.url });
-    attachmentsByProject.set(a.projectId, list);
-  }
-
   const allSprintIds = [...new Set(allAllocations.map((a) => a.sprintId))];
   const allocationSprints = allSprintIds.length > 0
     ? await db.select().from(sprintsTable).where(inArray(sprintsTable.id, allSprintIds))
@@ -437,12 +423,12 @@ router.get("/projects/timeline", async (req, res): Promise<void> => {
       sprintName: sprint?.name ?? null,
       sprintNumber: sprint?.sprintNumber ?? null,
       completionPercent: resolvedCompletionPercent,
+      ragStatus: p.ragStatus,
       displayOrder: p.displayOrder,
       listOrder: p.listOrder,
       timelineOrder: p.timelineOrder,
       blocked: latestUpdateByProject.get(p.id)?.blocked === true,
       cycleAllocations: cycleAllocationsByProject.get(p.id) ?? [],
-      attachments: attachmentsByProject.get(p.id) ?? [],
       subTeamSummary: subTeamSummary ?? { a3Percent: null, backendPercent: null, frontendPercent: null },
       goals: goalsByProject.get(p.id) ?? [],
     };
@@ -601,7 +587,7 @@ router.patch("/projects/:id", requireAuth, async (req, res): Promise<void> => {
     return;
   }
 
-  const { goalIds, startDate, endDate, ...fields } = parsed.data;
+  const { goalIds, cycleAllocations, startDate, endDate, ...fields } = parsed.data;
   const updates: Record<string, unknown> = {};
 
   for (const [key, val] of Object.entries(fields)) {
@@ -639,6 +625,22 @@ router.patch("/projects/:id", requireAuth, async (req, res): Promise<void> => {
     }
   }
 
+  let cycleAllocationsUpdated = false;
+  if (cycleAllocations !== undefined && cycleAllocations !== null) {
+    await db.delete(projectCycleAllocationsTable).where(eq(projectCycleAllocationsTable.projectId, params.data.id));
+    const validRows = cycleAllocations.filter((a) => Number(a.percent) > 0);
+    if (validRows.length > 0) {
+      await db.insert(projectCycleAllocationsTable).values(
+        validRows.map((a) => ({
+          projectId: params.data.id,
+          cycleId: a.cycleId,
+          allocationPercent: String(Number(a.percent).toFixed(2)),
+        })),
+      );
+    }
+    cycleAllocationsUpdated = true;
+  }
+
   let goalsUpdated = false;
   let goalIdsBefore: number[] | undefined;
   let goalIdsAfter: number[] | undefined;
@@ -659,11 +661,14 @@ router.patch("/projects/:id", requireAuth, async (req, res): Promise<void> => {
     !goalsUpdated &&
     Object.keys(updates).every((k) => ORDER_FIELDS.has(k));
 
-  if ((fieldUpdated || goalsUpdated) && !onlyOrderingChanged) {
+  if ((fieldUpdated || goalsUpdated || cycleAllocationsUpdated) && !onlyOrderingChanged) {
     const diff: Record<string, unknown> = { before, after };
     if (goalsUpdated) {
       diff.goalIdsBefore = goalIdsBefore;
       diff.goalIdsAfter = goalIdsAfter;
+    }
+    if (cycleAllocationsUpdated) {
+      diff.cycleAllocationsAfter = cycleAllocations;
     }
     await logAudit(ctx, "update", "project", params.data.id, diff);
   }

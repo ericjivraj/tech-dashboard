@@ -1,0 +1,1 @@
+ALTER TABLE "projects" ADD COLUMN "rag_status" text DEFAULT 'green' NOT NULL;

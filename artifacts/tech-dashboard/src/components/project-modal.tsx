@@ -25,29 +25,48 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format, parseISO } from "date-fns";
 
-// Render free-text fields (description, impact) with any http(s) URLs auto-
-// linked. break-all on the link itself lets long URLs wrap mid-character so
-// they don't blow out the layout in narrow columns.
-function renderTextWithLinks(text: string): React.ReactNode {
-  return text.split(/(https?:\/\/[^\s]+)/g).map((part, i) =>
-    /^https?:\/\//.test(part) ? (
-      <a
-        key={i}
-        href={part}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="text-primary underline underline-offset-2 hover:opacity-80 break-all"
-      >
-        {part}
-      </a>
-    ) : (
-      <span key={i}>{part}</span>
-    ),
+import DOMPurify from "dompurify";
+
+// Render description / impact fields. New rows are HTML produced by the
+// rich-text editor — sanitized and rendered as HTML. Legacy plain-text rows
+// (no tags) fall through to the auto-link path so embedded URLs still work.
+function renderRichText(value: string): React.ReactNode {
+  const looksLikeHtml = /<[a-z][\s\S]*>/i.test(value);
+  if (looksLikeHtml) {
+    const clean = DOMPurify.sanitize(value, {
+      ALLOWED_TAGS: ["p", "br", "strong", "em", "u", "s", "ul", "ol", "li", "a"],
+      ALLOWED_ATTR: ["href", "target", "rel", "class"],
+    });
+    return (
+      <div
+        className="prose prose-sm dark:prose-invert max-w-none [&_a]:text-primary [&_a]:underline [&_a]:underline-offset-2 [&_a]:break-all [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1"
+        dangerouslySetInnerHTML={{ __html: clean }}
+      />
+    );
+  }
+  return (
+    <p className="text-sm whitespace-pre-wrap break-words">
+      {value.split(/(https?:\/\/[^\s]+)/g).map((part, i) =>
+        /^https?:\/\//.test(part) ? (
+          <a
+            key={i}
+            href={part}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-primary underline underline-offset-2 hover:opacity-80 break-all"
+          >
+            {part}
+          </a>
+        ) : (
+          <span key={i}>{part}</span>
+        ),
+      )}
+    </p>
   );
 }
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { AlertCircle, Edit, Trash2, Clock, Send, X, Paperclip, Pencil, Check, ShieldOff } from "lucide-react";
+import { AlertCircle, Edit, Trash2, Clock, Send, X, Pencil, Check, ShieldOff } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { STATUS_LABELS } from "@/lib/constants";
 import { isProjectBlocked } from "@/lib/blocked";
@@ -254,15 +273,15 @@ export default function ProjectModal({
               <div className="space-y-4">
                 <div>
                   <h4 className="text-sm font-semibold mb-1 text-muted-foreground uppercase tracking-wider">Description</h4>
-                  <p className="text-sm whitespace-pre-wrap break-words">
-                    {project.description ? renderTextWithLinks(project.description) : "No description provided."}
-                  </p>
+                  {project.description
+                    ? renderRichText(project.description)
+                    : <p className="text-sm text-muted-foreground">No description provided.</p>}
                 </div>
                 <div>
                   <h4 className="text-sm font-semibold mb-1 text-muted-foreground uppercase tracking-wider">Business Impact</h4>
-                  <p className="text-sm whitespace-pre-wrap break-words">
-                    {project.impact ? renderTextWithLinks(project.impact) : "Not specified."}
-                  </p>
+                  {project.impact
+                    ? renderRichText(project.impact)
+                    : <p className="text-sm text-muted-foreground">Not specified.</p>}
                 </div>
               </div>
 
@@ -297,36 +316,6 @@ export default function ProjectModal({
                 )}
               </div>
             </div>
-
-            {(() => {
-              // Cast through `unknown` because ProjectWithDetails (from the
-              // orval-generated client) doesn't yet include `attachments` —
-              // the OpenAPI spec needs regenerating to surface them in the type.
-              const attachments = (project as unknown as { attachments?: { id: number; name: string; url: string }[] }).attachments ?? [];
-              if (attachments.length === 0) return null;
-              return (
-                <div className="pt-4 border-t mt-4 space-y-3">
-                  <h4 className="text-sm font-semibold flex items-center gap-2">
-                    <Paperclip className="h-4 w-4" /> Attachments
-                  </h4>
-                  <ul className="space-y-1.5">
-                    {attachments.map((a) => (
-                      <li key={a.id}>
-                        <a
-                          href={a.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-2 text-sm text-primary underline underline-offset-2 hover:opacity-80 break-all"
-                        >
-                          <Paperclip className="h-3.5 w-3.5 shrink-0" />
-                          {a.name}
-                        </a>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              );
-            })()}
 
             <div className="pt-4 border-t mt-4 space-y-4">
               <h4 className="text-sm font-semibold flex items-center gap-2">
@@ -447,7 +436,7 @@ export default function ProjectModal({
             <AlertDialogTitle>Delete this project?</AlertDialogTitle>
             <AlertDialogDescription>
               {project?.title
-                ? `"${project.title}" will be permanently removed, along with its updates and attachments. This cannot be undone.`
+                ? `"${project.title}" will be permanently removed, along with its updates. This cannot be undone.`
                 : "This cannot be undone."}
             </AlertDialogDescription>
           </AlertDialogHeader>
