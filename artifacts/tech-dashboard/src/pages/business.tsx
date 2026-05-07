@@ -5,8 +5,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import KanbanView from "@/components/kanban-view";
 import FilterBar from "@/components/filter-bar";
 import { DEFAULT_FILTERS, type FilterState } from "@/lib/filter-types";
-import { STATUS_LABELS, TEAMS, SPONSORS } from "@/lib/constants";
-import { storyPointsToTShirt } from "@/lib/utils";
+import { STATUS_LABELS, TEAMS, FUNCTIONS } from "@/lib/constants";
 import { matchesSearch } from "@/lib/search";
 
 export default function BusinessView() {
@@ -15,7 +14,7 @@ export default function BusinessView() {
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
 
   const teams = TEAMS;
-  const sponsors = SPONSORS;
+  const sponsors = FUNCTIONS;
 
   const filteredProjects = useMemo(() => {
     if (!allProjects) return [];
@@ -23,11 +22,10 @@ export default function BusinessView() {
       if (filters.search && !matchesSearch(p, filters.search)) return false;
       if (filters.status !== "all" && p.status !== filters.status) return false;
       if (filters.team !== "all" && p.team !== filters.team) return false;
-      if (filters.sponsor !== "all" && p.sponsor !== filters.sponsor) return false;
+      if (filters.functionName !== "all" && p.functionName !== filters.functionName) return false;
       if (filters.goalId !== "all" && !p.goals.some((g) => g.id.toString() === filters.goalId)) return false;
       if (filters.cycleId !== "all" && p.cycleId?.toString() !== filters.cycleId) return false;
       if ((filters.sprintId ?? "all") !== "all" && p.sprintId?.toString() !== filters.sprintId) return false;
-      if ((filters.size ?? "all") !== "all" && (p.storyPoints == null || storyPointsToTShirt(p.storyPoints).label !== filters.size)) return false;
       return true;
     });
   }, [allProjects, filters]);

@@ -1,11 +1,10 @@
 import { useState, useEffect } from "react";
-import { 
-  useCreateProject, useUpdateProject, 
+import {
+  useCreateProject, useUpdateProject,
   getListProjectsQueryKey, getGetDashboardSummaryQueryKey, getGetProjectQueryKey, getGetProjectsTimelineQueryKey,
   useListGoals, useListCycles, useListSprints,
-  useGetMe,
   useGetProjectAllocations, useUpsertProjectAllocations, getGetProjectAllocationsQueryKey,
-  ProjectWithDetails, ProjectStatus, ProjectConfidence
+  ProjectWithDetails, ProjectStatus,
 } from "@workspace/api-client-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -20,33 +19,25 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { TEAMS, SPONSORS, STATUS_LABELS, STATUS_ORDER } from "@/lib/constants";
+import { TEAMS, FUNCTIONS, STATUS_LABELS, STATUS_ORDER, AVG_CYCLE_CAPACITY, cycleEffortPercent } from "@/lib/constants";
 import { format, parseISO } from "date-fns";
 
-const SHOW_CONFIDENCE = false;
-const SHOW_STORY_POINTS = false;
-const SHOW_DATES = true;
-const SHOW_SPRINT = false;
 const SHOW_SUB_TEAM_ALLOCATION = false;
 
 const formSchema = z.object({
   title: z.string().min(1, "Title is required"),
   description: z.string().optional().nullable(),
-  sponsor: z.string().optional().nullable(),
+  functionName: z.string().optional().nullable(),
   team: z.string().optional().nullable(),
-  stakeholder: z.string().optional().nullable(),
+  sponsor: z.string().optional().nullable(),
   status: z.enum(["done", "in_progress", "up_next", "backlog", "new_request"]),
   ragStatus: z.enum(["green", "amber", "red"]).default("green"),
   cycleAllocations: z.array(z.object({ cycleId: z.number(), percent: z.coerce.number().min(0).max(100) })).default([]),
-  confidence: z.enum(["high", "medium", "low", "at_risk"]).optional().nullable(),
   storyPoints: z.coerce.number().optional().nullable(),
   startDate: z.string().optional().nullable(),
   endDate: z.string().optional().nullable(),
   impact: z.string().optional().nullable(),
-  blockedReason: z.string().optional().nullable(),
   cycleId: z.coerce.number().optional().nullable(),
-  sprintId: z.coerce.number().optional().nullable(),
-  completionPercent: z.coerce.number().min(0).max(100).optional().nullable(),
   goalIds: z.array(z.number()).default([])
 });
 
@@ -72,10 +63,7 @@ export default function ProjectForm({
   const { data: goals } = useListGoals();
   const { data: cycles } = useListCycles();
   const { data: sprints } = useListSprints();
-  const { data: user } = useGetMe();
-  const isGuest = user?.role === "guest";
-  const guestTeam = user?.team ?? null;
-  
+
   const createProject = useCreateProject();
   const updateProject = useUpdateProject();
   const upsertAllocations = useUpsertProjectAllocations();
@@ -98,20 +86,16 @@ export default function ProjectForm({
     defaultValues: {
       title: "",
       description: "",
-      sponsor: "",
+      functionName: "",
       team: "",
-      stakeholder: "",
+      sponsor: "",
       status: "new_request",
       ragStatus: "green",
-      confidence: "medium",
       storyPoints: null,
       startDate: "",
       endDate: "",
       impact: "",
-      blockedReason: "",
       cycleId: null,
-      sprintId: null,
-      completionPercent: null,
       goalIds: [],
       cycleAllocations: [],
     }
@@ -147,20 +131,16 @@ export default function ProjectForm({
       form.reset({
         title: projectToEdit.title,
         description: projectToEdit.description,
-        sponsor: projectToEdit.sponsor,
+        functionName: projectToEdit.functionName,
         team: projectToEdit.team,
-        stakeholder: projectToEdit.stakeholder || "",
+        sponsor: projectToEdit.sponsor || "",
         status: projectToEdit.status as "done" | "in_progress" | "up_next" | "backlog" | "new_request",
         ragStatus: (projectToEdit.ragStatus as "green" | "amber" | "red") ?? "green",
-        confidence: projectToEdit.confidence as "high" | "medium" | "low" | "at_risk" | null,
         storyPoints: projectToEdit.storyPoints,
         startDate: projectToEdit.startDate?.split('T')[0] || "",
         endDate: projectToEdit.endDate?.split('T')[0] || "",
         impact: projectToEdit.impact,
-        blockedReason: projectToEdit.blockedReason,
         cycleId: projectToEdit.cycleId,
-        sprintId: projectToEdit.sprintId,
-        completionPercent: projectToEdit.completionPercent ?? null,
         goalIds: projectToEdit.goals?.map(g => g.id) || [],
         cycleAllocations: (projectToEdit as unknown as { cycleAllocations?: { cycleId: number; percent: number }[] }).cycleAllocations ?? [],
       });
@@ -168,26 +148,22 @@ export default function ProjectForm({
       form.reset({
         title: "",
         description: "",
+        functionName: "",
+        team: "",
         sponsor: "",
-        team: isGuest && guestTeam ? guestTeam : "",
-        stakeholder: "",
         status: initialStatus ?? "new_request",
         ragStatus: "green",
-        confidence: "medium",
         storyPoints: null,
         startDate: "",
         endDate: "",
         impact: "",
-        blockedReason: "",
         cycleId: null,
-        sprintId: null,
-        completionPercent: null,
         goalIds: [],
         cycleAllocations: [],
       });
       setAllocations([]);
     }
-  }, [projectToEdit, form, isGuest, guestTeam, initialStatus, open]);
+  }, [projectToEdit, form, initialStatus, open]);
 
   useEffect(() => {
     if (!projectToEdit || !existingAllocations || !sprints) return;
@@ -252,17 +228,14 @@ export default function ProjectForm({
       ...values,
       title: values.title.trim(),
       description: trim(values.description),
-      sponsor: trim(values.sponsor),
+      functionName: trim(values.functionName),
       team: trim(values.team),
-      stakeholder: trim(values.stakeholder),
+      sponsor: trim(values.sponsor),
       impact: trim(values.impact),
-      blockedReason: trim(values.blockedReason),
       startDate: trim(values.startDate),
       endDate: trim(values.endDate),
       storyPoints: values.storyPoints ? Number(values.storyPoints) : null,
       cycleId: values.cycleId ? Number(values.cycleId) : null,
-      sprintId: values.sprintId ? Number(values.sprintId) : null,
-      completionPercent: values.completionPercent != null ? Number(values.completionPercent) : null,
     };
 
     const errorToast = (err: unknown) => {
@@ -284,7 +257,6 @@ export default function ProjectForm({
           queryClient.invalidateQueries({ queryKey: getGetProjectQueryKey(projectToEdit.id) });
           queryClient.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey() });
           queryClient.invalidateQueries({ queryKey: getGetProjectsTimelineQueryKey() });
-          queryClient.invalidateQueries({ queryKey: ["/api/capacity/summary"] });
           toast({ title: "Project updated" });
         },
         onError: errorToast,
@@ -302,7 +274,6 @@ export default function ProjectForm({
           queryClient.invalidateQueries({ queryKey: getListProjectsQueryKey() });
           queryClient.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey() });
           queryClient.invalidateQueries({ queryKey: getGetProjectsTimelineQueryKey() });
-          queryClient.invalidateQueries({ queryKey: ["/api/capacity/summary"] });
           toast({ title: "Project created" });
         },
         onError: errorToast,
@@ -410,31 +381,6 @@ export default function ProjectForm({
                 )}
               />
 
-              {SHOW_CONFIDENCE && (
-                <FormField
-                  control={form.control}
-                  name="confidence"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Confidence</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value || undefined}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select confidence" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="high">High</SelectItem>
-                          <SelectItem value="medium">Medium</SelectItem>
-                          <SelectItem value="low">Low</SelectItem>
-                          <SelectItem value="at_risk">At Risk</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
             </div>
 
 
@@ -445,7 +391,7 @@ export default function ProjectForm({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Team</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || ""} disabled={isGuest && !!guestTeam}>
+                    <Select onValueChange={field.onChange} value={field.value || ""}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select team" />
@@ -457,9 +403,6 @@ export default function ProjectForm({
                         ))}
                       </SelectContent>
                     </Select>
-                    {isGuest && guestTeam && (
-                      <p className="text-xs text-muted-foreground">Guests can only create projects for their assigned team.</p>
-                    )}
                     <FormMessage />
                   </FormItem>
                 )}
@@ -467,10 +410,10 @@ export default function ProjectForm({
               
               <FormField
                 control={form.control}
-                name="sponsor"
+                name="functionName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Function</FormLabel>
+                    <FormLabel>Function (Sponsor)</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value || ""}>
                       <FormControl>
                         <SelectTrigger>
@@ -478,7 +421,7 @@ export default function ProjectForm({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {SPONSORS.map(s => (
+                        {FUNCTIONS.map(s => (
                           <SelectItem key={s} value={s}>{s}</SelectItem>
                         ))}
                       </SelectContent>
@@ -491,10 +434,10 @@ export default function ProjectForm({
 
             <FormField
               control={form.control}
-              name="stakeholder"
+              name="sponsor"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Sponsor</FormLabel>
+                  <FormLabel>Stakeholder</FormLabel>
                   <FormControl>
                     <Input placeholder="Primary sponsor contact" {...field} value={field.value || ""} />
                   </FormControl>
@@ -503,112 +446,83 @@ export default function ProjectForm({
               )}
             />
 
-            {(SHOW_STORY_POINTS || SHOW_DATES) && (
-              <div className={SHOW_STORY_POINTS && SHOW_DATES ? "grid grid-cols-3 gap-4" : SHOW_DATES ? "grid grid-cols-2 gap-4" : ""}>
-                {SHOW_STORY_POINTS && (
-                  <FormField
-                    control={form.control}
-                    name="storyPoints"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Story Points</FormLabel>
-                        <FormControl>
-                          <Input type="number" {...field} value={field.value || ""} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                )}
-                {SHOW_DATES && (
-                  <FormField
-                    control={form.control}
-                    name="startDate"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Start Date</FormLabel>
-                        <FormControl>
-                          <Input type="date" {...field} value={field.value || ""} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                )}
-                {SHOW_DATES && (
-                  <FormField
-                    control={form.control}
-                    name="endDate"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>End Date</FormLabel>
-                        <FormControl>
-                          <Input type="date" {...field} value={field.value || ""} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                )}
-              </div>
-            )}
-
-            <div className={SHOW_SPRINT ? "grid grid-cols-2 gap-4" : ""}>
+            <div className="grid grid-cols-3 gap-4">
               <FormField
                 control={form.control}
-                name="cycleId"
+                name="storyPoints"
+                render={({ field }) => {
+                  const pts = field.value == null ? null : Number(field.value);
+                  const pct = cycleEffortPercent(pts);
+                  return (
+                    <FormItem>
+                      <FormLabel>Cycle effort (story points)</FormLabel>
+                      <FormControl>
+                        <Input type="number" min={0} placeholder="e.g. 5" {...field} value={field.value ?? ""} />
+                      </FormControl>
+                      <p className="text-xs text-muted-foreground">
+                        {pts != null && !Number.isNaN(pts)
+                          ? `${pct} of an average cycle (${AVG_CYCLE_CAPACITY} pts)`
+                          : `Out of ${AVG_CYCLE_CAPACITY} avg pts per cycle`}
+                      </p>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
+              />
+              <FormField
+                control={form.control}
+                name="startDate"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Cycle</FormLabel>
-                    <Select
-                      onValueChange={(v) => field.onChange(v === "none" ? null : Number(v))}
-                      value={field.value != null ? field.value.toString() : "none"}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select cycle" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="none">None</SelectItem>
-                        {cycles?.map(c => (
-                          <SelectItem key={c.id} value={c.id.toString()}>{c.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <FormLabel>Start Date</FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} value={field.value || ""} />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              {SHOW_SPRINT && (
-                <FormField
-                  control={form.control}
-                  name="sprintId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Sprint</FormLabel>
-                      <Select
-                        onValueChange={(v) => field.onChange(v === "none" ? null : Number(v))}
-                        value={field.value != null ? field.value.toString() : "none"}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select sprint" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="none">None</SelectItem>
-                          {sprints?.filter(s => !form.watch("cycleId") || s.cycleId.toString() === form.watch("cycleId")?.toString()).map(s => (
-                            <SelectItem key={s.id} value={s.id.toString()}>{s.name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
+              <FormField
+                control={form.control}
+                name="endDate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>End Date</FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} value={field.value || ""} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
+
+            <FormField
+              control={form.control}
+              name="cycleId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Cycle</FormLabel>
+                  <Select
+                    onValueChange={(v) => field.onChange(v === "none" ? null : Number(v))}
+                    value={field.value != null ? field.value.toString() : "none"}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select cycle" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="none">None</SelectItem>
+                      {cycles?.map(c => (
+                        <SelectItem key={c.id} value={c.id.toString()}>{c.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <FormField
               control={form.control}
@@ -736,39 +650,6 @@ export default function ProjectForm({
                   {watchedCycleId ? null : (
                     <span className="text-xs text-muted-foreground">Select a cycle to enter sprint allocations</span>
                   )}
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="completionPercent"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-xs">% Complete</FormLabel>
-                        <div className="flex items-center gap-2">
-                          <FormControl>
-                            <Input
-                              type="number"
-                              min={0}
-                              max={100}
-                              placeholder={autoCompletionPercent != null ? `Auto: ${autoCompletionPercent}%` : "0–100"}
-                              {...field}
-                              value={field.value ?? ""}
-                            />
-                          </FormControl>
-                          {field.value != null && (
-                            <Button type="button" variant="ghost" size="sm" className="text-xs px-2 h-8" onClick={() => form.setValue("completionPercent", null)}>
-                              Reset
-                            </Button>
-                          )}
-                        </div>
-                        {field.value == null && autoCompletionPercent != null && (
-                          <p className="text-xs text-muted-foreground">Auto-calculated: {autoCompletionPercent}%</p>
-                        )}
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
                 </div>
 
                 {cycleSprintsForAllocation.length > 0 && (

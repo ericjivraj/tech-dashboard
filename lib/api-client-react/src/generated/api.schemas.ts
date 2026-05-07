@@ -23,7 +23,6 @@ export type AuthUserRole =
 
 export const AuthUserRole = {
   admin: "admin",
-  guest: "guest",
 } as const;
 
 export interface AuthUser {
@@ -41,55 +40,6 @@ export interface AuthUser {
   role: AuthUserRole;
   /** @nullable */
   team: string | null;
-}
-
-export type AppUserRole = (typeof AppUserRole)[keyof typeof AppUserRole];
-
-export const AppUserRole = {
-  admin: "admin",
-  guest: "guest",
-} as const;
-
-export interface AppUser {
-  id: number;
-  /** @nullable */
-  clerkUserId: string | null;
-  email: string;
-  role: AppUserRole;
-  /** @nullable */
-  team: string | null;
-  createdAt: string;
-}
-
-export type CreateUserBodyRole =
-  (typeof CreateUserBodyRole)[keyof typeof CreateUserBodyRole];
-
-export const CreateUserBodyRole = {
-  admin: "admin",
-  guest: "guest",
-} as const;
-
-export interface CreateUserBody {
-  email: string;
-  /** @nullable */
-  clerkUserId?: string | null;
-  role: CreateUserBodyRole;
-  /** @nullable */
-  team?: string | null;
-}
-
-export type UpdateUserBodyRole =
-  (typeof UpdateUserBodyRole)[keyof typeof UpdateUserBodyRole];
-
-export const UpdateUserBodyRole = {
-  admin: "admin",
-  guest: "guest",
-} as const;
-
-export interface UpdateUserBody {
-  role?: UpdateUserBodyRole;
-  /** @nullable */
-  team?: string | null;
 }
 
 export type AuditLogEntryAction =
@@ -213,20 +163,6 @@ export const ProjectStatus = {
   new_request: "new_request",
 } as const;
 
-/**
- * @nullable
- */
-export type ProjectConfidence =
-  | (typeof ProjectConfidence)[keyof typeof ProjectConfidence]
-  | null;
-
-export const ProjectConfidence = {
-  high: "high",
-  medium: "medium",
-  low: "low",
-  at_risk: "at_risk",
-} as const;
-
 export type ProjectRagStatus =
   (typeof ProjectRagStatus)[keyof typeof ProjectRagStatus];
 
@@ -242,12 +178,10 @@ export interface Project {
   /** @nullable */
   description: string | null;
   /** @nullable */
-  sponsor: string | null;
+  functionName: string | null;
   /** @nullable */
   team: string | null;
   status: ProjectStatus;
-  /** @nullable */
-  confidence: ProjectConfidence;
   /** @nullable */
   storyPoints: number | null;
   /** @nullable */
@@ -255,17 +189,13 @@ export interface Project {
   /** @nullable */
   endDate: string | null;
   /** @nullable */
-  stakeholder: string | null;
+  sponsor: string | null;
   /** @nullable */
   impact: string | null;
-  /** @nullable */
-  blockedReason: string | null;
   /** @nullable */
   cycleId: number | null;
   /** @nullable */
   sprintId: number | null;
-  /** @nullable */
-  completionPercent: number | null;
   ragStatus: ProjectRagStatus;
   displayOrder: number;
   listOrder: number;
@@ -332,18 +262,13 @@ export const CreateProjectBodyStatus = {
   new_request: "new_request",
 } as const;
 
-/**
- * @nullable
- */
-export type CreateProjectBodyConfidence =
-  | (typeof CreateProjectBodyConfidence)[keyof typeof CreateProjectBodyConfidence]
-  | null;
+export type CreateProjectBodyRagStatus =
+  (typeof CreateProjectBodyRagStatus)[keyof typeof CreateProjectBodyRagStatus];
 
-export const CreateProjectBodyConfidence = {
-  high: "high",
-  medium: "medium",
-  low: "low",
-  at_risk: "at_risk",
+export const CreateProjectBodyRagStatus = {
+  green: "green",
+  amber: "amber",
+  red: "red",
 } as const;
 
 export interface CreateProjectBody {
@@ -351,12 +276,10 @@ export interface CreateProjectBody {
   /** @nullable */
   description?: string | null;
   /** @nullable */
-  sponsor?: string | null;
+  functionName?: string | null;
   /** @nullable */
   team?: string | null;
   status: CreateProjectBodyStatus;
-  /** @nullable */
-  confidence?: CreateProjectBodyConfidence;
   /** @nullable */
   storyPoints?: number | null;
   /** @nullable */
@@ -364,18 +287,16 @@ export interface CreateProjectBody {
   /** @nullable */
   endDate?: string | null;
   /** @nullable */
-  stakeholder?: string | null;
+  sponsor?: string | null;
   /** @nullable */
   impact?: string | null;
-  /** @nullable */
-  blockedReason?: string | null;
   /** @nullable */
   cycleId?: number | null;
   /** @nullable */
   sprintId?: number | null;
+  ragStatus?: CreateProjectBodyRagStatus;
   /** @nullable */
-  completionPercent?: number | null;
-  goalIds?: number[];
+  goalIds?: number[] | null;
 }
 
 /**
@@ -391,20 +312,6 @@ export const UpdateProjectBodyStatus = {
   up_next: "up_next",
   backlog: "backlog",
   new_request: "new_request",
-} as const;
-
-/**
- * @nullable
- */
-export type UpdateProjectBodyConfidence =
-  | (typeof UpdateProjectBodyConfidence)[keyof typeof UpdateProjectBodyConfidence]
-  | null;
-
-export const UpdateProjectBodyConfidence = {
-  high: "high",
-  medium: "medium",
-  low: "low",
-  at_risk: "at_risk",
 } as const;
 
 /**
@@ -431,13 +338,11 @@ export interface UpdateProjectBody {
   /** @nullable */
   description?: string | null;
   /** @nullable */
-  sponsor?: string | null;
+  functionName?: string | null;
   /** @nullable */
   team?: string | null;
   /** @nullable */
   status?: UpdateProjectBodyStatus;
-  /** @nullable */
-  confidence?: UpdateProjectBodyConfidence;
   /** @nullable */
   storyPoints?: number | null;
   /** @nullable */
@@ -445,17 +350,13 @@ export interface UpdateProjectBody {
   /** @nullable */
   endDate?: string | null;
   /** @nullable */
-  stakeholder?: string | null;
+  sponsor?: string | null;
   /** @nullable */
   impact?: string | null;
-  /** @nullable */
-  blockedReason?: string | null;
   /** @nullable */
   cycleId?: number | null;
   /** @nullable */
   sprintId?: number | null;
-  /** @nullable */
-  completionPercent?: number | null;
   /** @nullable */
   ragStatus?: UpdateProjectBodyRagStatus;
   /** @nullable */
@@ -465,9 +366,9 @@ export interface UpdateProjectBody {
   /** @nullable */
   timelineOrder?: number | null;
   /** @nullable */
-  cycleAllocations?: UpdateProjectBodyCycleAllocationsItem[] | null;
-  /** @nullable */
   goalIds?: number[] | null;
+  /** @nullable */
+  cycleAllocations?: UpdateProjectBodyCycleAllocationsItem[] | null;
 }
 
 export interface ProjectUpdate {
@@ -497,7 +398,6 @@ export type DashboardSummaryPointsByStatus = {
   in_progress: number;
   up_next: number;
   backlog: number;
-  blocked: number;
   new_request: number;
 };
 
@@ -506,7 +406,6 @@ export type DashboardSummaryCountByStatus = {
   in_progress: number;
   up_next: number;
   backlog: number;
-  blocked: number;
   new_request: number;
 };
 
@@ -525,7 +424,6 @@ export interface DashboardSummary {
   totalStoryPoints: number;
   pointsByStatus: DashboardSummaryPointsByStatus;
   countByStatus: DashboardSummaryCountByStatus;
-  capacityPercentage: number;
   /** @nullable */
   activeCycle: DashboardSummaryActiveCycle;
 }
@@ -541,20 +439,6 @@ export const ProjectTimelineStatus = {
   new_request: "new_request",
 } as const;
 
-/**
- * @nullable
- */
-export type ProjectTimelineConfidence =
-  | (typeof ProjectTimelineConfidence)[keyof typeof ProjectTimelineConfidence]
-  | null;
-
-export const ProjectTimelineConfidence = {
-  high: "high",
-  medium: "medium",
-  low: "low",
-  at_risk: "at_risk",
-} as const;
-
 export type ProjectTimelineRagStatus =
   (typeof ProjectTimelineRagStatus)[keyof typeof ProjectTimelineRagStatus];
 
@@ -564,24 +448,18 @@ export const ProjectTimelineRagStatus = {
   red: "red",
 } as const;
 
-/**
- * @nullable
- */
-export type ProjectTimelineSubTeamSummary = {
-  /** @nullable */
-  a3Percent: number | null;
-  /** @nullable */
-  backendPercent: number | null;
-  /** @nullable */
-  frontendPercent: number | null;
-} | null;
+export type ProjectTimelineCycleAllocationsItem = {
+  cycleId: number;
+  cycleName: string;
+  cycleStartDate: string;
+  cycleEndDate: string;
+  percent: number;
+};
 
 export interface ProjectTimeline {
   id: number;
   title: string;
   status: ProjectTimelineStatus;
-  /** @nullable */
-  confidence: ProjectTimelineConfidence;
   /** @nullable */
   storyPoints: number | null;
   /** @nullable */
@@ -591,9 +469,9 @@ export interface ProjectTimeline {
   /** @nullable */
   team: string | null;
   /** @nullable */
-  sponsor: string | null;
+  functionName: string | null;
   /** @nullable */
-  stakeholder: string | null;
+  sponsor: string | null;
   /** @nullable */
   cycleName: string | null;
   /** @nullable */
@@ -608,44 +486,13 @@ export interface ProjectTimeline {
   sprintName: string | null;
   /** @nullable */
   sprintNumber: number | null;
-  /** @nullable */
-  completionPercent: number | null;
   ragStatus: ProjectTimelineRagStatus;
   displayOrder: number;
   listOrder: number;
   timelineOrder: number;
   blocked: boolean;
-  /** @nullable */
-  subTeamSummary: ProjectTimelineSubTeamSummary;
+  cycleAllocations: ProjectTimelineCycleAllocationsItem[];
   goals: Goal[];
-}
-
-export interface SprintCapacity {
-  sprintId: number;
-  /** @nullable */
-  a3: number | null;
-  /** @nullable */
-  backend: number | null;
-  /** @nullable */
-  frontend: number | null;
-}
-
-export interface UpsertSprintCapacityBody {
-  /**
-   * @minimum 0
-   * @nullable
-   */
-  a3?: number | null;
-  /**
-   * @minimum 0
-   * @nullable
-   */
-  backend?: number | null;
-  /**
-   * @minimum 0
-   * @nullable
-   */
-  frontend?: number | null;
 }
 
 export type ProjectSprintAllocationSubTeam =
@@ -686,33 +533,6 @@ export interface UpsertProjectAllocationsBody {
   allocations: UpsertProjectAllocationsBodyAllocationsItem[];
 }
 
-export interface CapacitySummaryRow {
-  id: number;
-  name: string;
-  a3Allocated: number;
-  /** @nullable */
-  a3Budget: number | null;
-  backendAllocated: number;
-  /** @nullable */
-  backendBudget: number | null;
-  frontendAllocated: number;
-  /** @nullable */
-  frontendBudget: number | null;
-}
-
-export type CapacitySummaryMode =
-  (typeof CapacitySummaryMode)[keyof typeof CapacitySummaryMode];
-
-export const CapacitySummaryMode = {
-  cycle: "cycle",
-  sprint: "sprint",
-} as const;
-
-export interface CapacitySummary {
-  mode: CapacitySummaryMode;
-  rows: CapacitySummaryRow[];
-}
-
 export type ListSprintsParams = {
   /**
    * @nullable
@@ -732,7 +552,7 @@ export type ListProjectsParams = {
   /**
    * @nullable
    */
-  sponsor?: string | null;
+  functionName?: string | null;
   /**
    * @nullable
    */
@@ -754,17 +574,6 @@ export const ListProjectsStatus = {
   backlog: "backlog",
   new_request: "new_request",
 } as const;
-
-export type GetCapacitySummaryParams = {
-  /**
-   * @nullable
-   */
-  cycleId?: number | null;
-  /**
-   * @nullable
-   */
-  sprintId?: number | null;
-};
 
 export type GetProjectsTimelineParams = {
   /**

@@ -219,66 +219,6 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
-  /sprints/{id}/capacity:
-    get:
-      operationId: getSprintCapacity
-      tags: [sprints]
-      summary: Get capacity budgets for a sprint (A3, Backend, Frontend)
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-      responses:
-        "200":
-          description: Sprint capacity entries
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/SprintCapacity"
-        "404":
-          description: Sprint not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-    put:
-      operationId: upsertSprintCapacity
-      tags: [sprints]
-      summary: Set capacity budgets for a sprint (editor only)
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/UpsertSprintCapacityBody"
-      responses:
-        "200":
-          description: Updated sprint capacity
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/SprintCapacity"
-        "404":
-          description: Sprint not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "401":
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-
   /sprints/{id}:
     patch:
       operationId: updateSprint
@@ -464,7 +404,7 @@ paths:
           required: false
           schema:
             type: ["string", "null"]
-        - name: sponsor
+        - name: functionName
           in: query
           required: false
           schema:
@@ -667,30 +607,6 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
-  /capacity/summary:
-    get:
-      operationId: getCapacitySummary
-      tags: [summary]
-      summary: Get aggregated capacity summary per cycle or sprint
-      parameters:
-        - name: cycleId
-          in: query
-          required: false
-          schema:
-            type: ["integer", "null"]
-        - name: sprintId
-          in: query
-          required: false
-          schema:
-            type: ["integer", "null"]
-      responses:
-        "200":
-          description: Capacity summary with allocations vs budgets
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/CapacitySummary"
-
   /projects/{projectId}/updates:
     get:
       operationId: listProjectUpdates
@@ -883,112 +799,6 @@ paths:
                 items:
                   $ref: "#/components/schemas/ProjectTimeline"
 
-  /users:
-    get:
-      operationId: listUsers
-      tags: [auth]
-      summary: List all managed users (admin only)
-      responses:
-        "200":
-          description: List of users
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/AppUser"
-        "401":
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "403":
-          description: Forbidden
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-    post:
-      operationId: createUser
-      tags: [auth]
-      summary: Create a managed user (admin only)
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/CreateUserBody"
-      responses:
-        "201":
-          description: Created user
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/AppUser"
-        "400":
-          description: Validation error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "409":
-          description: User already exists
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-
-  /users/{id}:
-    patch:
-      operationId: updateUser
-      tags: [auth]
-      summary: Update a managed user (admin only)
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/UpdateUserBody"
-      responses:
-        "200":
-          description: Updated user
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/AppUser"
-        "404":
-          description: User not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-    delete:
-      operationId: deleteUser
-      tags: [auth]
-      summary: Delete a managed user (admin only)
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-      responses:
-        "204":
-          description: User deleted
-        "404":
-          description: User not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-
   /audit-log:
     get:
       operationId: listAuditLog
@@ -1053,7 +863,7 @@ components:
           type: ["string", "null"]
         role:
           type: ["string", "null"]
-          enum: [admin, guest, null]
+          enum: [admin, null]
         team:
           type: ["string", "null"]
       required:
@@ -1065,56 +875,6 @@ components:
         - lastName
         - role
         - team
-
-    AppUser:
-      type: object
-      properties:
-        id:
-          type: integer
-        clerkUserId:
-          type: ["string", "null"]
-        email:
-          type: string
-        role:
-          type: string
-          enum: [admin, guest]
-        team:
-          type: ["string", "null"]
-        createdAt:
-          type: string
-          format: date-time
-      required:
-        - id
-        - clerkUserId
-        - email
-        - role
-        - team
-        - createdAt
-
-    CreateUserBody:
-      type: object
-      properties:
-        email:
-          type: string
-        clerkUserId:
-          type: ["string", "null"]
-        role:
-          type: string
-          enum: [admin, guest]
-        team:
-          type: ["string", "null"]
-      required:
-        - email
-        - role
-
-    UpdateUserBody:
-      type: object
-      properties:
-        role:
-          type: string
-          enum: [admin, guest]
-        team:
-          type: ["string", "null"]
 
     AuditLogEntry:
       type: object
@@ -1313,16 +1073,13 @@ components:
           type: string
         description:
           type: ["string", "null"]
-        sponsor:
+        functionName:
           type: ["string", "null"]
         team:
           type: ["string", "null"]
         status:
           type: string
           enum: [done, in_progress, up_next, backlog, new_request]
-        confidence:
-          type: ["string", "null"]
-          enum: [high, medium, low, at_risk, null]
         storyPoints:
           type: ["integer", "null"]
         startDate:
@@ -1331,17 +1088,13 @@ components:
         endDate:
           type: ["string", "null"]
           format: date
-        stakeholder:
+        sponsor:
           type: ["string", "null"]
         impact:
-          type: ["string", "null"]
-        blockedReason:
           type: ["string", "null"]
         cycleId:
           type: ["integer", "null"]
         sprintId:
-          type: ["integer", "null"]
-        completionPercent:
           type: ["integer", "null"]
         ragStatus:
           type: string
@@ -1363,18 +1116,15 @@ components:
         - title
         - status
         - description
-        - sponsor
+        - functionName
         - team
-        - stakeholder
-        - confidence
+        - sponsor
         - storyPoints
         - startDate
         - endDate
         - impact
-        - blockedReason
         - cycleId
         - sprintId
-        - completionPercent
         - ragStatus
         - displayOrder
         - listOrder
@@ -1468,16 +1218,13 @@ components:
           type: string
         description:
           type: ["string", "null"]
-        sponsor:
+        functionName:
           type: ["string", "null"]
         team:
           type: ["string", "null"]
         status:
           type: string
           enum: [done, in_progress, up_next, backlog, new_request]
-        confidence:
-          type: ["string", "null"]
-          enum: [high, medium, low, at_risk, null]
         storyPoints:
           type: ["integer", "null"]
         startDate:
@@ -1486,20 +1233,19 @@ components:
         endDate:
           type: ["string", "null"]
           format: date
-        stakeholder:
+        sponsor:
           type: ["string", "null"]
         impact:
-          type: ["string", "null"]
-        blockedReason:
           type: ["string", "null"]
         cycleId:
           type: ["integer", "null"]
         sprintId:
           type: ["integer", "null"]
-        completionPercent:
-          type: ["integer", "null"]
+        ragStatus:
+          type: string
+          enum: [green, amber, red]
         goalIds:
-          type: array
+          type: ["array", "null"]
           items:
             type: integer
       required:
@@ -1513,16 +1259,13 @@ components:
           type: ["string", "null"]
         description:
           type: ["string", "null"]
-        sponsor:
+        functionName:
           type: ["string", "null"]
         team:
           type: ["string", "null"]
         status:
           type: ["string", "null"]
           enum: [done, in_progress, up_next, backlog, new_request, null]
-        confidence:
-          type: ["string", "null"]
-          enum: [high, medium, low, at_risk, null]
         storyPoints:
           type: ["integer", "null"]
         startDate:
@@ -1531,17 +1274,13 @@ components:
         endDate:
           type: ["string", "null"]
           format: date
-        stakeholder:
+        sponsor:
           type: ["string", "null"]
         impact:
-          type: ["string", "null"]
-        blockedReason:
           type: ["string", "null"]
         cycleId:
           type: ["integer", "null"]
         sprintId:
-          type: ["integer", "null"]
-        completionPercent:
           type: ["integer", "null"]
         ragStatus:
           type: ["string", "null"]
@@ -1552,6 +1291,10 @@ components:
           type: ["integer", "null"]
         timelineOrder:
           type: ["integer", "null"]
+        goalIds:
+          type: ["array", "null"]
+          items:
+            type: integer
         cycleAllocations:
           type: ["array", "null"]
           items:
@@ -1564,10 +1307,6 @@ components:
             required:
               - cycleId
               - percent
-        goalIds:
-          type: ["array", "null"]
-          items:
-            type: integer
 
     ProjectUpdate:
       type: object
@@ -1631,8 +1370,6 @@ components:
               type: integer
             backlog:
               type: integer
-            blocked:
-              type: integer
             new_request:
               type: integer
           required:
@@ -1640,7 +1377,6 @@ components:
             - in_progress
             - up_next
             - backlog
-            - blocked
             - new_request
         countByStatus:
           type: object
@@ -1653,8 +1389,6 @@ components:
               type: integer
             backlog:
               type: integer
-            blocked:
-              type: integer
             new_request:
               type: integer
           required:
@@ -1662,10 +1396,7 @@ components:
             - in_progress
             - up_next
             - backlog
-            - blocked
             - new_request
-        capacityPercentage:
-          type: integer
         activeCycle:
           type: ["object", "null"]
           properties:
@@ -1687,7 +1418,6 @@ components:
         - totalStoryPoints
         - pointsByStatus
         - countByStatus
-        - capacityPercentage
         - activeCycle
 
     ProjectTimeline:
@@ -1700,9 +1430,6 @@ components:
         status:
           type: string
           enum: [done, in_progress, up_next, backlog, new_request]
-        confidence:
-          type: ["string", "null"]
-          enum: [high, medium, low, at_risk, null]
         storyPoints:
           type: ["integer", "null"]
         startDate:
@@ -1711,9 +1438,9 @@ components:
           type: ["string", "null"]
         team:
           type: ["string", "null"]
-        sponsor:
+        functionName:
           type: ["string", "null"]
-        stakeholder:
+        sponsor:
           type: ["string", "null"]
         cycleName:
           type: ["string", "null"]
@@ -1729,8 +1456,6 @@ components:
           type: ["string", "null"]
         sprintNumber:
           type: ["integer", "null"]
-        completionPercent:
-          type: ["integer", "null"]
         ragStatus:
           type: string
           enum: [green, amber, red]
@@ -1742,19 +1467,27 @@ components:
           type: integer
         blocked:
           type: boolean
-        subTeamSummary:
-          type: ["object", "null"]
-          properties:
-            a3Percent:
-              type: ["number", "null"]
-            backendPercent:
-              type: ["number", "null"]
-            frontendPercent:
-              type: ["number", "null"]
-          required:
-            - a3Percent
-            - backendPercent
-            - frontendPercent
+        cycleAllocations:
+          type: array
+          items:
+            type: object
+            properties:
+              cycleId:
+                type: integer
+              cycleName:
+                type: string
+              cycleStartDate:
+                type: string
+              cycleEndDate:
+                type: string
+              percent:
+                type: number
+            required:
+              - cycleId
+              - cycleName
+              - cycleStartDate
+              - cycleEndDate
+              - percent
         goals:
           type: array
           items:
@@ -1763,13 +1496,12 @@ components:
         - id
         - title
         - status
-        - confidence
         - storyPoints
         - startDate
         - endDate
         - team
+        - functionName
         - sponsor
-        - stakeholder
         - cycleName
         - cycleStartDate
         - cycleEndDate
@@ -1777,44 +1509,13 @@ components:
         - sprintId
         - sprintName
         - sprintNumber
-        - completionPercent
         - ragStatus
         - displayOrder
         - listOrder
         - timelineOrder
         - blocked
-        - subTeamSummary
+        - cycleAllocations
         - goals
-
-    SprintCapacity:
-      type: object
-      properties:
-        sprintId:
-          type: integer
-        a3:
-          type: ["integer", "null"]
-        backend:
-          type: ["integer", "null"]
-        frontend:
-          type: ["integer", "null"]
-      required:
-        - sprintId
-        - a3
-        - backend
-        - frontend
-
-    UpsertSprintCapacityBody:
-      type: object
-      properties:
-        a3:
-          type: ["integer", "null"]
-          minimum: 0
-        backend:
-          type: ["integer", "null"]
-          minimum: 0
-        frontend:
-          type: ["integer", "null"]
-          minimum: 0
 
     ProjectSprintAllocation:
       type: object
@@ -1864,45 +1565,3 @@ components:
       required:
         - allocations
 
-    CapacitySummaryRow:
-      type: object
-      properties:
-        id:
-          type: integer
-        name:
-          type: string
-        a3Allocated:
-          type: integer
-        a3Budget:
-          type: ["integer", "null"]
-        backendAllocated:
-          type: integer
-        backendBudget:
-          type: ["integer", "null"]
-        frontendAllocated:
-          type: integer
-        frontendBudget:
-          type: ["integer", "null"]
-      required:
-        - id
-        - name
-        - a3Allocated
-        - a3Budget
-        - backendAllocated
-        - backendBudget
-        - frontendAllocated
-        - frontendBudget
-
-    CapacitySummary:
-      type: object
-      properties:
-        mode:
-          type: string
-          enum: [cycle, sprint]
-        rows:
-          type: array
-          items:
-            $ref: "#/components/schemas/CapacitySummaryRow"
-      required:
-        - mode
-        - rows

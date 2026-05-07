@@ -11,7 +11,6 @@ export async function logAudit(
   diff?: Record<string, unknown> | null,
 ): Promise<void> {
   await db.insert(auditLogTable).values({
-    userId: ctx?.dbUserId ?? null,
     userEmail: ctx?.email ?? null,
     action,
     entityType,

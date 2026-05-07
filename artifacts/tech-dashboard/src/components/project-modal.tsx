@@ -1,10 +1,8 @@
 import { useState } from "react";
-import { storyPointsToTShirt } from "@/lib/utils";
 import {
   useGetProject, useDeleteProject, getGetProjectQueryKey, getListProjectsQueryKey,
   useListProjectUpdates, useCreateProjectUpdate, useUpdateProjectUpdate, useDeleteProjectUpdate, getListProjectUpdatesQueryKey, getGetDashboardSummaryQueryKey,
   useGetMe,
-  ProjectConfidence,
   ProjectStatus,
   ProjectWithDetails,
   type ProjectUpdate
@@ -68,7 +66,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { AlertCircle, Edit, Trash2, Clock, Send, X, Pencil, Check, ShieldOff } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
-import { STATUS_LABELS } from "@/lib/constants";
+import { STATUS_LABELS, AVG_CYCLE_CAPACITY, cycleEffortPercent } from "@/lib/constants";
 import { isProjectBlocked } from "@/lib/blocked";
 
 export default function ProjectModal({ 
@@ -88,12 +86,9 @@ export default function ProjectModal({
   const { data: updates } = useListProjectUpdates(projectId, { query: { enabled: open && !!projectId, queryKey: getListProjectUpdatesQueryKey(projectId) } });
   const { data: user } = useGetMe();
   const isAdmin = user?.role === "admin";
-  const isGuest = user?.role === "guest";
-  const guestTeam = user?.team ?? null;
   const isEditor = user?.isEditor === true;
 
-  const canEditProject = (projectTeam?: string | null) =>
-    isAdmin || (isGuest && guestTeam !== null && projectTeam === guestTeam);
+  const canEditProject = (_projectTeam?: string | null) => isAdmin;
 
   const createUpdate = useCreateProjectUpdate();
   const editUpdate = useUpdateProjectUpdate();
@@ -217,14 +212,15 @@ export default function ProjectModal({
                         Blocked
                       </Badge>
                     )}
-                    {project.storyPoints != null && (() => {
-                      const tshirt = storyPointsToTShirt(project.storyPoints);
-                      return (
-                        <Badge variant="outline" className="text-xs font-semibold bg-muted/50" title={tshirt.tooltip}>
-                          {tshirt.label}
-                        </Badge>
-                      );
-                    })()}
+                    {project.storyPoints != null && (
+                      <Badge
+                        variant="outline"
+                        className="text-xs font-semibold bg-muted/50"
+                        title={`${project.storyPoints} pts of ~${AVG_CYCLE_CAPACITY} avg per cycle`}
+                      >
+                        {cycleEffortPercent(project.storyPoints)} of cycle
+                      </Badge>
+                    )}
                   </div>
                 </div>
                 {!readOnly && canEditProject(project.team) && (
@@ -292,12 +288,12 @@ export default function ProjectModal({
                     <span className="text-sm font-medium">{project.team || ""}</span>
                   </div>
                   <div>
-                    <span className="text-xs text-muted-foreground block mb-1">Function</span>
-                    <span className="text-sm font-medium">{project.sponsor || ""}</span>
+                    <span className="text-xs text-muted-foreground block mb-1">Function (Sponsor)</span>
+                    <span className="text-sm font-medium">{project.functionName || ""}</span>
                   </div>
                   <div>
-                    <span className="text-xs text-muted-foreground block mb-1">Sponsor</span>
-                    <span className="text-sm font-medium">{project.stakeholder || ""}</span>
+                    <span className="text-xs text-muted-foreground block mb-1">Stakeholder</span>
+                    <span className="text-sm font-medium">{project.sponsor || ""}</span>
                   </div>
                 </div>
                 

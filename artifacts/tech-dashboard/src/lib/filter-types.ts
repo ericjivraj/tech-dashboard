@@ -2,20 +2,18 @@ export interface FilterState {
   search: string;
   status: string;
   team: string;
-  sponsor: string;
+  functionName: string;
   goalId: string;
   cycleId: string;
   sprintId: string;
-  size: string;
 }
 
 export const DEFAULT_FILTERS: FilterState = {
   search: "",
   status: "all",
   team: "all",
-  sponsor: "all",
+  functionName: "all",
   goalId: "all",
   cycleId: "all",
   sprintId: "all",
-  size: "all",
 };

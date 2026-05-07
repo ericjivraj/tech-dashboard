@@ -1,6 +1,5 @@
 import crypto from "node:crypto";
 import type { Request } from "express";
-import { logger } from "./logger";
 
 export interface AdminAccount {
   username: string;
@@ -26,61 +25,43 @@ export function formatDisplayName(account: Pick<AdminAccount, "username" | "firs
 export const ADMIN_COOKIE_NAME = "admin_session";
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 7;
 
-// Hardcoded fallbacks used only when the corresponding TD_* env vars are
-// missing or malformed. Doppler should override these in every real
-// environment (preprod, production). Once Doppler injection is verified, this
-// entire block can be deleted.
-const FALLBACK_ACCOUNTS: AdminAccount[] = [
-  { username: "ericjivraj", password: "anafzuzwMNVfwAM2", firstName: "Eric", lastName: "Jivraj", email: null, role: "admin" },
-  { username: "dipikamakan", password: "4Z9caUaZCOzZyVpI", firstName: "Dipika", lastName: "Makan", email: null, role: "admin" },
-  { username: "alejandrotabares", password: "NLPYRlYCsgJVm1sw", firstName: "Alejandro", lastName: "Tabares", email: null, role: "admin" },
-];
-const FALLBACK_SESSION_SECRET = "2dusjIfocOHJjsh9sG1nyoY4ADIenMA7B6vIeEZZxVY";
-
 let cachedAccounts: AdminAccount[] | null = null;
 
 function loadAccounts(): AdminAccount[] {
   if (cachedAccounts) return cachedAccounts;
   const raw = process.env.TD_ADMIN_ACCOUNTS;
   if (!raw || !raw.trim()) {
-    logger.warn("TD_ADMIN_ACCOUNTS env var not set — using hardcoded fallback accounts");
-    cachedAccounts = FALLBACK_ACCOUNTS;
-    return cachedAccounts;
+    throw new Error("TD_ADMIN_ACCOUNTS env var is required (JSON array of {username, password, ...})");
   }
-  try {
-    const parsed = JSON.parse(raw) as unknown;
-    if (!Array.isArray(parsed)) throw new Error("TD_ADMIN_ACCOUNTS must be a JSON array");
-    cachedAccounts = parsed.map((entry, idx) => {
-      if (!entry || typeof entry !== "object") {
-        throw new Error(`TD_ADMIN_ACCOUNTS[${idx}] is not an object`);
-      }
-      const obj = entry as Record<string, unknown>;
-      const username = obj.username;
-      const password = obj.password;
-      if (typeof username !== "string" || !username) {
-        throw new Error(`TD_ADMIN_ACCOUNTS[${idx}].username is required`);
-      }
-      if (typeof password !== "string" || !password) {
-        throw new Error(`TD_ADMIN_ACCOUNTS[${idx}].password is required`);
-      }
-      const email = typeof obj.email === "string" && obj.email ? obj.email : null;
-      const firstName = typeof obj.firstName === "string" && obj.firstName ? obj.firstName : null;
-      const lastName = typeof obj.lastName === "string" && obj.lastName ? obj.lastName : null;
-      return { username, password, email, firstName, lastName, role: "admin" as const };
-    });
-    return cachedAccounts;
-  } catch (err) {
-    logger.error({ err }, "Failed to parse TD_ADMIN_ACCOUNTS env var — using hardcoded fallback accounts");
-    cachedAccounts = FALLBACK_ACCOUNTS;
-    return cachedAccounts;
-  }
+  const parsed = JSON.parse(raw) as unknown;
+  if (!Array.isArray(parsed)) throw new Error("TD_ADMIN_ACCOUNTS must be a JSON array");
+  cachedAccounts = parsed.map((entry, idx) => {
+    if (!entry || typeof entry !== "object") {
+      throw new Error(`TD_ADMIN_ACCOUNTS[${idx}] is not an object`);
+    }
+    const obj = entry as Record<string, unknown>;
+    const username = obj.username;
+    const password = obj.password;
+    if (typeof username !== "string" || !username) {
+      throw new Error(`TD_ADMIN_ACCOUNTS[${idx}].username is required`);
+    }
+    if (typeof password !== "string" || !password) {
+      throw new Error(`TD_ADMIN_ACCOUNTS[${idx}].password is required`);
+    }
+    const email = typeof obj.email === "string" && obj.email ? obj.email : null;
+    const firstName = typeof obj.firstName === "string" && obj.firstName ? obj.firstName : null;
+    const lastName = typeof obj.lastName === "string" && obj.lastName ? obj.lastName : null;
+    return { username, password, email, firstName, lastName, role: "admin" as const };
+  });
+  return cachedAccounts;
 }
 
 function getSecret(): string {
   const secret = process.env.TD_ADMIN_SESSION_SECRET;
-  if (secret && secret.length >= 16) return secret;
-  logger.warn("TD_ADMIN_SESSION_SECRET env var not set or too short — using hardcoded fallback");
-  return FALLBACK_SESSION_SECRET;
+  if (!secret || secret.length < 16) {
+    throw new Error("TD_ADMIN_SESSION_SECRET env var is required and must be at least 16 characters");
+  }
+  return secret;
 }
 
 function timingSafeEqualString(a: string, b: string): boolean {
@@ -128,16 +109,8 @@ export function readSessionFromRequest(req: Request): AdminSession | null {
   if (parts.length !== 3) return null;
   const [username, expiresAtRaw, signature] = parts;
   const payload = `${username}.${expiresAtRaw}`;
-  const expectedSignature = (() => {
-    try {
-      return sign(payload);
-    } catch {
-      return null;
-    }
-  })();
-  if (!expectedSignature || !timingSafeEqualString(signature, expectedSignature)) {
-    return null;
-  }
+  const expectedSignature = sign(payload);
+  if (!timingSafeEqualString(signature, expectedSignature)) return null;
   const expiresAt = Number(expiresAtRaw);
   if (!Number.isFinite(expiresAt) || expiresAt * 1000 < Date.now()) return null;
   const account = findAccountByUsername(username);

@@ -47,7 +47,7 @@ export default function FilterBar({ filters, onFiltersChange, teams, sponsors, f
   if (filters.search) activeFilters.push({ key: "search", label: `"${filters.search}"` });
   if (filters.status !== "all") activeFilters.push({ key: "status", label: STATUS_LABELS[filters.status as ProjectStatus] ?? filters.status });
   if (filters.team !== "all") activeFilters.push({ key: "team", label: filters.team });
-  if (filters.sponsor !== "all") activeFilters.push({ key: "sponsor", label: filters.sponsor });
+  if (filters.functionName !== "all") activeFilters.push({ key: "functionName", label: filters.functionName });
   if (filters.goalId !== "all") {
     const goal = goals?.find((g) => g.id.toString() === filters.goalId);
     activeFilters.push({ key: "goalId", label: goal?.name ?? "Goal" });
@@ -60,17 +60,16 @@ export default function FilterBar({ filters, onFiltersChange, teams, sponsors, f
     const sprint = sprints?.find((s) => s.id.toString() === filters.sprintId);
     activeFilters.push({ key: "sprintId", label: sprint?.name ?? "Sprint" });
   }
-  if ((filters.size ?? "all") !== "all") activeFilters.push({ key: "size", label: filters.size });
 
   const hasActiveFilters = activeFilters.length > 0;
 
   function clearFilter(key: keyof FilterState) {
-    const defaults: FilterState = { search: "", status: "all", team: "all", sponsor: "all", goalId: "all", cycleId: "all", sprintId: "all", size: "all" };
+    const defaults: FilterState = { search: "", status: "all", team: "all", functionName: "all", goalId: "all", cycleId: "all", sprintId: "all" };
     update({ [key]: defaults[key] });
   }
 
   function clearAll() {
-    onFiltersChange({ search: "", status: "all", team: "all", sponsor: "all", goalId: "all", cycleId: "all", sprintId: "all", size: "all" });
+    onFiltersChange({ search: "", status: "all", team: "all", functionName: "all", goalId: "all", cycleId: "all", sprintId: "all" });
   }
 
   function handleSavePreset() {
@@ -128,12 +127,12 @@ export default function FilterBar({ filters, onFiltersChange, teams, sponsors, f
         )}
 
         {sponsors.length > 0 && (
-          <Select value={filters.sponsor} onValueChange={(v) => update({ sponsor: v })} data-testid="filter-sponsor">
+          <Select value={filters.functionName} onValueChange={(v) => update({ functionName: v })} data-testid="filter-functionName">
             <SelectTrigger className="h-8 w-[140px] text-sm">
-              <SelectValue placeholder="Function" />
+              <SelectValue placeholder="Function (Sponsor)" />
             </SelectTrigger>
             <SelectContent side="bottom" align="start">
-              <SelectItem value="all">All Functions</SelectItem>
+              <SelectItem value="all">All Functions (Sponsors)</SelectItem>
               {sponsors.map((s) => (
                 <SelectItem key={s} value={s}>{s}</SelectItem>
               ))}

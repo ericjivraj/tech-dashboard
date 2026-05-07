@@ -57,6 +57,20 @@
       "when": 1778070381088,
       "tag": "0007_thankful_namora",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1778165753793,
+      "tag": "0008_rename_sponsor_stakeholder",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1778178773473,
+      "tag": "0009_dormant_cleanup",
+      "breakpoints": true
     }
   ]
 }

@@ -2,7 +2,6 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import type { ProjectWithDetails } from "@workspace/api-client-react";
 import { STATUS_LABELS } from "./constants";
-import { formatConfidence, storyPointsToTShirt } from "./utils";
 
 function escapeCSV(value: string | null | undefined): string {
   const str = value ?? "";
@@ -19,11 +18,10 @@ export function exportProjectsToCSV(
   const headers = [
     "Title",
     "Status",
-    "Confidence",
-    "Sponsor",
+    "Function",
     "Team",
-    "Stakeholder",
-    "Sizing",
+    "Sponsor",
+    "Story Points",
     "Cycle",
     "Goals",
     "Latest Update",
@@ -34,11 +32,10 @@ export function exportProjectsToCSV(
   const rows = projects.map((p) => [
     escapeCSV(p.title),
     escapeCSV(STATUS_LABELS[p.status] ?? p.status),
-    escapeCSV(p.confidence ? formatConfidence(p.confidence) : ""),
-    escapeCSV(p.sponsor ?? ""),
+    escapeCSV(p.functionName ?? ""),
     escapeCSV(p.team ?? ""),
-    escapeCSV(p.stakeholder ?? ""),
-    escapeCSV(p.storyPoints != null ? storyPointsToTShirt(p.storyPoints).label : ""),
+    escapeCSV(p.sponsor ?? ""),
+    escapeCSV(p.storyPoints != null ? String(p.storyPoints) : ""),
     escapeCSV(p.cycle?.name ?? ""),
     escapeCSV(p.goals?.map((g) => g.name).join("; ") ?? ""),
     escapeCSV(p.latestUpdate?.content ?? ""),
@@ -82,10 +79,10 @@ export const PDF_COLUMNS: PdfColumn[] = [
     getValue: (p) => STATUS_LABELS[p.status] ?? p.status,
   },
   {
-    key: "sponsor",
+    key: "functionName",
     label: "Sponsor",
     width: 9,
-    getValue: (p) => p.sponsor ?? "",
+    getValue: (p) => p.functionName ?? "",
   },
   {
     key: "team",
@@ -94,10 +91,10 @@ export const PDF_COLUMNS: PdfColumn[] = [
     getValue: (p) => p.team ?? "",
   },
   {
-    key: "stakeholder",
+    key: "sponsor",
     label: "Stakeholder",
     width: 9,
-    getValue: (p) => p.stakeholder ?? "",
+    getValue: (p) => p.sponsor ?? "",
   },
   {
     key: "cycle",
@@ -138,8 +135,8 @@ export const PDF_COLUMNS: PdfColumn[] = [
 ];
 
 const CORE_PDF_COLUMN_KEYS = [
-  "title", "status", "sponsor", "team",
-  "stakeholder", "cycle", "goals", "latestUpdate",
+  "title", "status", "functionName", "team",
+  "sponsor", "cycle", "goals", "latestUpdate",
 ];
 
 export const ALL_PDF_COLUMN_KEYS = PDF_COLUMNS.map((c) => c.key);

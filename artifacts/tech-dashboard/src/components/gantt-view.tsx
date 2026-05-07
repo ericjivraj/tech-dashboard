@@ -3,7 +3,6 @@ import {
   useGetProjectsTimeline,
   useListCycles,
   useListSprints,
-  useGetCapacitySummary,
   useGetMe,
   useUpdateProject,
   getGetProjectsTimelineQueryKey,
@@ -38,10 +37,10 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Info, GripVertical } from "lucide-react";
 import { format, parseISO, startOfYear, endOfYear, differenceInDays, startOfQuarter, endOfQuarter } from "date-fns";
 import type { FilterState } from "@/lib/filter-types";
-import { storyPointsToTShirt } from "@/lib/utils";
 import { matchesSearch } from "@/lib/search";
 import { computeInsertOrder } from "@/lib/order";
 import { isProjectBlocked } from "@/lib/blocked";
+import { STATUS_LABELS, STATUS_ORDER } from "@/lib/constants";
 
 
 const QUARTERS = [
@@ -60,18 +59,8 @@ function getQuarterBounds(year: number, quarter: number): { start: Date; end: Da
 
 interface GanttViewProps {
   filters: FilterState;
+  onFiltersChange?: (filters: FilterState) => void;
 }
-
-type CapacitySummaryRow = {
-  id: number;
-  name: string;
-  a3Allocated: number;
-  a3Budget: number | null;
-  backendAllocated: number;
-  backendBudget: number | null;
-  frontendAllocated: number;
-  frontendBudget: number | null;
-};
 
 type CycleAllocation = {
   cycleId: number;
@@ -99,16 +88,7 @@ function getEffectiveDates(p: ProjectTimeline): { start: string; end: string } |
   return null;
 }
 
-function cycleOverallPct(row: CapacitySummaryRow | undefined): { pct: number; label: string } | null {
-  if (!row) return null;
-  const totalBudget = (row.a3Budget ?? 0) + (row.backendBudget ?? 0) + (row.frontendBudget ?? 0);
-  if (totalBudget === 0) return null;
-  const totalAllocated = row.a3Allocated + row.backendAllocated + row.frontendAllocated;
-  const pct = Math.round((totalAllocated / totalBudget) * 100);
-  return { pct, label: `${pct}%` };
-}
-
-export default function GanttView({ filters }: GanttViewProps) {
+export default function GanttView({ filters, onFiltersChange }: GanttViewProps) {
   const currentYear = new Date().getFullYear();
   const [selectedQuarter, setSelectedQuarter] = useState<string>("all");
   const [selectedCycleId, setSelectedCycleId] = useState<string>("all");
@@ -131,10 +111,6 @@ export default function GanttView({ filters }: GanttViewProps) {
   });
   const { data: cycles } = useListCycles();
   const { data: sprints } = useListSprints();
-
-  const { data: capacitySummary } = useGetCapacitySummary(
-    selectedCycleId !== "all" ? { cycleId: parseInt(selectedCycleId) } : {},
-  );
 
   const { data: me } = useGetMe();
   const isEditor = me?.isEditor === true;
@@ -298,8 +274,8 @@ export default function GanttView({ filters }: GanttViewProps) {
   if (filters.team !== "all") {
     filteredProjects = filteredProjects.filter((p) => p.team === filters.team);
   }
-  if (filters.sponsor !== "all") {
-    filteredProjects = filteredProjects.filter((p) => p.sponsor === filters.sponsor);
+  if (filters.functionName !== "all") {
+    filteredProjects = filteredProjects.filter((p) => p.functionName === filters.functionName);
   }
   if (filters.goalId !== "all") {
     filteredProjects = filteredProjects.filter((p) => p.goals.some((g) => g.id.toString() === filters.goalId));
@@ -317,19 +293,12 @@ export default function GanttView({ filters }: GanttViewProps) {
   if ((filters.sprintId ?? "all") !== "all") {
     filteredProjects = filteredProjects.filter((p) => p.sprintId?.toString() === filters.sprintId);
   }
-  if ((filters.size ?? "all") !== "all") {
-    filteredProjects = filteredProjects.filter((p) => p.storyPoints != null && storyPointsToTShirt(p.storyPoints).label === filters.size);
-  }
 
   const visibleProjects = filteredProjects.filter((p) => {
     const dates = getEffectiveDates(p);
     if (!dates) return true; // no bar, but still rendered as a row
     return getBarPosition(dates.start, dates.end) !== null;
   });
-
-  const capacityByCycleId = new Map(
-    (capacitySummary?.rows as CapacitySummaryRow[] ?? []).map((r) => [r.id, r])
-  );
 
   // A project appears under every cycle it has an explicit allocation for.
   // Projects with only a primary cycle (no allocations) are NOT counted toward
@@ -364,11 +333,35 @@ export default function GanttView({ filters }: GanttViewProps) {
             </Select>
           </div>
 
-          {selectedQuarter !== "all" && (
+          {onFiltersChange && (
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground font-medium">Status</span>
+              <Select
+                value={filters.status}
+                onValueChange={(v) => onFiltersChange({ ...filters, status: v as FilterState["status"] })}
+                data-testid="gantt-status-filter"
+              >
+                <SelectTrigger className="h-8 w-[180px]">
+                  <SelectValue placeholder="All statuses" />
+                </SelectTrigger>
+                <SelectContent side="bottom" align="start">
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  {STATUS_ORDER.map((s) => (
+                    <SelectItem key={s} value={s}>{STATUS_LABELS[s]}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {(selectedQuarter !== "all" || filters.status !== "all") && (
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setSelectedQuarter("all")}
+              onClick={() => {
+                setSelectedQuarter("all");
+                if (onFiltersChange) onFiltersChange({ ...filters, status: "all" });
+              }}
               data-testid="gantt-clear-filters"
             >
               Clear view filters
@@ -408,7 +401,7 @@ export default function GanttView({ filters }: GanttViewProps) {
                     </button>
                   </PopoverTrigger>
                   <PopoverContent side="bottom" align="start" className="w-auto max-w-[220px] px-3 py-1.5 text-xs">
-                    Project name with team, sponsor, stakeholder, and goals
+                    Project name with team, functionName, sponsor, and goals
                   </PopoverContent>
                 </Popover>
               </div>
@@ -434,21 +427,17 @@ export default function GanttView({ filters }: GanttViewProps) {
                   const cStart = Math.max(parseISO(cycle.startDate).getTime(), viewStart.getTime());
                   const cEnd = Math.min(parseISO(cycle.endDate).getTime(), viewEnd.getTime());
                   const widthPct = (differenceInDays(new Date(cEnd), new Date(cStart)) / totalDays) * 100;
-                  const cap = capacityByCycleId.get(cycle.id);
                   const isActive = parseISO(cycle.startDate) <= today && parseISO(cycle.endDate) >= today;
                   const cycleProjects = projectsByCycleId.get(cycle.id) ?? [];
-                  const totalBudget = (cap?.a3Budget ?? 0) + (cap?.backendBudget ?? 0) + (cap?.frontendBudget ?? 0);
 
-                  // Sum each project's allocation percent specifically for this cycle
-                  // (a project may have different %s in different cycles). Falls back
-                  // to the legacy storyPoints/budget calculation when no allocations.
+                  // Sum each project's allocation percent specifically for this cycle.
                   const literalSum = cycleProjects
                     .map((p) => getCycleAllocations(p).find((a) => a.cycleId === cycle.id)?.percent ?? null)
                     .filter((v): v is number => v != null)
                     .reduce((s, v) => s + v, 0);
                   const overallCap = literalSum > 0
                     ? { pct: literalSum, label: `${literalSum.toFixed(1)}%` }
-                    : cycleOverallPct(cap);
+                    : null;
                   return (
                     <Popover key={cycle.id}>
                       <PopoverTrigger asChild>
@@ -481,15 +470,8 @@ export default function GanttView({ filters }: GanttViewProps) {
                         <PopoverContent side="bottom" className="w-72 p-4 space-y-2 text-sm">
                           <p className="font-bold text-foreground text-base mb-3">{cycle.name}: Project Allocation</p>
                           {cycleProjects.map((p) => {
-                            // Per-cycle %: look up this project's allocation row for
-                            // this specific cycle. A multi-cycle project may have
-                            // different %s per cycle.
                             const myAlloc = getCycleAllocations(p).find((a) => a.cycleId === cycle.id);
-                            const label = myAlloc != null
-                              ? `${myAlloc.percent.toFixed(1)}%`
-                              : (totalBudget > 0
-                                ? `${Math.round(((p.storyPoints ?? 0) / totalBudget) * 100)}%`
-                                : "—");
+                            const label = myAlloc != null ? `${myAlloc.percent.toFixed(1)}%` : "—";
                             return (
                               <div key={p.id} className="flex justify-between gap-3">
                                 <span className="truncate text-foreground">{p.title}</span>
@@ -500,17 +482,7 @@ export default function GanttView({ filters }: GanttViewProps) {
                           <div className="border-t border-border/50 pt-2 mt-1 flex justify-between gap-3">
                             <span className="text-muted-foreground">Total allocated</span>
                             <span className="shrink-0 tabular-nums font-semibold text-foreground">
-                              {(() => {
-                                const literals = cycleProjects
-                                  .map((p) => getCycleAllocations(p).find((a) => a.cycleId === cycle.id)?.percent ?? null)
-                                  .filter((v): v is number => v != null);
-                                if (literals.length === cycleProjects.length) {
-                                  return `${literals.reduce((s, v) => s + v, 0).toFixed(1)}%`;
-                                }
-                                return totalBudget > 0
-                                  ? `${Math.round((cycleProjects.reduce((sum, p) => sum + (p.storyPoints ?? 0), 0) / totalBudget) * 100)}%`
-                                  : "—";
-                              })()}
+                              {literalSum > 0 ? `${literalSum.toFixed(1)}%` : "—"}
                             </span>
                           </div>
                         </PopoverContent>

@@ -1,5 +1,4 @@
 import { pgTable, text, serial, integer, timestamp, jsonb } from "drizzle-orm/pg-core";
-import { usersTable } from "./users";
 
 export const AUDIT_ACTIONS = ["create", "update", "delete"] as const;
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
@@ -9,7 +8,6 @@ export type AuditEntityType = (typeof AUDIT_ENTITY_TYPES)[number];
 
 export const auditLogTable = pgTable("audit_log", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").references(() => usersTable.id, { onDelete: "set null" }),
   userEmail: text("user_email"),
   action: text("action").notNull().$type<AuditAction>(),
   entityType: text("entity_type").notNull().$type<AuditEntityType>(),

@@ -35,7 +35,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Info, Plus } from "lucide-react";
 import ProjectModal from "./project-modal";
 import ProjectForm from "./project-form";
-import { STATUS_LABELS } from "@/lib/constants";
+import { STATUS_LABELS, AVG_CYCLE_CAPACITY, cycleEffortPercent } from "@/lib/constants";
 import { computeInsertOrder } from "@/lib/order";
 import { isProjectBlocked } from "@/lib/blocked";
 
@@ -392,9 +392,18 @@ function ProjectCard({
             </Badge>
           )}
         </div>
-        <div className="flex items-center gap-1 flex-wrap">
+        <div className="flex items-center gap-1.5 flex-wrap">
           {project.team && (
             <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">{project.team}</span>
+          )}
+          {project.storyPoints != null && (
+            <Badge
+              variant="outline"
+              className="text-[11px] font-semibold px-2 py-0.5 bg-muted/50"
+              title={`${project.storyPoints} pts of ~${AVG_CYCLE_CAPACITY} avg per cycle`}
+            >
+              {cycleEffortPercent(project.storyPoints)} of cycle
+            </Badge>
           )}
         </div>
       </CardHeader>
@@ -408,16 +417,16 @@ function ProjectCard({
         )}
       </CardContent>
       <CardFooter className="p-3 pt-0 flex flex-col gap-1.5 items-start text-[10px] text-muted-foreground">
-        {project.sponsor && (
-          <div className="flex items-center gap-1 w-full" title={project.sponsor}>
-            <span className="text-muted-foreground/60 shrink-0">Function:</span>
-            <span className="truncate font-medium">{project.sponsor}</span>
+        {project.functionName && (
+          <div className="flex items-center gap-1 w-full" title={project.functionName}>
+            <span className="text-muted-foreground/60 shrink-0">Function (Sponsor):</span>
+            <span className="truncate font-medium">{project.functionName}</span>
           </div>
         )}
-        {project.stakeholder && (
-          <div className="flex items-center gap-1 w-full" title={project.stakeholder}>
-            <span className="text-muted-foreground/60 shrink-0">Sponsor:</span>
-            <span className="truncate font-medium">{project.stakeholder}</span>
+        {project.sponsor && (
+          <div className="flex items-center gap-1 w-full" title={project.sponsor}>
+            <span className="text-muted-foreground/60 shrink-0">Stakeholder:</span>
+            <span className="truncate font-medium">{project.sponsor}</span>
           </div>
         )}
         {project.goals && project.goals.length > 0 && (

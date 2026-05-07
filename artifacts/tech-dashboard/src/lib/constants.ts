@@ -24,16 +24,9 @@ export const PIPELINE_STATUS_ORDER: ProjectStatus[] = [
   "done",
 ];
 
-export const CONFIDENCE_COLORS: Record<string, string> = {
-  high: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-100",
-  medium: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100",
-  low: "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-100",
-  at_risk: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100",
-};
-
 export const TEAMS = ["Development", "Data", "Infrastructure", "Cybersecurity", "SysOps"];
 
-export const SPONSORS = [
+export const FUNCTIONS = [
   "Leadership",
   "Finance",
   "Operations",
@@ -44,3 +37,14 @@ export const SPONSORS = [
   "Legal & Compliance",
   "Departments",
 ];
+
+// Average story-point capacity of a single dev cycle. Used to express a
+// project's total effort as a percentage of one cycle's worth of work, e.g.
+// 5 / 324 = 1.54 %. TODO: move to per-cycle settings (capacity actually
+// varies cycle-to-cycle based on holidays, headcount, etc.).
+export const AVG_CYCLE_CAPACITY = 324;
+
+export function cycleEffortPercent(storyPoints: number | null | undefined): string | null {
+  if (storyPoints == null) return null;
+  return ((storyPoints / AVG_CYCLE_CAPACITY) * 100).toFixed(2) + "%";
+}

@@ -4,7 +4,9 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { projectsTable } from "./projects";
 import { sprintsTable } from "./sprints";
-import { SUB_TEAMS, type SubTeam } from "./sprintCapacity";
+
+export const SUB_TEAMS = ["a3", "backend", "frontend"] as const;
+export type SubTeam = (typeof SUB_TEAMS)[number];
 
 export const projectSprintAllocationsTable = pgTable("project_sprint_allocations", {
   id: serial("id").primaryKey(),
@@ -22,5 +24,3 @@ export const projectSprintAllocationsTable = pgTable("project_sprint_allocations
 export const insertProjectSprintAllocationSchema = createInsertSchema(projectSprintAllocationsTable).omit({ id: true, createdAt: true });
 export type InsertProjectSprintAllocation = z.infer<typeof insertProjectSprintAllocationSchema>;
 export type ProjectSprintAllocation = typeof projectSprintAllocationsTable.$inferSelect;
-
-export { SUB_TEAMS, type SubTeam };

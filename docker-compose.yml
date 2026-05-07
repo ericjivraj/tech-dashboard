@@ -67,8 +67,6 @@ services:
       NODE_ENV: development
       PORT: 3000
       DATABASE_URL: postgres://portfolio:${POSTGRES_PASSWORD:-localpassword}@db:5432/portfolio
-      CLERK_SECRET_KEY: ${CLERK_SECRET_KEY}
-      EDITOR_EMAILS: ${EDITOR_EMAILS}
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:5173}
       LOG_LEVEL: ${LOG_LEVEL:-info}
       TD_ADMIN_SESSION_SECRET: ${TD_ADMIN_SESSION_SECRET}
@@ -96,7 +94,7 @@ services:
     command: >
       sh -c "corepack enable &&
              corepack prepare pnpm@latest --activate &&
-             pnpm install &&
+             pnpm install --ignore-scripts &&
              pnpm --filter @workspace/tech-dashboard run dev"
     volumes:
       - .:/app
@@ -113,11 +111,12 @@ services:
       PORT: "5173"
       # Base path for the Vite dev server. Use "/" for local development.
       BASE_PATH: ${BASE_PATH:-/}
-      VITE_CLERK_PUBLISHABLE_KEY: ${VITE_CLERK_PUBLISHABLE_KEY}
       VITE_TD_SITE_PASSCODE: ${VITE_TD_SITE_PASSCODE}
       # In the web container, "localhost" is the web container itself. Use the
       # compose service name so Vite's /api proxy reaches the API container.
       VITE_API_BASE_URL: http://api:3000
+      # Skip pnpm's TTY confirm when it wants to purge node_modules on lockfile drift.
+      CI: "true"
     depends_on:
       api:
         condition: service_healthy

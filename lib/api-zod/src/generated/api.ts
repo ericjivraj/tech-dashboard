@@ -25,9 +25,7 @@ export const GetMeResponse = zod.object({
   email: zod.string().nullable(),
   firstName: zod.string().nullable(),
   lastName: zod.string().nullable(),
-  role: zod
-    .union([zod.literal("admin"), zod.literal("guest"), zod.literal(null)])
-    .nullable(),
+  role: zod.union([zod.literal("admin"), zod.literal(null)]).nullable(),
   team: zod.string().nullable(),
 });
 
@@ -107,46 +105,6 @@ export const CreateSprintBody = zod.object({
   sprintNumber: zod.number(),
   startDate: zod.coerce.date(),
   endDate: zod.coerce.date(),
-});
-
-/**
- * @summary Get capacity budgets for a sprint (A3, Backend, Frontend)
- */
-export const GetSprintCapacityParams = zod.object({
-  id: zod.coerce.number(),
-});
-
-export const GetSprintCapacityResponse = zod.object({
-  sprintId: zod.number(),
-  a3: zod.number().nullable(),
-  backend: zod.number().nullable(),
-  frontend: zod.number().nullable(),
-});
-
-/**
- * @summary Set capacity budgets for a sprint (editor only)
- */
-export const UpsertSprintCapacityParams = zod.object({
-  id: zod.coerce.number(),
-});
-
-export const upsertSprintCapacityBodyA3Min = 0;
-
-export const upsertSprintCapacityBodyBackendMin = 0;
-
-export const upsertSprintCapacityBodyFrontendMin = 0;
-
-export const UpsertSprintCapacityBody = zod.object({
-  a3: zod.number().min(upsertSprintCapacityBodyA3Min).nullish(),
-  backend: zod.number().min(upsertSprintCapacityBodyBackendMin).nullish(),
-  frontend: zod.number().min(upsertSprintCapacityBodyFrontendMin).nullish(),
-});
-
-export const UpsertSprintCapacityResponse = zod.object({
-  sprintId: zod.number(),
-  a3: zod.number().nullable(),
-  backend: zod.number().nullable(),
-  frontend: zod.number().nullable(),
 });
 
 /**
@@ -241,7 +199,7 @@ export const ListProjectsQueryParams = zod.object({
     ])
     .nullish(),
   team: zod.coerce.string().nullish(),
-  sponsor: zod.coerce.string().nullish(),
+  functionName: zod.coerce.string().nullish(),
   goalId: zod.coerce.number().nullish(),
   cycleId: zod.coerce.number().nullish(),
 });
@@ -251,7 +209,7 @@ export const ListProjectsResponseItem = zod
     id: zod.number(),
     title: zod.string(),
     description: zod.string().nullable(),
-    sponsor: zod.string().nullable(),
+    functionName: zod.string().nullable(),
     team: zod.string().nullable(),
     status: zod.enum([
       "done",
@@ -260,24 +218,13 @@ export const ListProjectsResponseItem = zod
       "backlog",
       "new_request",
     ]),
-    confidence: zod
-      .union([
-        zod.literal("high"),
-        zod.literal("medium"),
-        zod.literal("low"),
-        zod.literal("at_risk"),
-        zod.literal(null),
-      ])
-      .nullable(),
     storyPoints: zod.number().nullable(),
     startDate: zod.coerce.date().nullable(),
     endDate: zod.coerce.date().nullable(),
-    stakeholder: zod.string().nullable(),
+    sponsor: zod.string().nullable(),
     impact: zod.string().nullable(),
-    blockedReason: zod.string().nullable(),
     cycleId: zod.number().nullable(),
     sprintId: zod.number().nullable(),
-    completionPercent: zod.number().nullable(),
     ragStatus: zod.enum(["green", "amber", "red"]),
     displayOrder: zod.number(),
     listOrder: zod.number(),
@@ -335,7 +282,7 @@ export const ListProjectsResponse = zod.array(ListProjectsResponseItem);
 export const CreateProjectBody = zod.object({
   title: zod.string(),
   description: zod.string().nullish(),
-  sponsor: zod.string().nullish(),
+  functionName: zod.string().nullish(),
   team: zod.string().nullish(),
   status: zod.enum([
     "done",
@@ -344,25 +291,15 @@ export const CreateProjectBody = zod.object({
     "backlog",
     "new_request",
   ]),
-  confidence: zod
-    .union([
-      zod.literal("high"),
-      zod.literal("medium"),
-      zod.literal("low"),
-      zod.literal("at_risk"),
-      zod.literal(null),
-    ])
-    .nullish(),
   storyPoints: zod.number().nullish(),
   startDate: zod.coerce.date().nullish(),
   endDate: zod.coerce.date().nullish(),
-  stakeholder: zod.string().nullish(),
+  sponsor: zod.string().nullish(),
   impact: zod.string().nullish(),
-  blockedReason: zod.string().nullish(),
   cycleId: zod.number().nullish(),
   sprintId: zod.number().nullish(),
-  completionPercent: zod.number().nullish(),
-  goalIds: zod.array(zod.number()).optional(),
+  ragStatus: zod.enum(["green", "amber", "red"]).optional(),
+  goalIds: zod.array(zod.number()).nullish(),
 });
 
 /**
@@ -377,7 +314,7 @@ export const GetProjectResponse = zod
     id: zod.number(),
     title: zod.string(),
     description: zod.string().nullable(),
-    sponsor: zod.string().nullable(),
+    functionName: zod.string().nullable(),
     team: zod.string().nullable(),
     status: zod.enum([
       "done",
@@ -386,24 +323,13 @@ export const GetProjectResponse = zod
       "backlog",
       "new_request",
     ]),
-    confidence: zod
-      .union([
-        zod.literal("high"),
-        zod.literal("medium"),
-        zod.literal("low"),
-        zod.literal("at_risk"),
-        zod.literal(null),
-      ])
-      .nullable(),
     storyPoints: zod.number().nullable(),
     startDate: zod.coerce.date().nullable(),
     endDate: zod.coerce.date().nullable(),
-    stakeholder: zod.string().nullable(),
+    sponsor: zod.string().nullable(),
     impact: zod.string().nullable(),
-    blockedReason: zod.string().nullable(),
     cycleId: zod.number().nullable(),
     sprintId: zod.number().nullable(),
-    completionPercent: zod.number().nullable(),
     ragStatus: zod.enum(["green", "amber", "red"]),
     displayOrder: zod.number(),
     listOrder: zod.number(),
@@ -464,7 +390,7 @@ export const UpdateProjectParams = zod.object({
 export const UpdateProjectBody = zod.object({
   title: zod.string().nullish(),
   description: zod.string().nullish(),
-  sponsor: zod.string().nullish(),
+  functionName: zod.string().nullish(),
   team: zod.string().nullish(),
   status: zod
     .union([
@@ -476,24 +402,13 @@ export const UpdateProjectBody = zod.object({
       zod.literal(null),
     ])
     .nullish(),
-  confidence: zod
-    .union([
-      zod.literal("high"),
-      zod.literal("medium"),
-      zod.literal("low"),
-      zod.literal("at_risk"),
-      zod.literal(null),
-    ])
-    .nullish(),
   storyPoints: zod.number().nullish(),
   startDate: zod.coerce.date().nullish(),
   endDate: zod.coerce.date().nullish(),
-  stakeholder: zod.string().nullish(),
+  sponsor: zod.string().nullish(),
   impact: zod.string().nullish(),
-  blockedReason: zod.string().nullish(),
   cycleId: zod.number().nullish(),
   sprintId: zod.number().nullish(),
-  completionPercent: zod.number().nullish(),
   ragStatus: zod
     .union([
       zod.literal("green"),
@@ -505,6 +420,7 @@ export const UpdateProjectBody = zod.object({
   displayOrder: zod.number().nullish(),
   listOrder: zod.number().nullish(),
   timelineOrder: zod.number().nullish(),
+  goalIds: zod.array(zod.number()).nullish(),
   cycleAllocations: zod
     .array(
       zod.object({
@@ -513,7 +429,6 @@ export const UpdateProjectBody = zod.object({
       }),
     )
     .nullish(),
-  goalIds: zod.array(zod.number()).nullish(),
 });
 
 export const UpdateProjectResponse = zod
@@ -521,7 +436,7 @@ export const UpdateProjectResponse = zod
     id: zod.number(),
     title: zod.string(),
     description: zod.string().nullable(),
-    sponsor: zod.string().nullable(),
+    functionName: zod.string().nullable(),
     team: zod.string().nullable(),
     status: zod.enum([
       "done",
@@ -530,24 +445,13 @@ export const UpdateProjectResponse = zod
       "backlog",
       "new_request",
     ]),
-    confidence: zod
-      .union([
-        zod.literal("high"),
-        zod.literal("medium"),
-        zod.literal("low"),
-        zod.literal("at_risk"),
-        zod.literal(null),
-      ])
-      .nullable(),
     storyPoints: zod.number().nullable(),
     startDate: zod.coerce.date().nullable(),
     endDate: zod.coerce.date().nullable(),
-    stakeholder: zod.string().nullable(),
+    sponsor: zod.string().nullable(),
     impact: zod.string().nullable(),
-    blockedReason: zod.string().nullable(),
     cycleId: zod.number().nullable(),
     sprintId: zod.number().nullable(),
-    completionPercent: zod.number().nullable(),
     ragStatus: zod.enum(["green", "amber", "red"]),
     displayOrder: zod.number(),
     listOrder: zod.number(),
@@ -658,30 +562,6 @@ export const UpsertProjectAllocationsResponse = zod.array(
 );
 
 /**
- * @summary Get aggregated capacity summary per cycle or sprint
- */
-export const GetCapacitySummaryQueryParams = zod.object({
-  cycleId: zod.coerce.number().nullish(),
-  sprintId: zod.coerce.number().nullish(),
-});
-
-export const GetCapacitySummaryResponse = zod.object({
-  mode: zod.enum(["cycle", "sprint"]),
-  rows: zod.array(
-    zod.object({
-      id: zod.number(),
-      name: zod.string(),
-      a3Allocated: zod.number(),
-      a3Budget: zod.number().nullable(),
-      backendAllocated: zod.number(),
-      backendBudget: zod.number().nullable(),
-      frontendAllocated: zod.number(),
-      frontendBudget: zod.number().nullable(),
-    }),
-  ),
-});
-
-/**
  * @summary List updates for a project
  */
 export const ListProjectUpdatesParams = zod.object({
@@ -754,7 +634,6 @@ export const GetDashboardSummaryResponse = zod.object({
     in_progress: zod.number(),
     up_next: zod.number(),
     backlog: zod.number(),
-    blocked: zod.number(),
     new_request: zod.number(),
   }),
   countByStatus: zod.object({
@@ -762,10 +641,8 @@ export const GetDashboardSummaryResponse = zod.object({
     in_progress: zod.number(),
     up_next: zod.number(),
     backlog: zod.number(),
-    blocked: zod.number(),
     new_request: zod.number(),
   }),
-  capacityPercentage: zod.number(),
   activeCycle: zod
     .object({
       id: zod.number(),
@@ -811,21 +688,12 @@ export const GetProjectsTimelineResponseItem = zod.object({
     "backlog",
     "new_request",
   ]),
-  confidence: zod
-    .union([
-      zod.literal("high"),
-      zod.literal("medium"),
-      zod.literal("low"),
-      zod.literal("at_risk"),
-      zod.literal(null),
-    ])
-    .nullable(),
   storyPoints: zod.number().nullable(),
   startDate: zod.string().nullable(),
   endDate: zod.string().nullable(),
   team: zod.string().nullable(),
+  functionName: zod.string().nullable(),
   sponsor: zod.string().nullable(),
-  stakeholder: zod.string().nullable(),
   cycleName: zod.string().nullable(),
   cycleStartDate: zod.string().nullable(),
   cycleEndDate: zod.string().nullable(),
@@ -833,19 +701,20 @@ export const GetProjectsTimelineResponseItem = zod.object({
   sprintId: zod.number().nullable(),
   sprintName: zod.string().nullable(),
   sprintNumber: zod.number().nullable(),
-  completionPercent: zod.number().nullable(),
   ragStatus: zod.enum(["green", "amber", "red"]),
   displayOrder: zod.number(),
   listOrder: zod.number(),
   timelineOrder: zod.number(),
   blocked: zod.boolean(),
-  subTeamSummary: zod
-    .object({
-      a3Percent: zod.number().nullable(),
-      backendPercent: zod.number().nullable(),
-      frontendPercent: zod.number().nullable(),
-    })
-    .nullable(),
+  cycleAllocations: zod.array(
+    zod.object({
+      cycleId: zod.number(),
+      cycleName: zod.string(),
+      cycleStartDate: zod.string(),
+      cycleEndDate: zod.string(),
+      percent: zod.number(),
+    }),
+  ),
   goals: zod.array(
     zod.object({
       id: zod.number(),
@@ -858,57 +727,6 @@ export const GetProjectsTimelineResponseItem = zod.object({
 export const GetProjectsTimelineResponse = zod.array(
   GetProjectsTimelineResponseItem,
 );
-
-/**
- * @summary List all managed users (admin only)
- */
-export const ListUsersResponseItem = zod.object({
-  id: zod.number(),
-  clerkUserId: zod.string().nullable(),
-  email: zod.string(),
-  role: zod.enum(["admin", "guest"]),
-  team: zod.string().nullable(),
-  createdAt: zod.coerce.date(),
-});
-export const ListUsersResponse = zod.array(ListUsersResponseItem);
-
-/**
- * @summary Create a managed user (admin only)
- */
-export const CreateUserBody = zod.object({
-  email: zod.string(),
-  clerkUserId: zod.string().nullish(),
-  role: zod.enum(["admin", "guest"]),
-  team: zod.string().nullish(),
-});
-
-/**
- * @summary Update a managed user (admin only)
- */
-export const UpdateUserParams = zod.object({
-  id: zod.coerce.number(),
-});
-
-export const UpdateUserBody = zod.object({
-  role: zod.enum(["admin", "guest"]).optional(),
-  team: zod.string().nullish(),
-});
-
-export const UpdateUserResponse = zod.object({
-  id: zod.number(),
-  clerkUserId: zod.string().nullable(),
-  email: zod.string(),
-  role: zod.enum(["admin", "guest"]),
-  team: zod.string().nullable(),
-  createdAt: zod.coerce.date(),
-});
-
-/**
- * @summary Delete a managed user (admin only)
- */
-export const DeleteUserParams = zod.object({
-  id: zod.coerce.number(),
-});
 
 /**
  * @summary Get audit log entries (admin only, last 200)

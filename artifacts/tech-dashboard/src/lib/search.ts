@@ -3,11 +3,10 @@ import { STATUS_LABELS } from "@/lib/constants";
 interface MaybeProject {
   title?: string | null;
   description?: string | null;
-  sponsor?: string | null;
+  functionName?: string | null;
   team?: string | null;
-  stakeholder?: string | null;
+  sponsor?: string | null;
   impact?: string | null;
-  blockedReason?: string | null;
   status?: string | null;
   cycleName?: string | null;
   sprintName?: string | null;
@@ -22,11 +21,10 @@ export function matchesSearch(project: MaybeProject, rawQuery: string): boolean 
   const haystack: (string | null | undefined)[] = [
     project.title,
     project.description,
-    project.sponsor,
+    project.functionName,
     project.team,
-    project.stakeholder,
+    project.sponsor,
     project.impact,
-    project.blockedReason,
     project.cycleName,
     project.sprintName,
     project.latestUpdate?.content,

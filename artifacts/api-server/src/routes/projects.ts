@@ -104,12 +104,12 @@ router.get("/projects", async (req, res): Promise<void> => {
     return;
   }
 
-  const { status, team, sponsor, goalId, cycleId } = query.data;
+  const { status, team, functionName, goalId, cycleId } = query.data;
 
   const conditions = [];
   if (status) conditions.push(eq(projectsTable.status, status));
   if (team) conditions.push(eq(projectsTable.team, team));
-  if (sponsor) conditions.push(eq(projectsTable.sponsor, sponsor));
+  if (functionName) conditions.push(eq(projectsTable.functionName, functionName));
   if (cycleId) conditions.push(eq(projectsTable.cycleId, cycleId));
 
   let projects;
@@ -207,20 +207,8 @@ router.post("/projects", requireAuth, async (req, res): Promise<void> => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
-  if (parsed.data.completionPercent != null && (parsed.data.completionPercent < 0 || parsed.data.completionPercent > 100)) {
-    res.status(400).json({ error: "completionPercent must be between 0 and 100" });
-    return;
-  }
 
   const ctx = req.authContext;
-
-  if (ctx?.role === "guest") {
-    const requestedTeam = parsed.data.team ?? null;
-    if (requestedTeam !== ctx.team) {
-      res.status(403).json({ error: "Forbidden: guests can only create projects for their assigned team" });
-      return;
-    }
-  }
 
   const { goalIds, startDate, endDate, ...fields } = parsed.data;
 
@@ -289,15 +277,8 @@ router.get("/projects/timeline", async (req, res): Promise<void> => {
     goalsByProject.set(r.projectId, existing);
   }
 
-  const allAllocations = projectIds.length > 0
-    ? await db
-        .select()
-        .from(projectSprintAllocationsTable)
-        .where(inArray(projectSprintAllocationsTable.projectId, projectIds))
-    : [];
-
   // Per-project per-cycle allocations (% of cycle capacity). Drives the Gantt
-  // bar span (min cycle start → max cycle end) and the cycle-header popover.
+  // bar span (min cycle start → max cycle end).
   const allCycleAllocations = projectIds.length > 0
     ? await db
         .select()
@@ -331,12 +312,6 @@ router.get("/projects/timeline", async (req, res): Promise<void> => {
     list.sort((a, b) => a.cycleStartDate.localeCompare(b.cycleStartDate));
   }
 
-  const allSprintIds = [...new Set(allAllocations.map((a) => a.sprintId))];
-  const allocationSprints = allSprintIds.length > 0
-    ? await db.select().from(sprintsTable).where(inArray(sprintsTable.id, allSprintIds))
-    : [];
-  const allocationSprintMap = new Map(allocationSprints.map((s) => [s.id, s]));
-
   const updateRows = projectIds.length > 0
     ? await db
         .select()
@@ -349,72 +324,20 @@ router.get("/projects/timeline", async (req, res): Promise<void> => {
     latestUpdateByProject.set(u.projectId, u);
   }
 
-  const today = new Date().toISOString().split("T")[0];
-
-  const windowSprintIds: Set<number> | null = (() => {
-    if (windowCycleId != null) {
-      return new Set(allocationSprints.filter((s) => s.cycleId === windowCycleId).map((s) => s.id));
-    }
-    if (windowStartDate && windowEndDate) {
-      return new Set(allocationSprints
-        .filter((s) => s.startDate <= windowEndDate && s.endDate >= windowStartDate)
-        .map((s) => s.id));
-    }
-    return null;
-  })();
-
-  const allocationsByProject = new Map<number, typeof projectSprintAllocationsTable.$inferSelect[]>();
-  for (const a of allAllocations) {
-    const existing = allocationsByProject.get(a.projectId) ?? [];
-    existing.push(a);
-    allocationsByProject.set(a.projectId, existing);
-  }
-
   const result = projects.map((p) => {
     const cycle = p.cycleId ? cycleMap.get(p.cycleId) : undefined;
     const sprint = p.sprintId ? sprintMap.get(p.sprintId) : undefined;
-    const allocations = allocationsByProject.get(p.id) ?? [];
-    const totalPoints = p.storyPoints ?? 0;
-
-    const windowAllocations = windowSprintIds != null
-      ? allocations.filter((a) => windowSprintIds.has(a.sprintId))
-      : allocations;
-
-    let subTeamSummary: { a3Percent: number | null; backendPercent: number | null; frontendPercent: number | null } | null = null;
-    if (p.team === "Development" && windowAllocations.length > 0 && totalPoints > 0) {
-      const a3Total = windowAllocations.filter((a) => a.subTeam === "a3").reduce((s, a) => s + a.storyPoints, 0);
-      const beTotal = windowAllocations.filter((a) => a.subTeam === "backend").reduce((s, a) => s + a.storyPoints, 0);
-      const feTotal = windowAllocations.filter((a) => a.subTeam === "frontend").reduce((s, a) => s + a.storyPoints, 0);
-      subTeamSummary = {
-        a3Percent: a3Total > 0 ? Math.round((a3Total / totalPoints) * 100) : null,
-        backendPercent: beTotal > 0 ? Math.round((beTotal / totalPoints) * 100) : null,
-        frontendPercent: feTotal > 0 ? Math.round((feTotal / totalPoints) * 100) : null,
-      };
-    }
-
-    let resolvedCompletionPercent: number | null = p.completionPercent ?? null;
-    if (resolvedCompletionPercent == null && p.team === "Development" && allocations.length > 0 && totalPoints > 0) {
-      const pastAllocations = allocations.filter((a) => {
-        const s = allocationSprintMap.get(a.sprintId);
-        return s != null && s.endDate <= today;
-      });
-      const pastTotal = pastAllocations.reduce((sum, a) => sum + a.storyPoints, 0);
-      if (pastTotal > 0) {
-        resolvedCompletionPercent = Math.min(100, Math.round((pastTotal / totalPoints) * 100));
-      }
-    }
 
     return {
       id: p.id,
       title: p.title,
       status: p.status,
-      confidence: p.confidence,
       storyPoints: p.storyPoints,
       startDate: p.startDate,
       endDate: p.endDate,
       team: p.team,
+      functionName: p.functionName,
       sponsor: p.sponsor,
-      stakeholder: p.stakeholder,
       cycleName: cycle?.name ?? null,
       cycleStartDate: cycle?.startDate ?? null,
       cycleEndDate: cycle?.endDate ?? null,
@@ -422,14 +345,12 @@ router.get("/projects/timeline", async (req, res): Promise<void> => {
       sprintId: p.sprintId ?? null,
       sprintName: sprint?.name ?? null,
       sprintNumber: sprint?.sprintNumber ?? null,
-      completionPercent: resolvedCompletionPercent,
       ragStatus: p.ragStatus,
       displayOrder: p.displayOrder,
       listOrder: p.listOrder,
       timelineOrder: p.timelineOrder,
       blocked: latestUpdateByProject.get(p.id)?.blocked === true,
       cycleAllocations: cycleAllocationsByProject.get(p.id) ?? [],
-      subTeamSummary: subTeamSummary ?? { a3Percent: null, backendPercent: null, frontendPercent: null },
       goals: goalsByProject.get(p.id) ?? [],
     };
   });
@@ -494,7 +415,6 @@ router.get("/projects/export", async (req, res): Promise<void> => {
     backlog: "Backlog",
     up_next: "Up Next",
     in_progress: "In Progress",
-    blocked: "Blocked",
     done: "Done",
   };
 
@@ -506,7 +426,7 @@ router.get("/projects/export", async (req, res): Promise<void> => {
     return str;
   }
 
-  const headers = ["Title", "Status", "Confidence", "Sponsor", "Team", "Stakeholder", "Story Points", "Cycle", "Goals", "Latest Update", "Start Date", "End Date"];
+  const headers = ["Title", "Status", "Function", "Team", "Sponsor", "Story Points", "Cycle", "Goals", "Latest Update", "Start Date", "End Date"];
 
   const rows = projects.map((p) => {
     const cycle = p.cycleId ? cycleMap.get(p.cycleId) : undefined;
@@ -515,10 +435,9 @@ router.get("/projects/export", async (req, res): Promise<void> => {
     return [
       csvCell(p.title),
       csvCell(statusLabels[p.status] ?? p.status),
-      csvCell(p.confidence?.replace(/_/g, " ") ?? ""),
-      csvCell(p.sponsor ?? ""),
+      csvCell(p.functionName ?? ""),
       csvCell(p.team ?? ""),
-      csvCell(p.stakeholder ?? ""),
+      csvCell(p.sponsor ?? ""),
       csvCell(p.storyPoints?.toString() ?? ""),
       csvCell(cycle?.name ?? ""),
       csvCell(goals.map((g) => g.name).join("; ")),
@@ -561,24 +480,7 @@ router.patch("/projects/:id", requireAuth, async (req, res): Promise<void> => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
-  if (parsed.data.completionPercent != null && (parsed.data.completionPercent < 0 || parsed.data.completionPercent > 100)) {
-    res.status(400).json({ error: "completionPercent must be between 0 and 100" });
-    return;
-  }
-
   const ctx = req.authContext;
-
-  if (ctx?.role === "guest") {
-    const [existingProject] = await db.select({ team: projectsTable.team }).from(projectsTable).where(eq(projectsTable.id, params.data.id));
-    if (!existingProject || existingProject.team !== ctx.team) {
-      res.status(403).json({ error: "Forbidden: guests can only edit projects belonging to their team" });
-      return;
-    }
-    if (parsed.data.team !== undefined && parsed.data.team !== ctx.team) {
-      res.status(403).json({ error: "Forbidden: guests cannot reassign a project to a different team" });
-      return;
-    }
-  }
 
   const [before] = await db.select().from(projectsTable).where(eq(projectsTable.id, params.data.id));
 
@@ -690,14 +592,6 @@ router.delete("/projects/:id", requireAuth, async (req, res): Promise<void> => {
 
   const ctx = req.authContext;
 
-  if (ctx?.role === "guest") {
-    const [existingProject] = await db.select({ team: projectsTable.team }).from(projectsTable).where(eq(projectsTable.id, params.data.id));
-    if (!existingProject || existingProject.team !== ctx.team) {
-      res.status(403).json({ error: "Forbidden: guests can only delete projects belonging to their team" });
-      return;
-    }
-  }
-
   const [project] = await db.delete(projectsTable).where(eq(projectsTable.id, params.data.id)).returning();
   if (!project) {
     res.status(404).json({ error: "Project not found" });
@@ -746,10 +640,6 @@ router.post("/projects/:projectId/updates", requireAuth, async (req, res): Promi
   }
 
   const ctx = req.authContext;
-  if (ctx?.role === "guest" && project.team !== ctx.team) {
-    res.status(403).json({ error: "Forbidden: guests can only add updates to projects belonging to their team" });
-    return;
-  }
 
   const [update] = await db
     .insert(projectUpdatesTable)
@@ -775,15 +665,6 @@ router.patch("/projects/:projectId/updates/:updateId", requireAuth, async (req, 
     return;
   }
   const { projectId, updateId } = params.data;
-
-  const ctx = req.authContext;
-  if (ctx?.role === "guest") {
-    const [project] = await db.select({ team: projectsTable.team }).from(projectsTable).where(eq(projectsTable.id, projectId));
-    if (!project || project.team !== ctx.team) {
-      res.status(403).json({ error: "Forbidden: guests can only edit updates on projects belonging to their team" });
-      return;
-    }
-  }
 
   const fields: Record<string, unknown> = {};
   if (parsed.data.content !== undefined) fields.content = parsed.data.content;
@@ -817,15 +698,6 @@ router.delete("/projects/:projectId/updates/:updateId", requireAuth, async (req,
     return;
   }
   const { projectId, updateId } = params.data;
-
-  const ctx = req.authContext;
-  if (ctx?.role === "guest") {
-    const [project] = await db.select({ team: projectsTable.team }).from(projectsTable).where(eq(projectsTable.id, projectId));
-    if (!project || project.team !== ctx.team) {
-      res.status(403).json({ error: "Forbidden: guests can only delete updates on projects belonging to their team" });
-      return;
-    }
-  }
 
   const [update] = await db
     .delete(projectUpdatesTable)
@@ -893,12 +765,6 @@ router.put("/projects/:id/allocations", requireAuth, async (req, res): Promise<v
     res.status(400).json({ error: "Allocations can only be set for Development team projects" });
     return;
   }
-  const ctx = req.authContext;
-  if (ctx?.role === "guest" && project.team !== ctx.team) {
-    res.status(403).json({ error: "Forbidden: guests can only update allocations for projects belonging to their team" });
-    return;
-  }
-
   const allocationKeys = parsed.data.allocations.map((a) => `${a.sprintId}:${a.subTeam}`);
   const duplicateKeys = allocationKeys.filter((k, i) => allocationKeys.indexOf(k) !== i);
   if (duplicateKeys.length > 0) {

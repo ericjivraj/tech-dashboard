@@ -28,9 +28,7 @@ import {
   projectUpdatesTable,
   projectSprintAllocationsTable,
   projectCycleAllocationsTable,
-  projectAttachmentsTable,
   PROJECT_STATUSES,
-  CONFIDENCE_LEVELS,
   SUB_TEAMS,
 } from "@workspace/db";
 
@@ -58,25 +56,18 @@ const updateInput = z.object({
 const projectInput = z.object({
   title: z.string().min(1),
   description: z.string().optional(),
-  sponsor: z.string().optional(),
+  functionName: z.string().optional(),
   team: z.string().optional(),
   status: z.enum(PROJECT_STATUSES as readonly [string, ...string[]]),
-  confidence: z.enum(CONFIDENCE_LEVELS as readonly [string, ...string[]]).optional(),
   storyPoints: z.number().int().nonnegative().optional(),
   cycleAllocations: z.array(z.object({
     cycle: z.string().min(1),                                        // cycle name, e.g. "Cycle D"
     percent: z.number().min(0).max(100),
   })).default([]),
-  attachments: z.array(z.object({
-    name: z.string().min(1),                                          // displayed link label
-    url: z.string().min(1),                                           // /attachments/foo.pdf or https://...
-  })).default([]),
   startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  stakeholder: z.string().optional(),
+  sponsor: z.string().optional(),
   impact: z.string().optional(),
-  blockedReason: z.string().optional(),
-  completionPercent: z.number().int().min(0).max(100).optional(),
   cycle: z.string().optional(),                    // cycle name, e.g. "Cycle D"
   sprint: z.string().optional(),                   // sprint name, e.g. "D/2"
   goals: z.array(z.string()).default([]),          // names — must exist in goals[]
@@ -155,7 +146,7 @@ async function main() {
   await db.transaction(async (tx) => {
     // Wipe click-data tables in FK-safe order.
     console.log("Wiping click-data tables...");
-    await tx.execute(sql`TRUNCATE TABLE project_attachments, project_updates, project_cycle_allocations, project_sprint_allocations, project_goals, projects, goals RESTART IDENTITY CASCADE`);
+    await tx.execute(sql`TRUNCATE TABLE project_updates, project_cycle_allocations, project_sprint_allocations, project_goals, projects, goals RESTART IDENTITY CASCADE`);
 
     // Insert goals; build name → id map for project_goals lookup.
     console.log(`Inserting ${data.goals.length} goals...`);
@@ -170,17 +161,14 @@ async function main() {
       const [proj] = await tx.insert(projectsTable).values({
         title: p.title,
         description: p.description ?? null,
-        sponsor: p.sponsor ?? null,
+        functionName: p.functionName ?? null,
         team: p.team ?? null,
         status: p.status,
-        confidence: p.confidence ?? null,
         storyPoints: p.storyPoints ?? null,
         startDate: p.startDate ?? null,
         endDate: p.endDate ?? null,
-        stakeholder: p.stakeholder ?? null,
+        sponsor: p.sponsor ?? null,
         impact: p.impact ?? null,
-        blockedReason: p.blockedReason ?? null,
-        completionPercent: p.completionPercent ?? null,
         cycleId: p.cycle ? cycleByName.get(p.cycle)! : null,
         sprintId: p.sprint ? sprintByName.get(p.sprint)! : null,
       }).returning({ id: projectsTable.id });
@@ -191,16 +179,6 @@ async function main() {
             projectId: proj.id,
             cycleId: cycleByName.get(ca.cycle)!,
             allocationPercent: ca.percent.toString(),
-          })),
-        );
-      }
-
-      if (p.attachments.length) {
-        await tx.insert(projectAttachmentsTable).values(
-          p.attachments.map((a) => ({
-            projectId: proj.id,
-            name: a.name,
-            url: a.url,
           })),
         );
       }

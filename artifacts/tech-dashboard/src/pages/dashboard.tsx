@@ -14,8 +14,7 @@ import ProjectForm from "@/components/project-form";
 import AdminPanel from "@/components/admin-panel";
 import { DEFAULT_FILTERS, type FilterState } from "@/lib/filter-types";
 import ExportButton from "@/components/export-button";
-import { STATUS_LABELS, TEAMS, SPONSORS } from "@/lib/constants";
-import { storyPointsToTShirt } from "@/lib/utils";
+import { STATUS_LABELS, TEAMS, FUNCTIONS } from "@/lib/constants";
 import { matchesSearch } from "@/lib/search";
 
 export default function Dashboard() {
@@ -41,11 +40,9 @@ export default function Dashboard() {
 
   const isEditor = user?.isEditor === true;
   const isAdmin = user?.role === "admin";
-  const isGuest = user?.role === "guest";
-  const guestTeam = user?.team ?? null;
 
   const teams = TEAMS;
-  const sponsors = SPONSORS;
+  const sponsors = FUNCTIONS;
 
   const today = new Date().toISOString().split("T")[0];
 
@@ -55,11 +52,10 @@ export default function Dashboard() {
       if (filters.search && !matchesSearch(p, filters.search)) return false;
       if (filters.status !== "all" && p.status !== filters.status) return false;
       if (filters.team !== "all" && p.team !== filters.team) return false;
-      if (filters.sponsor !== "all" && p.sponsor !== filters.sponsor) return false;
+      if (filters.functionName !== "all" && p.functionName !== filters.functionName) return false;
       if (filters.goalId !== "all" && !p.goals.some((g) => g.id.toString() === filters.goalId)) return false;
       if (filters.cycleId !== "all" && p.cycleId?.toString() !== filters.cycleId) return false;
       if ((filters.sprintId ?? "all") !== "all" && p.sprintId?.toString() !== filters.sprintId) return false;
-      if ((filters.size ?? "all") !== "all" && (p.storyPoints == null || storyPointsToTShirt(p.storyPoints).label !== filters.size)) return false;
       return true;
     });
   }, [allProjects, filters]);
@@ -217,7 +213,7 @@ export default function Dashboard() {
               )}
             </TabsContent>
             <TabsContent value="gantt" className="m-0 h-full border-0 p-0">
-              <GanttView filters={filters} />
+              <GanttView filters={filters} onFiltersChange={setFilters} />
             </TabsContent>
             <TabsContent value="pipeline" className="m-0 h-full border-0 p-0">
               {isLoadingProjects ? (
