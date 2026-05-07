@@ -59,3 +59,7 @@ Thumbs.db
 
 # pnpm local store (used by docker-compose volume; never commit)
 .pnpm-store/
+
+# Local pg_dump snapshots — never commit, may contain prod data
+*.sql
+backups/

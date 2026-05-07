@@ -94,7 +94,7 @@ services:
     command: >
       sh -c "corepack enable &&
              corepack prepare pnpm@latest --activate &&
-             pnpm install --ignore-scripts &&
+             pnpm install &&
              pnpm --filter @workspace/tech-dashboard run dev"
     volumes:
       - .:/app
