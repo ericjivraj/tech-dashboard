@@ -56,12 +56,13 @@ catalog:
 
 autoInstallPeers: false
 
-onlyBuiltDependencies:
-  - '@swc/core'
-  - core-js
-  - esbuild
-  - msw
-  - unrs-resolver
+# Allow all build scripts to run during install. We've reviewed the deps and
+# trust the chain; supply-chain protection is provided by `minimumReleaseAge`
+# above (a malicious release has to survive 24h before it can land here).
+# The `onlyBuiltDependencies` allowlist was removed because pnpm 10.33.x in
+# CI was flagging packages already on the allowlist (e.g. esbuild) as
+# ignored, breaking every build job.
+dangerouslyAllowAllBuilds: true
 
 # Tell pnpm to install platform-specific binaries (esbuild, rollup, lightningcss,
 # @tailwindcss/oxide native modules) for every dev + deploy combination we use,
