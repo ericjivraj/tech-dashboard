@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { format, parseISO } from "date-fns";
-import { useGetDashboardSummary, useGetMe, useListProjects } from "@workspace/api-client-react";
+import { useGetDashboardSummary, useGetMe, useListProjects, useListCycles } from "@workspace/api-client-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import KanbanView from "@/components/kanban-view";
@@ -12,7 +12,7 @@ import { Plus, Link2, Check, ExternalLink } from "lucide-react";
 import ProjectModal from "@/components/project-modal";
 import ProjectForm from "@/components/project-form";
 import AdminPanel from "@/components/admin-panel";
-import { DEFAULT_FILTERS, type FilterState } from "@/lib/filter-types";
+import { DEFAULT_FILTERS, projectMatchesCycle, type FilterState } from "@/lib/filter-types";
 import ExportButton from "@/components/export-button";
 import { STATUS_LABELS, TEAMS, FUNCTIONS } from "@/lib/constants";
 import { matchesSearch } from "@/lib/search";
@@ -21,6 +21,7 @@ export default function Dashboard() {
   const { data: summary, isLoading: isLoadingSummary } = useGetDashboardSummary();
   const { data: user } = useGetMe();
   const { data: allProjects, isLoading: isLoadingProjects } = useListProjects();
+  const { data: cycles } = useListCycles();
   const [view, setView] = useState("kanban");
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
 
@@ -48,17 +49,18 @@ export default function Dashboard() {
 
   const filteredProjects = useMemo(() => {
     if (!allProjects) return [];
+    const focusedCycle = filters.cycleId !== "all" ? cycles?.find((c) => c.id.toString() === filters.cycleId) ?? null : null;
     return allProjects.filter((p) => {
       if (filters.search && !matchesSearch(p, filters.search)) return false;
-      if (filters.status !== "all" && p.status !== filters.status) return false;
+      if (filters.status.length > 0 && !filters.status.includes(p.status)) return false;
       if (filters.team !== "all" && p.team !== filters.team) return false;
       if (filters.functionName !== "all" && p.functionName !== filters.functionName) return false;
       if (filters.goalId !== "all" && !p.goals.some((g) => g.id.toString() === filters.goalId)) return false;
-      if (filters.cycleId !== "all" && p.cycleId?.toString() !== filters.cycleId) return false;
+      if (focusedCycle && projectMatchesCycle(p, focusedCycle) === "miss") return false;
       if ((filters.sprintId ?? "all") !== "all" && p.sprintId?.toString() !== filters.sprintId) return false;
       return true;
     });
-  }, [allProjects, filters]);
+  }, [allProjects, cycles, filters]);
 
   return (
     <div className="w-full px-6 py-6 flex flex-col gap-6">
@@ -209,11 +211,11 @@ export default function Dashboard() {
                   ))}
                 </div>
               ) : (
-                <KanbanView projects={filteredProjects} />
+                <KanbanView projects={filteredProjects} visibleStatuses={filters.status} />
               )}
             </TabsContent>
             <TabsContent value="gantt" className="m-0 h-full border-0 p-0">
-              <GanttView filters={filters} onFiltersChange={setFilters} />
+              <GanttView filters={filters} />
             </TabsContent>
             <TabsContent value="pipeline" className="m-0 h-full border-0 p-0">
               {isLoadingProjects ? (

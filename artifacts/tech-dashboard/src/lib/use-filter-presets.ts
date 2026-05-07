@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import type { ProjectStatus } from "@workspace/api-client-react";
 import { DEFAULT_FILTERS, type FilterState } from "./filter-types";
 
 export interface FilterPreset {
@@ -10,8 +11,16 @@ export interface FilterPreset {
 
 const STORAGE_KEY = "portfolio-filter-presets";
 
-function migrateFilters(raw: Partial<FilterState>): FilterState {
-  return { ...DEFAULT_FILTERS, ...raw };
+function migrateFilters(raw: Partial<FilterState> & { status?: unknown }): FilterState {
+  // Old presets stored status as a string ("all" or a single status). Convert
+  // to the new ProjectStatus[] shape so legacy presets keep working.
+  let status: ProjectStatus[] = [];
+  if (Array.isArray(raw.status)) {
+    status = raw.status as ProjectStatus[];
+  } else if (typeof raw.status === "string" && raw.status !== "all" && raw.status !== "") {
+    status = [raw.status as ProjectStatus];
+  }
+  return { ...DEFAULT_FILTERS, ...raw, status };
 }
 
 function loadPresets(): FilterPreset[] {

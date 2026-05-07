@@ -165,6 +165,21 @@ router.get("/projects", async (req, res): Promise<void> => {
   const cycleMap = new Map(cycles.map((c) => [c.id, c]));
   const sprintMap = new Map(sprints.map((s) => [s.id, s]));
 
+  // Per-cycle allocation rows. Sent down with each project so the dashboard
+  // and other consumers can apply the same "belongs to cycle" rule the gantt
+  // uses (allocation in cycle X OR start date in cycle X). Without this, the
+  // dashboard's filtered count diverges from the gantt's visible count.
+  const allocationRows = await db
+    .select()
+    .from(projectCycleAllocationsTable)
+    .where(inArray(projectCycleAllocationsTable.projectId, projectIds));
+  const allocationsByProject = new Map<number, { cycleId: number; percent: number }[]>();
+  for (const a of allocationRows) {
+    const list = allocationsByProject.get(a.projectId) ?? [];
+    list.push({ cycleId: a.cycleId, percent: Number(a.allocationPercent) });
+    allocationsByProject.set(a.projectId, list);
+  }
+
   const goalsByProject = new Map<number, typeof goalsTable.$inferSelect[]>();
   for (const r of goalRows) {
     const existing = goalsByProject.get(r.projectId) ?? [];
@@ -195,6 +210,7 @@ router.get("/projects", async (req, res): Promise<void> => {
         : null,
       cycle: cycle ? { id: cycle.id, name: cycle.name, startDate: cycle.startDate, endDate: cycle.endDate } : null,
       sprint: sprint ? { id: sprint.id, name: sprint.name, sprintNumber: sprint.sprintNumber } : null,
+      cycleAllocations: allocationsByProject.get(p.id) ?? [],
     };
   });
 

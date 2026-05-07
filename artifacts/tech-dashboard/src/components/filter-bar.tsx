@@ -4,12 +4,12 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuCheckboxItem } from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Search, X, Bookmark, BookmarkCheck, ChevronDown, Trash2 } from "lucide-react";
-import type { FilterState } from "@/lib/filter-types";
+import { DEFAULT_FILTERS, type FilterState } from "@/lib/filter-types";
 import { useFilterPresets } from "@/lib/use-filter-presets";
-import { STATUS_LABELS } from "@/lib/constants";
+import { STATUS_LABELS, STATUS_ORDER } from "@/lib/constants";
 import type { ProjectStatus } from "@workspace/api-client-react";
 
 // Strategic goals come first in this fixed order; non-strategic goals follow
@@ -43,9 +43,14 @@ export default function FilterBar({ filters, onFiltersChange, teams, sponsors, f
     onFiltersChange({ ...filters, ...patch });
   }
 
-  const activeFilters: { key: keyof FilterState; label: string }[] = [];
+  // Each chip is independently removable. For multi-select status, we render
+  // one chip per selected status with an `extra` payload identifying the
+  // specific status to drop on click.
+  const activeFilters: { key: keyof FilterState; label: string; extra?: ProjectStatus }[] = [];
   if (filters.search) activeFilters.push({ key: "search", label: `"${filters.search}"` });
-  if (filters.status !== "all") activeFilters.push({ key: "status", label: STATUS_LABELS[filters.status as ProjectStatus] ?? filters.status });
+  for (const s of filters.status) {
+    activeFilters.push({ key: "status", label: STATUS_LABELS[s] ?? s, extra: s });
+  }
   if (filters.team !== "all") activeFilters.push({ key: "team", label: filters.team });
   if (filters.functionName !== "all") activeFilters.push({ key: "functionName", label: filters.functionName });
   if (filters.goalId !== "all") {
@@ -63,13 +68,17 @@ export default function FilterBar({ filters, onFiltersChange, teams, sponsors, f
 
   const hasActiveFilters = activeFilters.length > 0;
 
-  function clearFilter(key: keyof FilterState) {
-    const defaults: FilterState = { search: "", status: "all", team: "all", functionName: "all", goalId: "all", cycleId: "all", sprintId: "all" };
-    update({ [key]: defaults[key] });
+  function clearFilter(key: keyof FilterState, extra?: ProjectStatus) {
+    if (key === "status" && extra) {
+      // Drop just one status from the multi-select.
+      update({ status: filters.status.filter((s) => s !== extra) });
+      return;
+    }
+    update({ [key]: DEFAULT_FILTERS[key] });
   }
 
   function clearAll() {
-    onFiltersChange({ search: "", status: "all", team: "all", functionName: "all", goalId: "all", cycleId: "all", sprintId: "all" });
+    onFiltersChange(DEFAULT_FILTERS);
   }
 
   function handleSavePreset() {
@@ -99,17 +108,47 @@ export default function FilterBar({ filters, onFiltersChange, teams, sponsors, f
           />
         </div>
 
-        <Select value={filters.status} onValueChange={(v) => update({ status: v })} data-testid="filter-status">
-          <SelectTrigger className="h-8 w-[140px] text-sm">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent side="bottom" align="start">
-            <SelectItem value="all">All Statuses</SelectItem>
-            {Object.entries(STATUS_LABELS).map(([value, label]) => (
-              <SelectItem key={value} value={value}>{label}</SelectItem>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" className="h-8 w-[160px] text-sm justify-between font-normal" data-testid="filter-status">
+              <span className="truncate">
+                {filters.status.length === 0
+                  ? "All Statuses"
+                  : filters.status.length === 1
+                    ? STATUS_LABELS[filters.status[0]]
+                    : `${filters.status.length} selected`}
+              </span>
+              <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent side="bottom" align="start" className="w-[200px]">
+            {STATUS_ORDER.map((s) => (
+              <DropdownMenuCheckboxItem
+                key={s}
+                checked={filters.status.includes(s)}
+                onCheckedChange={(checked) => {
+                  update({
+                    status: checked
+                      ? [...filters.status, s]
+                      : filters.status.filter((x) => x !== s),
+                  });
+                }}
+                onSelect={(e) => e.preventDefault()}
+                data-testid={`filter-status-option-${s}`}
+              >
+                {STATUS_LABELS[s]}
+              </DropdownMenuCheckboxItem>
             ))}
-          </SelectContent>
-        </Select>
+            {filters.status.length > 0 && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={() => update({ status: [] })} className="text-xs text-muted-foreground">
+                  Clear status filter
+                </DropdownMenuItem>
+              </>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         {/* Team filter hidden — only one team (Development) for now. */}
         {false && teams.length > 0 && (
@@ -173,7 +212,22 @@ export default function FilterBar({ filters, onFiltersChange, teams, sponsors, f
           const activeCycleId = cycles.find((c) => c.startDate <= today && c.endDate >= today)?.id ?? null;
           const nextCycleId = cycles.find((c) => c.startDate > today)?.id ?? null;
           return (
-            <Select value={filters.cycleId} onValueChange={(v) => update({ cycleId: v, sprintId: "all" })} data-testid="filter-cycle">
+            <Select
+              value={filters.cycleId}
+              onValueChange={(v) => {
+                // When focusing a cycle for the first time, default the status
+                // multi-select to In Progress so the timeline lands on the
+                // most useful slice. Only auto-set when the user hasn't
+                // already chosen any statuses, to avoid overwriting their
+                // active selection.
+                const patch: Partial<FilterState> = { cycleId: v, sprintId: "all" };
+                if (v !== "all" && filters.cycleId === "all" && filters.status.length === 0) {
+                  patch.status = ["in_progress"];
+                }
+                update(patch);
+              }}
+              data-testid="filter-cycle"
+            >
               <SelectTrigger className="h-8 w-[150px] text-sm">
                 <SelectValue placeholder="Cycle" />
               </SelectTrigger>
@@ -302,16 +356,16 @@ export default function FilterBar({ filters, onFiltersChange, teams, sponsors, f
       {activeFilters.length > 0 && (
         <div className="flex flex-wrap items-center gap-1.5" data-testid="active-filters">
           <span className="text-xs text-muted-foreground font-medium">Active:</span>
-          {activeFilters.map(({ key, label }) => (
+          {activeFilters.map(({ key, label, extra }) => (
             <Badge
-              key={key}
+              key={extra ? `${key}-${extra}` : key}
               variant="secondary"
               className="gap-1 pr-1 text-xs font-normal cursor-pointer hover:bg-muted"
-              data-testid={`active-filter-${key}`}
+              data-testid={`active-filter-${key}${extra ? `-${extra}` : ""}`}
             >
               {label}
               <button
-                onClick={() => clearFilter(key)}
+                onClick={() => clearFilter(key, extra)}
                 className="ml-0.5 rounded-sm hover:bg-foreground/10 p-0.5"
                 aria-label={`Remove ${label} filter`}
               >

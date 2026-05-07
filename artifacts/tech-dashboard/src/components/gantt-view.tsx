@@ -30,36 +30,19 @@ import { CSS } from "@dnd-kit/utilities";
 import ProjectModal from "./project-modal";
 import ProjectForm from "./project-form";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Info, GripVertical } from "lucide-react";
-import { format, parseISO, startOfYear, endOfYear, differenceInDays, startOfQuarter, endOfQuarter } from "date-fns";
-import type { FilterState } from "@/lib/filter-types";
+import { format, parseISO, startOfYear, endOfYear, differenceInDays } from "date-fns";
+import { projectMatchesCycle, type FilterState } from "@/lib/filter-types";
 import { matchesSearch } from "@/lib/search";
 import { computeInsertOrder } from "@/lib/order";
 import { isProjectBlocked } from "@/lib/blocked";
-import { STATUS_LABELS, STATUS_ORDER } from "@/lib/constants";
 
-
-const QUARTERS = [
-  { label: "Q1 (Jan–Mar)", value: "1" },
-  { label: "Q2 (Apr–Jun)", value: "2" },
-  { label: "Q3 (Jul–Sep)", value: "3" },
-  { label: "Q4 (Oct–Dec)", value: "4" },
-];
-
-function getQuarterBounds(year: number, quarter: number): { start: Date; end: Date } {
-  const monthStart = (quarter - 1) * 3;
-  const start = startOfQuarter(new Date(year, monthStart, 1));
-  const end = endOfQuarter(new Date(year, monthStart, 1));
-  return { start, end };
-}
 
 interface GanttViewProps {
   filters: FilterState;
-  onFiltersChange?: (filters: FilterState) => void;
 }
 
 type CycleAllocation = {
@@ -88,22 +71,19 @@ function getEffectiveDates(p: ProjectTimeline): { start: string; end: string } |
   return null;
 }
 
-export default function GanttView({ filters, onFiltersChange }: GanttViewProps) {
+export default function GanttView({ filters }: GanttViewProps) {
   const currentYear = new Date().getFullYear();
-  const [selectedQuarter, setSelectedQuarter] = useState<string>("all");
-  const [selectedCycleId, setSelectedCycleId] = useState<string>("all");
+  // Cycle zoom is driven by the global filter so picking a cycle in the
+  // filter-bar zooms the timeline AND restricts rows in one move.
+  const selectedCycleId = filters.cycleId;
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
   const [projectToEdit, setProjectToEdit] = useState<ProjectWithDetails | null>(null);
 
   const timelineCycleId = selectedCycleId !== "all" ? parseInt(selectedCycleId) : null;
-  const timelineWindowDates = (() => {
-    if (timelineCycleId != null) return {};
-    if (selectedQuarter !== "all") {
-      const { start, end } = getQuarterBounds(currentYear, parseInt(selectedQuarter));
-      return { startDate: start.toISOString().slice(0, 10), endDate: end.toISOString().slice(0, 10) };
-    }
-    return { startDate: `${currentYear}-01-01`, endDate: `${currentYear}-12-31` };
-  })();
+  const timelineWindowDates =
+    timelineCycleId != null
+      ? {}
+      : { startDate: `${currentYear}-01-01`, endDate: `${currentYear}-12-31` };
   const { data: projects, isLoading } = useGetProjectsTimeline({
     year: currentYear,
     ...(timelineCycleId != null ? { cycleId: timelineCycleId } : {}),
@@ -191,13 +171,6 @@ export default function GanttView({ filters, onFiltersChange }: GanttViewProps) 
   let viewStart = startOfYear(new Date(currentYear, 0, 1));
   let viewEnd = endOfYear(viewStart);
 
-  if (selectedQuarter !== "all") {
-    const q = parseInt(selectedQuarter);
-    const bounds = getQuarterBounds(currentYear, q);
-    viewStart = bounds.start;
-    viewEnd = bounds.end;
-  }
-
   if (selectedCycleId !== "all" && cycles) {
     const cycle = cycles.find((c) => c.id.toString() === selectedCycleId);
     if (cycle) {
@@ -206,9 +179,9 @@ export default function GanttView({ filters, onFiltersChange }: GanttViewProps) 
     }
   }
 
-  // When viewing all cycles with no quarter filter, skip completed cycles
-  // by clamping viewStart to the first cycle that hasn't ended yet.
-  if (selectedCycleId === "all" && selectedQuarter === "all" && cycles) {
+  // When viewing all cycles, skip completed ones by clamping viewStart to
+  // the first cycle that hasn't ended yet.
+  if (selectedCycleId === "all" && cycles) {
     const today = new Date();
     const firstActiveCycle = [...cycles]
       .sort((a, b) => a.startDate.localeCompare(b.startDate))
@@ -234,42 +207,34 @@ export default function GanttView({ filters, onFiltersChange }: GanttViewProps) 
   const showSprintHeaders = sprintsForCycle.length > 0;
 
   const getBarPosition = (start: string, end: string) => {
-    const sDate = Math.max(parseISO(start).getTime(), viewStart.getTime());
-    const eDate = Math.min(parseISO(end).getTime(), viewEnd.getTime());
+    const startMs = parseISO(start).getTime();
+    const endMs = parseISO(end).getTime();
+    // Treat cycle/view ranges as half-open [start, end) so boundary days don't
+    // attribute a bar to two cycles. E.g. Cycle D ends 2026-05-13 and Cycle E
+    // starts 2026-05-13 — a project starting 2026-05-13 belongs to E only,
+    // and shouldn't render at the right edge of D's view.
+    if (startMs >= viewEnd.getTime() || endMs <= viewStart.getTime()) return null;
 
-    if (sDate > viewEnd.getTime() || eDate < viewStart.getTime()) return null;
-
+    const sDate = Math.max(startMs, viewStart.getTime());
+    const eDate = Math.min(endMs, viewEnd.getTime());
     const left = (differenceInDays(new Date(sDate), viewStart) / totalDays) * 100;
     const width = (differenceInDays(new Date(eDate), new Date(sDate)) / totalDays) * 100;
 
     return { left: `${Math.max(0, left)}%`, width: `${Math.max(0.5, width)}%` };
   };
 
-  // Show any project with explicit dates, cycle allocations, or a primary
-  // cycle assignment. Projects without dates/allocations still appear as rows
-  // (no bar) so they're discoverable in the timeline view; bar rendering and
-  // cycle-header % only count projects with explicit allocations or dates.
-  let filteredProjects = projects.filter(
-    (p) => getEffectiveDates(p) !== null || p.cycleId != null,
-  );
-
-  if (selectedCycleId !== "all") {
-    filteredProjects = filteredProjects.filter((p) => {
-      const cycle = cycles?.find((c) => c.id.toString() === selectedCycleId);
-      if (!cycle) return false;
-      // Strict: only projects whose primary cycle is the selected cycle
-      // or that have an explicit per-cycle allocation row for it.
-      if (p.cycleName === cycle.name) return true;
-      if (getCycleAllocations(p).some((a) => a.cycleId === cycle.id)) return true;
-      return false;
-    });
-  }
+  // Start with every project. Status / cycle / search filters below decide
+  // what shows up. Unscheduled projects (no dates, no allocations, no primary
+  // cycle) appear as rows with no bar — that's how new_request items become
+  // discoverable in the timeline. Bar rendering and cycle-header %
+  // calculations naturally skip projects without dates/allocations.
+  let filteredProjects = [...projects];
 
   if (filters.search) {
     filteredProjects = filteredProjects.filter((p) => matchesSearch(p, filters.search));
   }
-  if (filters.status !== "all") {
-    filteredProjects = filteredProjects.filter((p) => p.status === filters.status);
+  if (filters.status.length > 0) {
+    filteredProjects = filteredProjects.filter((p) => filters.status.includes(p.status));
   }
   if (filters.team !== "all") {
     filteredProjects = filteredProjects.filter((p) => p.team === filters.team);
@@ -280,25 +245,26 @@ export default function GanttView({ filters, onFiltersChange }: GanttViewProps) 
   if (filters.goalId !== "all") {
     filteredProjects = filteredProjects.filter((p) => p.goals.some((g) => g.id.toString() === filters.goalId));
   }
+  // The cycle filter zooms the timeline (drives viewStart/viewEnd above) AND
+  // restricts rows so the focused-cycle view is honest. Same rule as
+  // dashboard.tsx / business.tsx: a project shows when it has an allocation
+  // for the focused cycle, when its start date falls in the cycle's
+  // half-open range, or when it has no schedule at all (floating row).
   if (filters.cycleId !== "all" && cycles) {
-    const cycle = cycles.find((c) => c.id.toString() === filters.cycleId);
-    if (cycle) {
-      filteredProjects = filteredProjects.filter((p) => {
-        if (p.cycleName === cycle.name) return true;
-        if (getCycleAllocations(p).some((a) => a.cycleId === cycle.id)) return true;
-        return false;
-      });
+    const focusedCycle = cycles.find((c) => c.id.toString() === filters.cycleId);
+    if (focusedCycle) {
+      filteredProjects = filteredProjects.filter((p) => projectMatchesCycle(p, focusedCycle) !== "miss");
     }
   }
   if ((filters.sprintId ?? "all") !== "all") {
     filteredProjects = filteredProjects.filter((p) => p.sprintId?.toString() === filters.sprintId);
   }
 
-  const visibleProjects = filteredProjects.filter((p) => {
-    const dates = getEffectiveDates(p);
-    if (!dates) return true; // no bar, but still rendered as a row
-    return getBarPosition(dates.start, dates.end) !== null;
-  });
+  // Show every filtered project as a row. If the bar falls outside the
+  // current view (e.g. zoomed to Cycle D, project has dates in Cycle E), the
+  // row appears with no visible bar — Row's getBarPosition returns null and
+  // the bar element is conditionally hidden.
+  const visibleProjects = filteredProjects;
 
   // A project appears under every cycle it has an explicit allocation for.
   // Projects with only a primary cycle (no allocations) are NOT counted toward
@@ -317,61 +283,9 @@ export default function GanttView({ filters, onFiltersChange }: GanttViewProps) 
     <>
       <>
       <div className="space-y-4">
-        <div className="flex flex-wrap items-center gap-3" data-testid="gantt-filters">
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground font-medium">Quarter</span>
-            <Select value={selectedQuarter} onValueChange={(v) => { setSelectedQuarter(v); setSelectedCycleId("all"); }} data-testid="gantt-quarter-filter">
-              <SelectTrigger className="h-8 w-[160px]">
-                <SelectValue placeholder="All quarters" />
-              </SelectTrigger>
-              <SelectContent side="bottom" align="start">
-                <SelectItem value="all">All Year</SelectItem>
-                {QUARTERS.map((q) => (
-                  <SelectItem key={q.value} value={q.value}>{q.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {onFiltersChange && (
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground font-medium">Status</span>
-              <Select
-                value={filters.status}
-                onValueChange={(v) => onFiltersChange({ ...filters, status: v as FilterState["status"] })}
-                data-testid="gantt-status-filter"
-              >
-                <SelectTrigger className="h-8 w-[180px]">
-                  <SelectValue placeholder="All statuses" />
-                </SelectTrigger>
-                <SelectContent side="bottom" align="start">
-                  <SelectItem value="all">All Statuses</SelectItem>
-                  {STATUS_ORDER.map((s) => (
-                    <SelectItem key={s} value={s}>{STATUS_LABELS[s]}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-
-          {(selectedQuarter !== "all" || filters.status !== "all") && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                setSelectedQuarter("all");
-                if (onFiltersChange) onFiltersChange({ ...filters, status: "all" });
-              }}
-              data-testid="gantt-clear-filters"
-            >
-              Clear view filters
-            </Button>
-          )}
-
-          <span className="text-xs text-muted-foreground ml-auto">
-            {visibleProjects.length} project{visibleProjects.length !== 1 ? "s" : ""} shown
-          </span>
-        </div>
+        {/* Quarter + Status + Clear filters used to live here, but they
+            duplicated the global filter-bar above. The filter-bar now drives
+            cycle zoom and status multi-select for the timeline directly. */}
 
         <div className="flex flex-wrap gap-3">
           {[
@@ -391,8 +305,8 @@ export default function GanttView({ filters, onFiltersChange }: GanttViewProps) 
 
         <div className="rounded-xl border bg-card overflow-x-auto">
           <div className="min-w-[700px] p-4">
-            <div className="flex mb-4 relative ml-[240px] border-b pb-2">
-              <div className="absolute left-[-240px] flex items-center gap-1 text-xs font-medium text-muted-foreground">
+            <div className="flex flex-col mb-4 relative ml-[240px] border-b pb-2">
+              <div className="absolute left-[-240px] top-0 flex items-center gap-1 text-xs font-medium text-muted-foreground">
                 Project
                 <Popover>
                   <PopoverTrigger asChild>
@@ -405,25 +319,11 @@ export default function GanttView({ filters, onFiltersChange }: GanttViewProps) 
                   </PopoverContent>
                 </Popover>
               </div>
-              {showSprintHeaders ? (
-                sprintsForCycle.map((sprint) => {
-                  const sprintDays = Math.max(1, differenceInDays(parseISO(sprint.endDate), parseISO(sprint.startDate)));
-                  const widthPct = (sprintDays / totalDays) * 100;
-                  return (
-                    <div
-                      key={sprint.id}
-                      className="text-xs font-medium text-muted-foreground text-center border-l first:border-l-0 border-border/50 px-1 overflow-hidden"
-                      style={{ width: `${widthPct}%` }}
-                    >
-                      <div className="font-semibold text-foreground truncate">{sprint.name}</div>
-                      <div className="text-[10px] font-normal truncate">
-                        {format(parseISO(sprint.startDate), 'MMM d')} – {format(parseISO(sprint.endDate), 'MMM d')}
-                      </div>
-                    </div>
-                  );
-                })
-              ) : (
-                cyclesInView.map((cycle) => {
+              {/* Cycle row: when zoomed, just the focused cycle (full view width).
+                  Otherwise, every cycle that intersects the view. Always
+                  clickable to show the per-project allocation popover. */}
+              <div className="flex">
+                {(showSprintHeaders && selectedCycle ? [selectedCycle] : cyclesInView).map((cycle) => {
                   const cStart = Math.max(parseISO(cycle.startDate).getTime(), viewStart.getTime());
                   const cEnd = Math.min(parseISO(cycle.endDate).getTime(), viewEnd.getTime());
                   const widthPct = (differenceInDays(new Date(cEnd), new Date(cStart)) / totalDays) * 100;
@@ -467,14 +367,14 @@ export default function GanttView({ filters, onFiltersChange }: GanttViewProps) 
                         </div>
                       </PopoverTrigger>
                       {cycleProjects.length > 0 && (
-                        <PopoverContent side="bottom" className="w-72 p-4 space-y-2 text-sm">
+                        <PopoverContent side="bottom" className="w-[28rem] max-w-[90vw] p-4 space-y-2 text-sm">
                           <p className="font-bold text-foreground text-base mb-3">{cycle.name}: Project Allocation</p>
                           {cycleProjects.map((p) => {
                             const myAlloc = getCycleAllocations(p).find((a) => a.cycleId === cycle.id);
                             const label = myAlloc != null ? `${myAlloc.percent.toFixed(1)}%` : "—";
                             return (
                               <div key={p.id} className="flex justify-between gap-3">
-                                <span className="truncate text-foreground">{p.title}</span>
+                                <span className="text-foreground break-words" title={p.title}>{p.title}</span>
                                 <span className="shrink-0 tabular-nums font-semibold text-foreground">{label}</span>
                               </div>
                             );
@@ -489,7 +389,28 @@ export default function GanttView({ filters, onFiltersChange }: GanttViewProps) 
                       )}
                     </Popover>
                   );
-                })
+                })}
+              </div>
+
+              {showSprintHeaders && (
+                <div className="flex mt-2 border-t border-border/30 pt-2">
+                  {sprintsForCycle.map((sprint) => {
+                    const sprintDays = Math.max(1, differenceInDays(parseISO(sprint.endDate), parseISO(sprint.startDate)));
+                    const widthPct = (sprintDays / totalDays) * 100;
+                    return (
+                      <div
+                        key={sprint.id}
+                        className="text-xs font-medium text-muted-foreground text-center border-l first:border-l-0 border-border/50 px-1 overflow-hidden"
+                        style={{ width: `${widthPct}%` }}
+                      >
+                        <div className="font-semibold text-foreground truncate">{sprint.name}</div>
+                        <div className="text-[10px] font-normal truncate">
+                          {format(parseISO(sprint.startDate), 'MMM d')} – {format(parseISO(sprint.endDate), 'MMM d')}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               )}
             </div>
 

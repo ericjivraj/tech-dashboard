@@ -19,7 +19,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { TEAMS, FUNCTIONS, STATUS_LABELS, STATUS_ORDER, AVG_CYCLE_CAPACITY, cycleEffortPercent } from "@/lib/constants";
+import { TEAMS, FUNCTIONS, STATUS_LABELS, STATUS_ORDER, cycleEffortPercent } from "@/lib/constants";
 import { format, parseISO } from "date-fns";
 
 const SHOW_SUB_TEAM_ALLOCATION = false;
@@ -459,11 +459,11 @@ export default function ProjectForm({
                       <FormControl>
                         <Input type="number" min={0} placeholder="e.g. 5" {...field} value={field.value ?? ""} />
                       </FormControl>
-                      <p className="text-xs text-muted-foreground">
-                        {pts != null && !Number.isNaN(pts)
-                          ? `${pct} of an average cycle (${AVG_CYCLE_CAPACITY} pts)`
-                          : `Out of ${AVG_CYCLE_CAPACITY} avg pts per cycle`}
-                      </p>
+                      {pts != null && !Number.isNaN(pts) && (
+                        <p className="text-xs text-muted-foreground">
+                          {pct} of an average cycle
+                        </p>
+                      )}
                       <FormMessage />
                     </FormItem>
                   );
@@ -497,32 +497,10 @@ export default function ProjectForm({
               />
             </div>
 
-            <FormField
-              control={form.control}
-              name="cycleId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Cycle</FormLabel>
-                  <Select
-                    onValueChange={(v) => field.onChange(v === "none" ? null : Number(v))}
-                    value={field.value != null ? field.value.toString() : "none"}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select cycle" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="none">None</SelectItem>
-                      {cycles?.map(c => (
-                        <SelectItem key={c.id} value={c.id.toString()}>{c.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {/* The "Cycle" picker was removed because it duplicated information
+                already captured by the per-cycle Timeline bar (cycleAllocations)
+                and the explicit start/end dates below. The DB column lingers
+                for existing rows; nothing in the UI sets it for new projects. */}
 
             <FormField
               control={form.control}

@@ -58,9 +58,16 @@ const COLUMNS: { id: ProjectStatus; label: string }[] = [
 interface KanbanViewProps {
   projects: ProjectWithDetails[];
   readOnly?: boolean;
+  // When set and non-empty, only these status columns are rendered. Empty
+  // array (or undefined) means show all five.
+  visibleStatuses?: ProjectStatus[];
 }
 
-export default function KanbanView({ projects, readOnly = false }: KanbanViewProps) {
+export default function KanbanView({ projects, readOnly = false, visibleStatuses }: KanbanViewProps) {
+  const visibleColumns =
+    visibleStatuses && visibleStatuses.length > 0
+      ? COLUMNS.filter((c) => visibleStatuses.includes(c.id))
+      : COLUMNS;
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
   const [projectToEdit, setProjectToEdit] = useState<ProjectWithDetails | null>(null);
   const [activeProjectId, setActiveProjectId] = useState<number | null>(null);
@@ -186,9 +193,21 @@ export default function KanbanView({ projects, readOnly = false }: KanbanViewPro
     // Cross-column visual feedback handled by DragOverlay; no live re-shuffle needed.
   }
 
+  // Grid sized to the number of visible columns so kanban looks balanced when
+  // filtered down to e.g. 2 statuses. Tailwind's JIT can't see dynamic class
+  // strings, so the mapping has to use literal class names.
+  const lgGridClass = (
+    {
+      1: "lg:grid-cols-1",
+      2: "lg:grid-cols-2",
+      3: "lg:grid-cols-3",
+      4: "lg:grid-cols-4",
+      5: "lg:grid-cols-5",
+    } as const
+  )[Math.min(5, Math.max(1, visibleColumns.length)) as 1 | 2 | 3 | 4 | 5];
   const board = (
-    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 items-start pb-4">
-      {COLUMNS.map((col) => (
+    <div className={`grid grid-cols-1 md:grid-cols-3 ${lgGridClass} gap-4 items-start pb-4`}>
+      {visibleColumns.map((col) => (
         <KanbanColumn
           key={col.id}
           column={col}
