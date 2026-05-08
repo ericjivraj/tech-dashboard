@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { format, parseISO } from "date-fns";
 import { useGetDashboardSummary, useGetMe, useListProjects, useListCycles } from "@workspace/api-client-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -12,7 +12,8 @@ import { Plus, Link2, Check, ExternalLink } from "lucide-react";
 import ProjectModal from "@/components/project-modal";
 import ProjectForm from "@/components/project-form";
 import AdminPanel from "@/components/admin-panel";
-import { DEFAULT_FILTERS, projectMatchesCycle, type FilterState } from "@/lib/filter-types";
+import { projectMatchesCycle, type FilterState } from "@/lib/filter-types";
+import { parseFromQuery, serializeToQuery, type ViewKey } from "@/lib/url-state";
 import ExportButton from "@/components/export-button";
 import { STATUS_LABELS, TEAMS, FUNCTIONS } from "@/lib/constants";
 import { matchesSearch } from "@/lib/search";
@@ -22,8 +23,23 @@ export default function Dashboard() {
   const { data: user } = useGetMe();
   const { data: allProjects, isLoading: isLoadingProjects } = useListProjects();
   const { data: cycles } = useListCycles();
-  const [view, setView] = useState("kanban");
-  const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
+  // Initialise from URL so a deep-linked share or hard refresh lands you on
+  // the same view + filters. The effect below keeps the URL in sync as state
+  // changes (replaceState — no history pollution per keystroke).
+  const initial = useMemo(
+    () => parseFromQuery(typeof window !== "undefined" ? window.location.search : ""),
+    [],
+  );
+  const [view, setView] = useState<ViewKey>(initial.view);
+  const [filters, setFilters] = useState<FilterState>(initial.filters);
+
+  useEffect(() => {
+    const qs = serializeToQuery({ view, filters });
+    const next = `${window.location.pathname}${qs}${window.location.hash}`;
+    if (next !== `${window.location.pathname}${window.location.search}${window.location.hash}`) {
+      window.history.replaceState(null, "", next);
+    }
+  }, [view, filters]);
 
   const [projectFormOpen, setProjectFormOpen] = useState(false);
   const [adminPanelOpen, setAdminPanelOpen] = useState(false);
@@ -179,7 +195,7 @@ export default function Dashboard() {
       )}
 
       <div className="flex flex-col h-full space-y-4">
-        <Tabs value={view} onValueChange={setView} className="w-full">
+        <Tabs value={view} onValueChange={(v) => setView(v as ViewKey)} className="w-full">
           <div className="flex flex-col gap-4 border-b pb-4">
             <div className="flex items-center justify-between">
               <TabsList className="grid w-full max-w-[400px] grid-cols-3">

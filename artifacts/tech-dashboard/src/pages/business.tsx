@@ -1,10 +1,11 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { format, parseISO } from "date-fns";
 import { useGetDashboardSummary, useListProjects, useListCycles } from "@workspace/api-client-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import KanbanView from "@/components/kanban-view";
 import FilterBar from "@/components/filter-bar";
-import { DEFAULT_FILTERS, projectMatchesCycle, type FilterState } from "@/lib/filter-types";
+import { projectMatchesCycle, type FilterState } from "@/lib/filter-types";
+import { parseFromQuery, serializeToQuery } from "@/lib/url-state";
 import { STATUS_LABELS, TEAMS, FUNCTIONS } from "@/lib/constants";
 import { matchesSearch } from "@/lib/search";
 
@@ -12,7 +13,21 @@ export default function BusinessView() {
   const { data: summary, isLoading: isLoadingSummary } = useGetDashboardSummary();
   const { data: allProjects, isLoading: isLoadingProjects } = useListProjects();
   const { data: cycles } = useListCycles();
-  const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
+  const initial = useMemo(
+    () => parseFromQuery(typeof window !== "undefined" ? window.location.search : ""),
+    [],
+  );
+  const [filters, setFilters] = useState<FilterState>(initial.filters);
+
+  // Business view has no view-tab, so we always serialize view as kanban
+  // (the default — gets omitted from the query string).
+  useEffect(() => {
+    const qs = serializeToQuery({ view: "kanban", filters });
+    const next = `${window.location.pathname}${qs}${window.location.hash}`;
+    if (next !== `${window.location.pathname}${window.location.search}${window.location.hash}`) {
+      window.history.replaceState(null, "", next);
+    }
+  }, [filters]);
 
   const teams = TEAMS;
   const sponsors = FUNCTIONS;

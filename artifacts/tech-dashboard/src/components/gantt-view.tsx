@@ -370,16 +370,15 @@ export default function GanttView({ filters }: GanttViewProps) {
                       {cycleProjects.length > 0 && (
                         <PopoverContent side="bottom" className="w-[28rem] max-w-[90vw] p-4 space-y-2 text-sm">
                           <p className="font-bold text-foreground text-base mb-3">{cycle.name}: Project Allocation</p>
-                          {cycleProjects.map((p) => {
-                            const myAlloc = getCycleAllocations(p).find((a) => a.cycleId === cycle.id);
-                            const label = myAlloc != null ? `${myAlloc.percent.toFixed(1)}%` : "—";
-                            return (
+                          {[...cycleProjects]
+                            .map((p) => ({ p, percent: getCycleAllocations(p).find((a) => a.cycleId === cycle.id)?.percent ?? 0 }))
+                            .sort((a, b) => b.percent - a.percent)
+                            .map(({ p, percent }) => (
                               <div key={p.id} className="flex justify-between gap-3">
                                 <span className="text-foreground break-words" title={p.title}>{p.title}</span>
-                                <span className="shrink-0 tabular-nums font-semibold text-foreground">{label}</span>
+                                <span className="shrink-0 tabular-nums font-semibold text-foreground">{percent > 0 ? `${percent.toFixed(1)}%` : "—"}</span>
                               </div>
-                            );
-                          })}
+                            ))}
                           <div className="border-t border-border/50 pt-2 mt-1 flex justify-between gap-3">
                             <span className="text-muted-foreground">Total allocated</span>
                             <span className="shrink-0 tabular-nums font-semibold text-foreground">
