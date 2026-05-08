@@ -39,6 +39,7 @@ import { projectMatchesCycle, type FilterState } from "@/lib/filter-types";
 import { matchesSearch } from "@/lib/search";
 import { computeInsertOrder } from "@/lib/order";
 import { isProjectBlocked } from "@/lib/blocked";
+import { AVG_CYCLE_CAPACITY, cycleEffortPercent } from "@/lib/constants";
 
 
 interface GanttViewProps {
@@ -600,6 +601,15 @@ function GanttRowContent({
         </div>
         <div className="flex items-center gap-1.5 mt-0.5">
           <span className="text-xs text-foreground truncate">{project.team || "No team"}</span>
+          {project.storyPoints != null && (
+            <Badge
+              variant="outline"
+              className="shrink-0 text-xs font-semibold px-2 py-0.5 bg-muted/50"
+              title={`${project.storyPoints} pts of ~${AVG_CYCLE_CAPACITY} avg per cycle`}
+            >
+              {cycleEffortPercent(project.storyPoints)} of cycle
+            </Badge>
+          )}
         </div>
       </div>
 

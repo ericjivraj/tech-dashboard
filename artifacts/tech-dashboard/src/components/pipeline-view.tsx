@@ -34,7 +34,7 @@ import { format, parseISO } from "date-fns";
 import { ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import ProjectModal from "./project-modal";
 import ProjectForm from "./project-form";
-import { STATUS_LABELS, PIPELINE_STATUS_ORDER } from "@/lib/constants";
+import { STATUS_LABELS, PIPELINE_STATUS_ORDER, AVG_CYCLE_CAPACITY, cycleEffortPercent } from "@/lib/constants";
 
 const COLUMN_TOOLTIPS: Record<string, string> = {
   "Project Name": "The name and any blocked reason for the project",
@@ -379,8 +379,17 @@ function ProjectRowCells({ project }: { project: ProjectWithDetails }) {
   return (
     <>
       <TableCell>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <span className="font-medium text-sm">{project.title}</span>
+          {project.storyPoints != null && (
+            <Badge
+              variant="outline"
+              className="shrink-0 text-xs font-semibold px-2 py-0.5 bg-muted/50"
+              title={`${project.storyPoints} pts of ~${AVG_CYCLE_CAPACITY} avg per cycle`}
+            >
+              {cycleEffortPercent(project.storyPoints)} of cycle
+            </Badge>
+          )}
           {isProjectBlocked(project) && (
             <Badge variant="destructive" className="shrink-0 text-[9px] px-1.5 py-0 leading-none uppercase tracking-wider">
               Blocked
