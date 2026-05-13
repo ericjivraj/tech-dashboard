@@ -71,6 +71,20 @@
       "when": 1778178773473,
       "tag": "0009_dormant_cleanup",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1778618262455,
+      "tag": "0010_admin_credentials",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1778620245471,
+      "tag": "0011_site_passcode",
+      "breakpoints": true
     }
   ]
 }

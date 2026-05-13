@@ -207,7 +207,7 @@ export default function ProjectModal({
                     <Badge variant={project.status === 'done' ? 'default' : 'secondary'} className="font-medium text-xs">
                       {STATUS_LABELS[project.status]}
                     </Badge>
-                    {isProjectBlocked(project) && (
+                    {!readOnly && isProjectBlocked(project) && (
                       <Badge variant="destructive" className="font-medium text-xs">
                         Blocked
                       </Badge>
@@ -242,7 +242,7 @@ export default function ProjectModal({
               </div>
             </DialogHeader>
 
-            {isProjectBlocked(project) && project.latestUpdate?.content && (
+            {!readOnly && isProjectBlocked(project) && project.latestUpdate?.content && (
               <div className="bg-destructive/10 border border-destructive/20 text-destructive rounded-lg p-4 flex items-start gap-3">
                 <AlertCircle className="h-5 w-5 mt-0.5 shrink-0" />
                 <div className="flex-1">
@@ -288,7 +288,7 @@ export default function ProjectModal({
                     <span className="text-sm font-medium">{project.team || ""}</span>
                   </div>
                   <div>
-                    <span className="text-xs text-muted-foreground block mb-1">Function (Sponsor)</span>
+                    <span className="text-xs text-muted-foreground block mb-1">Sponsor</span>
                     <span className="text-sm font-medium">{project.functionName || ""}</span>
                   </div>
                   <div>
@@ -313,6 +313,7 @@ export default function ProjectModal({
               </div>
             </div>
 
+            {!readOnly && (
             <div className="pt-4 border-t mt-4 space-y-4">
               <h4 className="text-sm font-semibold flex items-center gap-2">
                 <Clock className="h-4 w-4" /> Updates
@@ -422,6 +423,7 @@ export default function ProjectModal({
                 )}
               </div>
             </div>
+            )}
           </>
         )}
       </DialogContent>

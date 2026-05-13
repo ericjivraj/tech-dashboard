@@ -6,6 +6,12 @@ import KanbanView from "@/components/kanban-view";
 import FilterBar from "@/components/filter-bar";
 import { projectMatchesCycle, type FilterState } from "@/lib/filter-types";
 import { parseFromQuery, serializeToQuery } from "@/lib/url-state";
+import type { ProjectStatus } from "@workspace/api-client-react";
+
+// Business view is intentionally narrower than the editor dashboard: only
+// statuses that signal forward-looking or shipped work. Hides backlog and
+// new_request entirely.
+const BUSINESS_VISIBLE_STATUSES: ProjectStatus[] = ["up_next", "in_progress", "done"];
 import { STATUS_LABELS, TEAMS, FUNCTIONS } from "@/lib/constants";
 import { matchesSearch } from "@/lib/search";
 
@@ -36,6 +42,9 @@ export default function BusinessView() {
     if (!allProjects) return [];
     const focusedCycle = filters.cycleId !== "all" ? cycles?.find((c) => c.id.toString() === filters.cycleId) ?? null : null;
     return allProjects.filter((p) => {
+      // Hard-gate to the business-allowed statuses regardless of any
+      // user-applied status filter, so backlog/new_request never leak in.
+      if (!BUSINESS_VISIBLE_STATUSES.includes(p.status as ProjectStatus)) return false;
       if (filters.search && !matchesSearch(p, filters.search)) return false;
       if (filters.status.length > 0 && !filters.status.includes(p.status)) return false;
       if (filters.team !== "all" && p.team !== filters.team) return false;
@@ -46,6 +55,12 @@ export default function BusinessView() {
       return true;
     });
   }, [allProjects, cycles, filters]);
+
+  // Intersect the user's status filter with the allowed business set. Empty
+  // user filter falls back to "all three allowed columns".
+  const visibleStatuses = filters.status.length > 0
+    ? filters.status.filter((s) => BUSINESS_VISIBLE_STATUSES.includes(s))
+    : BUSINESS_VISIBLE_STATUSES;
 
   return (
     <div className="w-full px-6 py-6 flex flex-col gap-6">
@@ -124,6 +139,7 @@ export default function BusinessView() {
             sponsors={sponsors}
             filteredCount={filteredProjects.length}
             totalCount={allProjects?.length ?? 0}
+            availableStatuses={BUSINESS_VISIBLE_STATUSES}
           />
         </div>
 
@@ -139,7 +155,7 @@ export default function BusinessView() {
               ))}
             </div>
           ) : (
-            <KanbanView projects={filteredProjects} readOnly={true} visibleStatuses={filters.status} />
+            <KanbanView projects={filteredProjects} readOnly={true} visibleStatuses={visibleStatuses} />
           )}
         </div>
       </div>

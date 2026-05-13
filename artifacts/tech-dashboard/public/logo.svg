@@ -3,6 +3,6 @@
   <rect x="6" y="14" width="4" height="12" rx="1" fill="#fff" />
   <rect x="14" y="14" width="4" height="12" rx="1" fill="#fff" />
   <text x="36" y="26" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="18" letter-spacing="-0.5">
-    <tspan font-weight="700" fill="#0f172a">Delivery</tspan><tspan font-weight="400" fill="#64748b"> Dashboard</tspan>
+    <tspan font-weight="700" fill="#0f172a">Tech</tspan><tspan font-weight="400" fill="#64748b"> Dashboard</tspan>
   </text>
 </svg>

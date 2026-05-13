@@ -4,7 +4,7 @@ export const STATUS_LABELS: Record<ProjectStatus, string> = {
   new_request: "New Requests",
   backlog: "Priorities",
   up_next: "Priorities Next Dev",
-  in_progress: "In Progress",
+  in_progress: "In Development",
   done: "Done",
 };
 

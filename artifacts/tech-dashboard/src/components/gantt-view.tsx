@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   useGetProjectsTimeline,
   useListCycles,
@@ -33,13 +33,16 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Info, GripVertical } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Info, GripVertical, MoreHorizontal } from "lucide-react";
 import { format, parseISO, startOfYear, endOfYear, differenceInDays } from "date-fns";
 import { projectMatchesCycle, type FilterState } from "@/lib/filter-types";
 import { matchesSearch } from "@/lib/search";
 import { computeInsertOrder } from "@/lib/order";
 import { isProjectBlocked } from "@/lib/blocked";
 import { AVG_CYCLE_CAPACITY, cycleEffortPercent } from "@/lib/constants";
+import { planMoveToCycle } from "@/lib/move-to-cycle";
+import { useToast } from "@/hooks/use-toast";
 
 
 interface GanttViewProps {
@@ -98,7 +101,57 @@ export default function GanttView({ filters }: GanttViewProps) {
 
   const queryClient = useQueryClient();
   const updateProject = useUpdateProject();
+  const { toast } = useToast();
   const justDraggedRef = useRef(false);
+
+  const cyclesSorted = useMemo(
+    () => (cycles ? [...cycles].sort((a, b) => a.startDate.localeCompare(b.startDate)) : []),
+    [cycles],
+  );
+
+  const handleMoveProjectToCycle = (project: ProjectTimeline, targetCycleId: number) => {
+    const targetCycle = cyclesSorted.find((c) => c.id === targetCycleId);
+    if (!targetCycle) return;
+    const plan = planMoveToCycle(
+      {
+        storyPoints: project.storyPoints,
+        startDate: project.startDate ?? null,
+        endDate: project.endDate ?? null,
+        cycleAllocations: getCycleAllocations(project),
+      },
+      targetCycle,
+      cyclesSorted,
+    );
+    updateProject.mutate(
+      {
+        id: project.id,
+        data: {
+          cycleAllocations: plan.cycleAllocations,
+          startDate: plan.startDate,
+          endDate: plan.endDate,
+        },
+      },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: timelineQueryKey });
+          queryClient.invalidateQueries({ queryKey: getListProjectsQueryKey() });
+          const bits: string[] = [`Moved to ${targetCycle.name}`];
+          if (plan.summary.droppedAllocations > 0) {
+            bits.push(`${plan.summary.droppedAllocations} allocation${plan.summary.droppedAllocations === 1 ? "" : "s"} fell off the cycle range`);
+          }
+          if (plan.summary.createdAllocation) bits.push("created cycle allocation from story points");
+          toast({ title: bits[0], description: bits.slice(1).join(" · ") || undefined });
+        },
+        onError: (err) => {
+          toast({
+            title: "Move failed",
+            description: err instanceof Error ? err.message : String(err),
+            variant: "destructive",
+          });
+        },
+      },
+    );
+  };
   const timelineQueryKey = getGetProjectsTimelineQueryKey({
     year: currentYear,
     ...(timelineCycleId != null ? { cycleId: timelineCycleId } : {}),
@@ -267,11 +320,13 @@ export default function GanttView({ filters }: GanttViewProps) {
   // the bar element is conditionally hidden.
   const visibleProjects = filteredProjects;
 
-  // A project appears under every cycle it has an explicit allocation for.
-  // Projects with only a primary cycle (no allocations) are NOT counted toward
-  // any cycle's % bar or popover — they show as a bar-less row only.
-  const projectsByCycleId = new Map<number, typeof visibleProjects>();
-  for (const p of visibleProjects) {
+  // Cycle header totals are independent of the active row filters — the %
+  // for "Cycle E" represents the real allocation against that cycle, not
+  // "the allocation among the projects you happen to be looking at right
+  // now". Built from the unfiltered project list so toggling status / team /
+  // sponsor / goal / cycle / search filters never changes the header sum.
+  const projectsByCycleId = new Map<number, typeof projects>();
+  for (const p of projects) {
     const allocs = getCycleAllocations(p);
     if (allocs.length === 0) continue;
     for (const a of allocs) {
@@ -447,6 +502,8 @@ export default function GanttView({ filters }: GanttViewProps) {
                           sprintsForCycle={sprintsForCycle}
                           cyclesInView={cyclesInView}
                           getBarPosition={getBarPosition}
+                          availableCycles={cyclesSorted}
+                          onMoveToCycle={(cycleId) => handleMoveProjectToCycle(project, cycleId)}
                           dragHandle={
                             <DragHandle />
                           }
@@ -549,6 +606,75 @@ function DragHandle() {
   );
 }
 
+// Inline kebab menu on each gantt row. Hidden until row-hover (group-hover),
+// visible while open. Lists every cycle; clicking one shifts the project's
+// allocations + dates to that cycle (handled by the parent's
+// onMoveToCycle, which calls planMoveToCycle then PATCHes). The current
+// "anchor" cycle (earliest allocated) is marked and disabled to prevent
+// accidental no-op moves.
+function RowKebab({
+  project,
+  cycles,
+  onMoveToCycle,
+}: {
+  project: ProjectTimeline;
+  cycles: { id: number; name: string }[];
+  onMoveToCycle: (cycleId: number) => void;
+}) {
+  const allocs = getCycleAllocations(project);
+  const allocCycleIds = new Set(allocs.map((a) => a.cycleId));
+  // Anchor = the currently-earliest allocation, or the project's primary cycle if no allocations.
+  const anchorCycleId = allocs.length > 0
+    ? [...allocs].sort((a, b) => a.cycleStartDate.localeCompare(b.cycleStartDate))[0].cycleId
+    : project.cycleId ?? null;
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          className="shrink-0 h-6 w-6 inline-flex items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground data-[state=open]:bg-muted border border-border/40"
+          aria-label="Project actions"
+          data-testid={`gantt-row-kebab-${project.id}`}
+          onClick={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          <MoreHorizontal className="h-4 w-4" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent
+        align="end"
+        side="bottom"
+        className="w-56"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <DropdownMenuLabel className="text-xs text-muted-foreground">Move to cycle</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        {cycles.map((c) => {
+          const isAnchor = c.id === anchorCycleId;
+          const hasAlloc = allocCycleIds.has(c.id);
+          return (
+            <DropdownMenuItem
+              key={c.id}
+              disabled={isAnchor}
+              onSelect={() => onMoveToCycle(c.id)}
+              data-testid={`gantt-move-${project.id}-${c.id}`}
+              className="flex items-center justify-between gap-2"
+            >
+              <span>{c.name}</span>
+              {isAnchor ? (
+                <span className="text-[10px] uppercase text-muted-foreground">Current</span>
+              ) : hasAlloc ? (
+                <span className="text-[10px] uppercase text-muted-foreground">Allocated</span>
+              ) : null}
+            </DropdownMenuItem>
+          );
+        })}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 interface GanttRowContentProps {
   project: ProjectTimeline;
   today: Date;
@@ -559,6 +685,11 @@ interface GanttRowContentProps {
   cyclesInView: { id: number; startDate: string }[];
   getBarPosition: (start: string, end: string) => { left: string; width: string } | null;
   dragHandle: React.ReactNode;
+  // Editor-only: when set, renders a hover-revealed "..." menu in the row
+  // with cycles to move the project to. Selecting a cycle reallocates the
+  // project (and shifts dates) via planMoveToCycle.
+  availableCycles?: { id: number; name: string }[];
+  onMoveToCycle?: (cycleId: number) => void;
 }
 
 function GanttRowContent({
@@ -571,6 +702,8 @@ function GanttRowContent({
   cyclesInView,
   getBarPosition,
   dragHandle,
+  availableCycles,
+  onMoveToCycle,
 }: GanttRowContentProps) {
   const dates = getEffectiveDates(project);
   const effectiveStart = dates?.start;
@@ -588,14 +721,21 @@ function GanttRowContent({
     <>
       {dragHandle}
       <div className="w-[230px] shrink-0 pr-4">
-        <div className="flex items-center gap-1.5">
-          <div className="text-sm font-medium truncate" title={project.title}>
+        <div className="flex items-center gap-1.5 min-w-0">
+          <div className="text-sm font-medium truncate min-w-0 flex-1" title={project.title}>
             {project.title}
           </div>
           {isProjectBlocked(project) && (
             <span className="inline-flex shrink-0 items-center rounded-full bg-red-100 px-1.5 py-0.5 text-[9px] font-semibold text-red-700 dark:bg-red-900 dark:text-red-300 leading-none">
               Blocked
             </span>
+          )}
+          {availableCycles && onMoveToCycle && (
+            <RowKebab
+              project={project}
+              cycles={availableCycles}
+              onMoveToCycle={onMoveToCycle}
+            />
           )}
         </div>
         <div className="flex items-center gap-1.5 mt-0.5">

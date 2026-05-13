@@ -1,6 +1,7 @@
 import app from "./app";
 import { logger } from "./lib/logger";
 import { seedIfEmpty } from "./lib/seed";
+import { seedPasscodeFromEnv } from "./lib/sitePasscode";
 
 const rawPort = process.env["PORT"];
 
@@ -19,6 +20,9 @@ if (Number.isNaN(port) || port <= 0) {
 seedIfEmpty()
   .then(() => logger.info("Seed check complete"))
   .catch((err) => logger.warn({ err }, "Seed check failed (non-fatal)"));
+
+seedPasscodeFromEnv()
+  .catch((err) => logger.warn({ err }, "Passcode seed failed (non-fatal)"));
 
 app.listen(port, (err) => {
   if (err) {

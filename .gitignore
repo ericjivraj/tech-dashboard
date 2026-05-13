@@ -60,6 +60,8 @@ Thumbs.db
 # pnpm local store (used by docker-compose volume; never commit)
 .pnpm-store/
 
-# Local pg_dump snapshots — never commit, may contain prod data
+# Local pg_dump snapshots — never commit, may contain prod data.
+# Whitelist drizzle migration SQL so the schema travels with the repo.
 *.sql
+!lib/db/migrations/*.sql
 backups/

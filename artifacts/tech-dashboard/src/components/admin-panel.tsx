@@ -4,6 +4,7 @@ import {
   useListCycles, useCreateCycle, useUpdateCycle, useDeleteCycle, getListCyclesQueryKey,
   useListAuditLog,
 } from "@workspace/api-client-react";
+import ChangeSitePasscodeDialog from "./change-site-passcode-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -24,10 +25,11 @@ export default function AdminPanel({ open, onOpenChange }: { open: boolean, onOp
         </DialogHeader>
         
         <Tabs defaultValue="goals" className="flex-1 flex flex-col min-h-0">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="goals" data-testid="admin-tab-goals">Goals</TabsTrigger>
             <TabsTrigger value="cycles" data-testid="admin-tab-cycles">Cycles</TabsTrigger>
             <TabsTrigger value="audit-log" data-testid="admin-tab-audit-log">Audit Log</TabsTrigger>
+            <TabsTrigger value="security" data-testid="admin-tab-security">Security</TabsTrigger>
           </TabsList>
 
           <div className="flex-1 overflow-y-auto mt-4 min-h-[400px]">
@@ -39,6 +41,9 @@ export default function AdminPanel({ open, onOpenChange }: { open: boolean, onOp
             </TabsContent>
             <TabsContent value="audit-log" className="m-0 border-0 p-0 h-full">
               <AuditLogTab />
+            </TabsContent>
+            <TabsContent value="security" className="m-0 border-0 p-0 h-full">
+              <SecurityTab />
             </TabsContent>
           </div>
         </Tabs>
@@ -389,6 +394,25 @@ function AuditLogTab() {
           )}
         </TableBody>
       </Table>
+    </div>
+  );
+}
+
+
+function SecurityTab() {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="space-y-4">
+      <div className="rounded-lg border bg-card p-4">
+        <h3 className="text-sm font-semibold mb-1">Site passcode</h3>
+        <p className="text-xs text-muted-foreground mb-3">
+          The passcode visitors enter to access the dashboard. Stored as a bcrypt hash in Postgres — the value never appears in the JS bundle.
+        </p>
+        <Button size="sm" variant="outline" onClick={() => setOpen(true)} data-testid="admin-change-site-passcode">
+          Change site passcode
+        </Button>
+      </div>
+      <ChangeSitePasscodeDialog open={open} onOpenChange={setOpen} />
     </div>
   );
 }

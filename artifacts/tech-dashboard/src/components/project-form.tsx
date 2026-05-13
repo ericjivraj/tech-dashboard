@@ -5,6 +5,7 @@ import {
   useListGoals, useListCycles, useListSprints,
   useGetProjectAllocations, useUpsertProjectAllocations, getGetProjectAllocationsQueryKey,
   ProjectWithDetails, ProjectStatus,
+  ApiError,
 } from "@workspace/api-client-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -236,9 +237,27 @@ export default function ProjectForm({
       endDate: trim(values.endDate),
       storyPoints: values.storyPoints ? Number(values.storyPoints) : null,
       cycleId: values.cycleId ? Number(values.cycleId) : null,
+      // Optimistic concurrency token: the server compares this to the row's
+      // current updated_at and 409s if someone else saved in between.
+      expectedUpdatedAt: projectToEdit?.updatedAt ?? undefined,
     };
 
     const errorToast = (err: unknown) => {
+      // Stale-write rejection from the server (someone else edited this
+      // project after the form was opened). Refetch so the form picks up
+      // the latest data on next open, and tell the user clearly so they can
+      // re-apply their change instead of clobbering.
+      if (err instanceof ApiError && err.status === 409 && projectToEdit) {
+        queryClient.invalidateQueries({ queryKey: getGetProjectQueryKey(projectToEdit.id) });
+        queryClient.invalidateQueries({ queryKey: getListProjectsQueryKey() });
+        queryClient.invalidateQueries({ queryKey: getGetProjectsTimelineQueryKey() });
+        toast({
+          title: "Project changed by someone else",
+          description: "Reopen this project to see the latest version, then re-apply your edit. Your changes were not saved.",
+          variant: "destructive",
+        });
+        return;
+      }
       const msg = err instanceof Error ? err.message : String(err);
       toast({ title: "Save failed", description: msg, variant: "destructive" });
       console.error("Project save failed:", err);
@@ -413,7 +432,7 @@ export default function ProjectForm({
                 name="functionName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Function (Sponsor)</FormLabel>
+                    <FormLabel>Sponsor</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value || ""}>
                       <FormControl>
                         <SelectTrigger>

@@ -369,6 +369,11 @@ export interface UpdateProjectBody {
   goalIds?: number[] | null;
   /** @nullable */
   cycleAllocations?: UpdateProjectBodyCycleAllocationsItem[] | null;
+  /**
+   * Optimistic-concurrency token. The server compares this to the project's current updated_at and rejects with 409 if they differ (someone else edited the project after the client opened it). Optional — if omitted, the PATCH proceeds without the check.
+   * @nullable
+   */
+  expectedUpdatedAt?: string | null;
 }
 
 export interface ProjectUpdate {

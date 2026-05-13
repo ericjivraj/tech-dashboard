@@ -1,48 +1,86 @@
 import { useState, useEffect, useRef } from "react";
-import { runtimeConfig } from "@/lib/runtime-config";
 
-const RAW_PASSCODE = runtimeConfig.sitePasscode;
-const PASSCODES: string[] = RAW_PASSCODE
-  ? RAW_PASSCODE.split(",").map((p) => p.trim()).filter(Boolean)
-  : [];
 const SESSION_KEY = "delivery_dashboard_unlocked";
+const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 interface PasscodeGateProps {
   children: React.ReactNode;
   bypass?: boolean;
 }
 
+type GateStatus = "loading" | "open" | "required";
+
 export default function PasscodeGate({ children, bypass = false }: PasscodeGateProps) {
-  const [unlocked, setUnlocked] = useState(() => {
-    if (PASSCODES.length === 0) return true;
-    return sessionStorage.getItem(SESSION_KEY) === "1";
+  // Initial state: if a previous unlock is in sessionStorage, treat as open
+  // optimistically; otherwise wait for /api/passcode/status to tell us
+  // whether a passcode is even configured.
+  const [status, setStatus] = useState<GateStatus>(() => {
+    if (sessionStorage.getItem(SESSION_KEY) === "1") return "open";
+    return "loading";
   });
   const [value, setValue] = useState("");
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [shake, setShake] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (!unlocked && !bypass && inputRef.current) {
+    if (status !== "loading") return;
+    let cancelled = false;
+    fetch(`${basePath}/api/passcode/status`, { credentials: "include" })
+      .then((r) => r.json())
+      .then((body: { required?: boolean }) => {
+        if (cancelled) return;
+        setStatus(body.required ? "required" : "open");
+      })
+      .catch(() => {
+        // Network failure → fail closed (require passcode). Better to lock
+        // people out and let them retry than silently expose the dashboard.
+        if (!cancelled) setStatus("required");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [status]);
+
+  useEffect(() => {
+    if (status === "required" && !bypass && inputRef.current) {
       inputRef.current.focus();
     }
-  }, [unlocked, bypass]);
+  }, [status, bypass]);
 
-  if (bypass || unlocked) {
+  if (bypass || status === "open") {
     return <>{children}</>;
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  if (status === "loading") {
+    return <div className="flex min-h-[100dvh] items-center justify-center bg-muted/30" />;
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (PASSCODES.includes(value)) {
-      sessionStorage.setItem(SESSION_KEY, "1");
-      setUnlocked(true);
-    } else {
-      setError(true);
+    setSubmitting(true);
+    try {
+      const res = await fetch(`${basePath}/api/passcode/verify`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ passcode: value }),
+      });
+      if (res.ok) {
+        sessionStorage.setItem(SESSION_KEY, "1");
+        setStatus("open");
+        return;
+      }
+      setError("Incorrect passcode. Please try again.");
       setShake(true);
       setValue("");
       setTimeout(() => setShake(false), 600);
       inputRef.current?.focus();
+    } catch {
+      setError("Couldn't reach server. Try again.");
+    } finally {
+      setSubmitting(false);
     }
   }
 
@@ -61,40 +99,38 @@ export default function PasscodeGate({ children, bypass = false }: PasscodeGateP
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div
-            className={shake ? "animate-shake" : ""}
-          >
+          <div className={shake ? "animate-shake" : ""}>
             <input
               ref={inputRef}
               type="password"
               value={value}
               onChange={(e) => {
                 setValue(e.target.value);
-                if (error) setError(false);
+                if (error) setError(null);
               }}
               placeholder="Passcode"
               autoComplete="current-password"
+              disabled={submitting}
               className={[
                 "w-full rounded-md border px-3 py-2 text-sm shadow-sm outline-none transition-colors",
                 "placeholder:text-muted-foreground",
-                "focus:ring-2 focus:ring-ring focus:border-transparent",
+                "focus:ring-2 focus:ring-ring focus:border-transparent disabled:opacity-60",
                 error
                   ? "border-destructive focus:ring-destructive/40"
                   : "border-input bg-background",
               ].join(" ")}
             />
             {error && (
-              <p className="mt-1.5 text-xs text-destructive">
-                Incorrect passcode. Please try again.
-              </p>
+              <p className="mt-1.5 text-xs text-destructive">{error}</p>
             )}
           </div>
 
           <button
             type="submit"
-            className="w-full rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow hover:bg-primary/90 transition-colors"
+            disabled={submitting || !value}
+            className="w-full rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow hover:bg-primary/90 transition-colors disabled:opacity-60"
           >
-            Continue
+            {submitting ? "Checking…" : "Continue"}
           </button>
         </form>
       </div>

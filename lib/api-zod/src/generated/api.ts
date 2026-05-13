@@ -429,6 +429,12 @@ export const UpdateProjectBody = zod.object({
       }),
     )
     .nullish(),
+  expectedUpdatedAt: zod.coerce
+    .date()
+    .nullish()
+    .describe(
+      "Optimistic-concurrency token. The server compares this to the project's current updated_at and rejects with 409 if they differ (someone else edited the project after the client opened it). Optional — if omitted, the PATCH proceeds without the check.",
+    ),
 });
 
 export const UpdateProjectResponse = zod

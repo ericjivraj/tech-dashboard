@@ -1,5 +1,10 @@
 import crypto from "node:crypto";
 import type { Request } from "express";
+import bcrypt from "bcryptjs";
+import { eq } from "drizzle-orm";
+import { db, adminCredentialsTable } from "@workspace/db";
+
+const BCRYPT_COST = 12;
 
 export interface AdminAccount {
   username: string;
@@ -71,17 +76,43 @@ function timingSafeEqualString(a: string, b: string): boolean {
   return crypto.timingSafeEqual(aBuf, bBuf);
 }
 
-export function verifyCredentials(username: string, password: string): AdminAccount | null {
-  const accounts = loadAccounts();
-  for (const acc of accounts) {
-    if (
-      timingSafeEqualString(acc.username, username) &&
-      timingSafeEqualString(acc.password, password)
-    ) {
-      return acc;
-    }
+// Hybrid auth: TD_ADMIN_ACCOUNTS env var defines who is allowed in. For each
+// allowed username, prefer a per-user bcrypt hash from the admin_credentials
+// table when present; otherwise fall back to the env var's plaintext password.
+// This lets users self-service their password via the UI without having to
+// re-deploy or touch Doppler.
+export async function verifyCredentials(username: string, password: string): Promise<AdminAccount | null> {
+  const account = findAccountByUsername(username);
+  if (!account) return null;
+  // timingSafeEqualString on the username protects against username
+  // enumeration via timing differences.
+  if (!timingSafeEqualString(account.username, username)) return null;
+
+  const [row] = await db
+    .select({ hash: adminCredentialsTable.passwordHash })
+    .from(adminCredentialsTable)
+    .where(eq(adminCredentialsTable.username, username));
+
+  if (row) {
+    return (await bcrypt.compare(password, row.hash)) ? account : null;
   }
-  return null;
+  return timingSafeEqualString(account.password, password) ? account : null;
+}
+
+export async function setPasswordHash(username: string, newPassword: string): Promise<void> {
+  const account = findAccountByUsername(username);
+  if (!account) {
+    throw new Error(`Cannot set password for unknown username "${username}"`);
+  }
+  const hash = await bcrypt.hash(newPassword, BCRYPT_COST);
+  const now = new Date();
+  await db
+    .insert(adminCredentialsTable)
+    .values({ username, passwordHash: hash, createdAt: now, updatedAt: now })
+    .onConflictDoUpdate({
+      target: adminCredentialsTable.username,
+      set: { passwordHash: hash, updatedAt: now },
+    });
 }
 
 export function findAccountByUsername(username: string): AdminAccount | null {

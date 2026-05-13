@@ -505,7 +505,22 @@ router.patch("/projects/:id", requireAuth, async (req, res): Promise<void> => {
     return;
   }
 
-  const { goalIds, cycleAllocations, startDate, endDate, ...fields } = parsed.data;
+  // Optimistic concurrency: if the client supplied the row version it loaded,
+  // refuse the write when the row has been modified since. The 409 carries
+  // the latest updated_at so the client can re-prompt the user with fresh
+  // data instead of clobbering whoever edited last.
+  const { expectedUpdatedAt, goalIds, cycleAllocations, startDate, endDate, ...fields } = parsed.data;
+  if (expectedUpdatedAt) {
+    const expectedMs = new Date(expectedUpdatedAt as unknown as string | Date).getTime();
+    const actualMs = before.updatedAt instanceof Date ? before.updatedAt.getTime() : new Date(before.updatedAt).getTime();
+    if (Number.isFinite(expectedMs) && expectedMs !== actualMs) {
+      res.status(409).json({
+        error: "Project was modified by someone else after you opened it.",
+        currentUpdatedAt: before.updatedAt,
+      });
+      return;
+    }
+  }
   const updates: Record<string, unknown> = {};
 
   for (const [key, val] of Object.entries(fields)) {

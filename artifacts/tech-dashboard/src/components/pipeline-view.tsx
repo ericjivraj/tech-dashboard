@@ -39,16 +39,16 @@ import { STATUS_LABELS, PIPELINE_STATUS_ORDER, AVG_CYCLE_CAPACITY, cycleEffortPe
 const COLUMN_TOOLTIPS: Record<string, string> = {
   "Project Name": "The name and any blocked reason for the project",
   "Status": "Current workflow status of the project",
-  "Team / Function (Sponsor)": "The team responsible for delivery, and the function driving this project",
+  "Team / Sponsor": "The team responsible for delivery, and the function driving this project",
   "Stakeholder": "Business sponsor for this project",
   "Goals": "Business goals this project contributes to",
   "Latest Update": "Most recent project update",
 };
 
-const SORTABLE_COLUMNS = new Set(["Status", "Team / Function (Sponsor)"]);
+const SORTABLE_COLUMNS = new Set(["Status", "Team / Sponsor"]);
 
 type SortOrder = "asc" | "desc" | null;
-type SortColumn = "Status" | "Team / Function (Sponsor)" | null;
+type SortColumn = "Status" | "Team / Sponsor" | null;
 
 interface SortState {
   column: SortColumn;
@@ -99,7 +99,7 @@ export default function PipelineView({ projects }: PipelineViewProps) {
         return dir * (aIdx - bIdx);
       }
 
-      if (sort.column === "Team / Function (Sponsor)") {
+      if (sort.column === "Team / Sponsor") {
         const aTeam = (a.team ?? "").toLowerCase();
         const bTeam = (b.team ?? "").toLowerCase();
         if (!aTeam && !bTeam) return 0;
@@ -417,7 +417,7 @@ function ProjectRowCells({ project }: { project: ProjectWithDetails }) {
       <TableCell>
         <div className="flex flex-col gap-0.5">
           <span className="text-sm font-medium">{project.team || ""}</span>
-          {project.functionName && <span className="text-xs text-muted-foreground">Function (Sponsor): {project.functionName}</span>}
+          {project.functionName && <span className="text-xs text-muted-foreground">Sponsor: {project.functionName}</span>}
         </div>
       </TableCell>
       <TableCell>

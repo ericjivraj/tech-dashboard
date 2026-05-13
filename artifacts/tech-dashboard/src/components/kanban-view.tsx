@@ -215,6 +215,7 @@ export default function KanbanView({ projects, readOnly = false, visibleStatuses
           dragEnabled={dragEnabled}
           showAddButton={dragEnabled}
           onAddProject={() => setAddProjectStatus(col.id)}
+          hideStatusIndicators={readOnly}
           onCardClick={(id) => {
             if (justDraggedRef.current) return;
             setSelectedProjectId(id);
@@ -280,6 +281,7 @@ function KanbanColumn({
   dragEnabled,
   showAddButton,
   onAddProject,
+  hideStatusIndicators,
   onCardClick,
 }: {
   column: { id: ProjectStatus; label: string };
@@ -287,6 +289,9 @@ function KanbanColumn({
   dragEnabled: boolean;
   showAddButton?: boolean;
   onAddProject?: () => void;
+  // Business view hides "blocked" badges + the latest-update snippet so the
+  // exec-facing kanban only shows the project shape, not in-flight chatter.
+  hideStatusIndicators?: boolean;
   onCardClick: (id: number) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: column.id, disabled: !dragEnabled });
@@ -340,9 +345,16 @@ function KanbanColumn({
                 key={project.id}
                 project={project}
                 onClick={() => onCardClick(project.id)}
+                hideStatusIndicators={hideStatusIndicators}
               />
             ) : (
-              <ProjectCard key={project.id} project={project} onClick={() => onCardClick(project.id)} dragEnabled={false} />
+              <ProjectCard
+                key={project.id}
+                project={project}
+                onClick={() => onCardClick(project.id)}
+                dragEnabled={false}
+                hideStatusIndicators={hideStatusIndicators}
+              />
             ),
           )}
           {projects.length === 0 && (
@@ -359,9 +371,11 @@ function KanbanColumn({
 function SortableProjectCard({
   project,
   onClick,
+  hideStatusIndicators,
 }: {
   project: ProjectWithDetails;
   onClick: () => void;
+  hideStatusIndicators?: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: project.id,
@@ -375,7 +389,7 @@ function SortableProjectCard({
 
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      <ProjectCard project={project} onClick={onClick} dragEnabled />
+      <ProjectCard project={project} onClick={onClick} dragEnabled hideStatusIndicators={hideStatusIndicators} />
     </div>
   );
 }
@@ -384,12 +398,14 @@ function ProjectCard({
   project,
   onClick,
   dragEnabled,
+  hideStatusIndicators,
 }: {
   project: ProjectWithDetails;
   onClick?: () => void;
   dragEnabled: boolean;
+  hideStatusIndicators?: boolean;
 }) {
-  const isBlocked = isProjectBlocked(project);
+  const isBlocked = isProjectBlocked(project) && !hideStatusIndicators;
 
   return (
     <Card
@@ -426,8 +442,8 @@ function ProjectCard({
           )}
         </div>
       </CardHeader>
-      <CardContent className="p-3 pt-0 pb-2">
-        {project.latestUpdate ? (
+      <CardContent className={`p-3 pt-0 ${hideStatusIndicators ? "pb-0" : "pb-2"}`}>
+        {hideStatusIndicators ? null : project.latestUpdate ? (
           <div className="text-xs text-muted-foreground line-clamp-2 bg-muted/30 p-1.5 rounded text-balance italic">
             "{project.latestUpdate.content}"
           </div>
@@ -438,7 +454,7 @@ function ProjectCard({
       <CardFooter className="p-3 pt-0 flex flex-col gap-1.5 items-start text-[10px] text-muted-foreground">
         {project.functionName && (
           <div className="flex items-center gap-1 w-full" title={project.functionName}>
-            <span className="text-muted-foreground/60 shrink-0">Function (Sponsor):</span>
+            <span className="text-muted-foreground/60 shrink-0">Sponsor:</span>
             <span className="truncate font-medium">{project.functionName}</span>
           </div>
         )}

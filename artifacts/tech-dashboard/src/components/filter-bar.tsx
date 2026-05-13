@@ -28,9 +28,13 @@ interface FilterBarProps {
   sponsors: string[];
   filteredCount?: number;
   totalCount?: number;
+  // Restrict the status multi-select dropdown to a subset (e.g. business view
+  // hides backlog/new_request). Defaults to all statuses.
+  availableStatuses?: ProjectStatus[];
 }
 
-export default function FilterBar({ filters, onFiltersChange, teams, sponsors, filteredCount, totalCount }: FilterBarProps) {
+export default function FilterBar({ filters, onFiltersChange, teams, sponsors, filteredCount, totalCount, availableStatuses }: FilterBarProps) {
+  const statusesToShow = availableStatuses ?? STATUS_ORDER;
   const { data: goals } = useListGoals();
   const { data: cycles } = useListCycles();
   const { data: sprints } = useListSprints();
@@ -122,7 +126,7 @@ export default function FilterBar({ filters, onFiltersChange, teams, sponsors, f
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent side="bottom" align="start" className="w-[200px]">
-            {STATUS_ORDER.map((s) => (
+            {statusesToShow.map((s) => (
               <DropdownMenuCheckboxItem
                 key={s}
                 checked={filters.status.includes(s)}
@@ -168,10 +172,10 @@ export default function FilterBar({ filters, onFiltersChange, teams, sponsors, f
         {sponsors.length > 0 && (
           <Select value={filters.functionName} onValueChange={(v) => update({ functionName: v })} data-testid="filter-functionName">
             <SelectTrigger className="h-8 w-[140px] text-sm">
-              <SelectValue placeholder="Function (Sponsor)" />
+              <SelectValue placeholder="Sponsor" />
             </SelectTrigger>
             <SelectContent side="bottom" align="start">
-              <SelectItem value="all">All Functions (Sponsors)</SelectItem>
+              <SelectItem value="all">All Sponsors</SelectItem>
               {sponsors.map((s) => (
                 <SelectItem key={s} value={s}>{s}</SelectItem>
               ))}
@@ -216,7 +220,7 @@ export default function FilterBar({ filters, onFiltersChange, teams, sponsors, f
               value={filters.cycleId}
               onValueChange={(v) => {
                 // When focusing a cycle for the first time, default the status
-                // multi-select to In Progress so the timeline lands on the
+                // multi-select to In Development so the timeline lands on the
                 // most useful slice. Only auto-set when the user hasn't
                 // already chosen any statuses, to avoid overwriting their
                 // active selection.
@@ -233,9 +237,7 @@ export default function FilterBar({ filters, onFiltersChange, teams, sponsors, f
               </SelectTrigger>
               <SelectContent side="bottom" align="start">
                 <SelectItem value="all">All Cycles</SelectItem>
-                {cycles
-                  .filter((c) => c.name !== "Cycle B" && c.name !== "Cycle C")
-                  .map((c) => {
+                {cycles.map((c) => {
                   const isPast = c.endDate < today;
                   return (
                     <SelectItem key={c.id} value={c.id.toString()}>

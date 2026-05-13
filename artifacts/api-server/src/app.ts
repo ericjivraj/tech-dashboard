@@ -57,22 +57,14 @@ app.use("/api", router);
 // (copied in by the Dockerfile's production stage). In development the dev
 // server runs separately under Vite, so this block is skipped.
 //
-// `window.__APP_CONFIG__` is injected into index.html before the dashboard
-// scripts run, so per-environment config lives in Doppler-managed env vars
-// on the running pod and the same image artifact promotes through preprod
-// and production unchanged.
+// The site passcode used to ride along here as window.__APP_CONFIG__, but
+// it now lives as a bcrypt hash in Postgres and is verified server-side, so
+// no per-environment config has to be injected into the served HTML.
 if (process.env.NODE_ENV === "production") {
   const dashboardDist = path.resolve(__dirname, "../public");
-  const indexHtmlTemplate = fs.readFileSync(
+  const renderedIndexHtml = fs.readFileSync(
     path.join(dashboardDist, "index.html"),
     "utf8",
-  );
-
-  const renderedIndexHtml = indexHtmlTemplate.replace(
-    "</head>",
-    `<script>window.__APP_CONFIG__=${JSON.stringify({
-      sitePasscode: process.env.TD_SITE_PASSCODE ?? "",
-    })}</script></head>`,
   );
 
   app.use(express.static(dashboardDist, { index: false }));

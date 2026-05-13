@@ -1,9 +1,12 @@
+import { useState } from "react";
 import { useGetMe } from "@workspace/api-client-react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
+import ChangePasswordDialog from "./change-password-dialog";
 
 export default function Layout({ children, onSignOut }: { children: React.ReactNode; onSignOut?: () => void }) {
   const { data: user, isLoading } = useGetMe();
+  const [changePasswordOpen, setChangePasswordOpen] = useState(false);
 
   return (
     <div className="min-h-[100dvh] flex flex-col bg-background text-foreground">
@@ -28,6 +31,9 @@ export default function Layout({ children, onSignOut }: { children: React.ReactN
                   <span className="text-sm text-muted-foreground font-medium hidden sm:inline-block">
                     {user.firstName ? `Editor: ${user.firstName}` : 'Editor Mode'}
                   </span>
+                  <Button variant="outline" size="sm" onClick={() => setChangePasswordOpen(true)} data-testid="header-change-password">
+                    Change password
+                  </Button>
                   {onSignOut && (
                     <Button variant="outline" size="sm" onClick={onSignOut}>
                       Sign out
@@ -42,6 +48,7 @@ export default function Layout({ children, onSignOut }: { children: React.ReactN
       <main className="flex-1 flex flex-col">
         {children}
       </main>
+      <ChangePasswordDialog open={changePasswordOpen} onOpenChange={setChangePasswordOpen} />
     </div>
   );
 }
