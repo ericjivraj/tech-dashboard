@@ -68,7 +68,6 @@ if (process.env.NODE_ENV === "production") {
   );
 
   app.use(express.static(dashboardDist, { index: false }));
-  app.use("/tech-dashboard", express.static(dashboardDist, { index: false }));
 
   app.use((req, res, next) => {
     if (req.method !== "GET") return next();

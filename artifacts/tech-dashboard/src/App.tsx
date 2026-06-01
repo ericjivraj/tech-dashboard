@@ -44,8 +44,8 @@ function AppShell() {
   return (
     <Layout onSignOut={onSignOut}>
       <Switch>
-        <Route path="/" component={Dashboard} />
-        <Route path="/business" component={BusinessView} />
+        <Route path="/" component={BusinessView} />
+        <Route path="/leadership" component={Dashboard} />
         <Route path="/admin" component={CookieAdminPage} />
         <Route component={NotFound} />
       </Switch>
@@ -55,9 +55,10 @@ function AppShell() {
 
 function GatedRoutes() {
   const [location] = useLocation();
-  const isAdminPath = location === "/admin" || location.startsWith("/admin/");
+  const isLeadershipPath =
+    location === "/leadership" || location.startsWith("/leadership/");
   return (
-    <PasscodeGate bypass={isAdminPath}>
+    <PasscodeGate bypass={!isLeadershipPath}>
       <QueryClientProvider client={queryClient}>
         <AppShell />
       </QueryClientProvider>

@@ -48,11 +48,10 @@ CMD ["sh", "-c", \
 FROM deps AS build
 
 ENV PORT=3000
-# BASE_PATH is baked into the Vite bundle (asset URLs and BASE_URL) so the
-# dashboard works when served under https://innovate.bonhams.com/tech-dashboard/
-# in both preprod and production. Traefik strips the prefix before forwarding
-# to the api, so app.ts stays at root (/api, /health, /).
-ENV BASE_PATH=/tech-dashboard
+# BASE_PATH is baked into the Vite bundle (asset URLs and BASE_URL). The app
+# is served at the root of https://innovate.bonhams.com/, so assets and the
+# Wouter base resolve relative to /.
+ENV BASE_PATH=/
 
 COPY . .
 

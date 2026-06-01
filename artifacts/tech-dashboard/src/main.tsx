@@ -3,10 +3,9 @@ import { setBaseUrl } from "@workspace/api-client-react";
 import App from "./App";
 import "./index.css";
 
-// When the dashboard is served under a path prefix (e.g. /tech-dashboard/),
-// prepend that prefix to every API request so browser fetches resolve to the
-// right Traefik route. Vite's BASE_URL is "/" in local dev, so this is a
-// no-op there.
+// Vite's BASE_URL is "/" in both local dev and production now that the app
+// is served at the root of innovate.bonhams.com. The setBaseUrl branch below
+// remains in case we ever re-introduce a path prefix.
 const apiBasePath = import.meta.env.BASE_URL.replace(/\/+$/, "");
 if (apiBasePath) {
   setBaseUrl(apiBasePath);
