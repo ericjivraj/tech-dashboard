@@ -2,17 +2,14 @@ import { useState } from "react";
 import {
   useListGoals, useCreateGoal, useUpdateGoal, useDeleteGoal, getListGoalsQueryKey,
   useListCycles, useCreateCycle, useUpdateCycle, useDeleteCycle, getListCyclesQueryKey,
-  useListAuditLog,
 } from "@workspace/api-client-react";
-import ChangeSitePasscodeDialog from "./change-site-passcode-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { useQueryClient } from "@tanstack/react-query";
-import { Trash2, Plus, Pencil, Check, X, Loader2 } from "lucide-react";
+import { Trash2, Plus, Pencil, Check, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format, parseISO } from "date-fns";
 
@@ -25,11 +22,9 @@ export default function AdminPanel({ open, onOpenChange }: { open: boolean, onOp
         </DialogHeader>
         
         <Tabs defaultValue="goals" className="flex-1 flex flex-col min-h-0">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="goals" data-testid="admin-tab-goals">Goals</TabsTrigger>
             <TabsTrigger value="cycles" data-testid="admin-tab-cycles">Cycles</TabsTrigger>
-            <TabsTrigger value="audit-log" data-testid="admin-tab-audit-log">Audit Log</TabsTrigger>
-            <TabsTrigger value="security" data-testid="admin-tab-security">Security</TabsTrigger>
           </TabsList>
 
           <div className="flex-1 overflow-y-auto mt-4 min-h-[400px]">
@@ -38,12 +33,6 @@ export default function AdminPanel({ open, onOpenChange }: { open: boolean, onOp
             </TabsContent>
             <TabsContent value="cycles" className="m-0 border-0 p-0 h-full">
               <CyclesTab />
-            </TabsContent>
-            <TabsContent value="audit-log" className="m-0 border-0 p-0 h-full">
-              <AuditLogTab />
-            </TabsContent>
-            <TabsContent value="security" className="m-0 border-0 p-0 h-full">
-              <SecurityTab />
             </TabsContent>
           </div>
         </Tabs>
@@ -312,107 +301,3 @@ function CyclesTab() {
   );
 }
 
-function AuditLogTab() {
-  const { data: entries, isLoading } = useListAuditLog();
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-40 text-muted-foreground">
-        <Loader2 className="h-5 w-5 animate-spin mr-2" /> Loading audit log...
-      </div>
-    );
-  }
-
-  const ACTION_COLORS: Record<string, string> = {
-    create: "bg-emerald-100 text-emerald-700",
-    update: "bg-blue-100 text-blue-700",
-    delete: "bg-red-100 text-red-700",
-  };
-
-  return (
-    <div className="space-y-4">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Time</TableHead>
-            <TableHead>User</TableHead>
-            <TableHead>Action</TableHead>
-            <TableHead>Project</TableHead>
-            <TableHead>Changes</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {entries?.map(entry => {
-            const diff = entry.diff as Record<string, unknown> | null;
-            const before = (diff?.before ?? null) as Record<string, unknown> | null;
-            const after = (diff?.after ?? null) as Record<string, unknown> | null;
-            const entityName =
-              (after?.title as string | undefined) ??
-              (before?.title as string | undefined) ??
-              (after?.name as string | undefined) ??
-              (before?.name as string | undefined) ??
-              null;
-
-            let diffSummary = "";
-            if (entry.action === "update" && before && after) {
-              const changed = Object.entries(after)
-                .filter(([k, v]) => JSON.stringify(v) !== JSON.stringify(before[k]) && k !== "updatedAt")
-                .map(([k]) => k);
-              diffSummary = changed.length > 0 ? `Updated: ${changed.join(", ")}` : "No field changes";
-            } else if (entry.action === "create") {
-              diffSummary = "Created";
-            } else if (entry.action === "delete") {
-              diffSummary = "Deleted";
-            }
-
-            return (
-              <TableRow key={entry.id} data-testid={`audit-row-${entry.id}`}>
-                <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
-                  {format(new Date(entry.createdAt), 'MMM d, yyyy h:mm a')}
-                </TableCell>
-                <TableCell className="text-sm font-mono">{entry.userEmail || ""}</TableCell>
-                <TableCell>
-                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-full capitalize ${ACTION_COLORS[entry.action] ?? ""}`}>
-                    {entry.action}
-                  </span>
-                </TableCell>
-                <TableCell className="text-sm">
-                  {entityName ?? <span className="capitalize text-muted-foreground">{entry.entityType} #{entry.entityId}</span>}
-                </TableCell>
-                <TableCell className="text-xs text-muted-foreground max-w-xs truncate" title={diffSummary}>
-                  {diffSummary}
-                </TableCell>
-              </TableRow>
-            );
-          })}
-          {entries?.length === 0 && (
-            <TableRow>
-              <TableCell colSpan={5} className="text-center text-muted-foreground">
-                No audit log entries yet.
-              </TableCell>
-            </TableRow>
-          )}
-        </TableBody>
-      </Table>
-    </div>
-  );
-}
-
-
-function SecurityTab() {
-  const [open, setOpen] = useState(false);
-  return (
-    <div className="space-y-4">
-      <div className="rounded-lg border bg-card p-4">
-        <h3 className="text-sm font-semibold mb-1">Site passcode</h3>
-        <p className="text-xs text-muted-foreground mb-3">
-          The passcode visitors enter to access the dashboard. Stored as a bcrypt hash in Postgres — the value never appears in the JS bundle.
-        </p>
-        <Button size="sm" variant="outline" onClick={() => setOpen(true)} data-testid="admin-change-site-passcode">
-          Change site passcode
-        </Button>
-      </div>
-      <ChangeSitePasscodeDialog open={open} onOpenChange={setOpen} />
-    </div>
-  );
-}

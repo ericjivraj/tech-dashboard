@@ -46,7 +46,7 @@ export default function Dashboard() {
   const [copiedBusinessLink, setCopiedBusinessLink] = useState(false);
 
   function handleShareBusinessView() {
-    const businessUrl = new URL("/", window.location.origin).toString();
+    const businessUrl = new URL("/business", window.location.origin).toString();
     navigator.clipboard.writeText(businessUrl).then(() => {
       setCopiedBusinessLink(true);
       setTimeout(() => setCopiedBusinessLink(false), 2000);
@@ -111,7 +111,7 @@ export default function Dashboard() {
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => window.open(new URL("/", window.location.origin).toString(), "_blank", "noopener,noreferrer")}
+                onClick={() => window.open(new URL("/business", window.location.origin).toString(), "_blank", "noopener,noreferrer")}
                 data-testid="button-open-business-view"
                 className="rounded-l-none px-2"
                 title="Open business view in new tab"

@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import { Switch, Route, useLocation, Router as WouterRouter } from "wouter";
+import { Switch, Route, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { useGetMe } from "@workspace/api-client-react";
 import { Toaster } from "@/components/ui/toaster";
@@ -8,7 +8,6 @@ import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/dashboard";
 import BusinessView from "@/pages/business";
 import Layout from "@/components/layout";
-import PasscodeGate from "@/components/passcode-gate";
 import AdminLoginForm from "@/components/admin-login-form";
 
 const queryClient = new QueryClient();
@@ -44,25 +43,16 @@ function AppShell() {
   return (
     <Layout onSignOut={onSignOut}>
       <Switch>
-        <Route path="/" component={BusinessView} />
+        <Route path="/business" component={BusinessView} />
         <Route path="/leadership" component={Dashboard} />
         <Route path="/admin" component={CookieAdminPage} />
+        {/* `/` is handled by the old innovate via infra and never reaches us in
+            prod. Render nothing here so direct hits (e.g. pod IP) don't
+            accidentally surface a 404. */}
+        <Route path="/">{() => null}</Route>
         <Route component={NotFound} />
       </Switch>
     </Layout>
-  );
-}
-
-function GatedRoutes() {
-  const [location] = useLocation();
-  const isLeadershipPath =
-    location === "/leadership" || location.startsWith("/leadership/");
-  return (
-    <PasscodeGate bypass={!isLeadershipPath}>
-      <QueryClientProvider client={queryClient}>
-        <AppShell />
-      </QueryClientProvider>
-    </PasscodeGate>
   );
 }
 
@@ -70,7 +60,9 @@ function App() {
   return (
     <TooltipProvider>
       <WouterRouter base={basePath}>
-        <GatedRoutes />
+        <QueryClientProvider client={queryClient}>
+          <AppShell />
+        </QueryClientProvider>
       </WouterRouter>
       <Toaster />
     </TooltipProvider>
