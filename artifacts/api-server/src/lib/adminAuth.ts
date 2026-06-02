@@ -136,9 +136,20 @@ export function createSessionCookie(account: AdminAccount): { value: string; max
 export function readSessionFromRequest(req: Request): AdminSession | null {
   const raw = req.cookies?.[ADMIN_COOKIE_NAME];
   if (typeof raw !== "string" || !raw) return null;
-  const parts = raw.split(".");
-  if (parts.length !== 3) return null;
-  const [username, expiresAtRaw, signature] = parts;
+
+  // Cookie format is `<username>.<expiresAt>.<signature>`. We can't just
+  // split on "." because usernames are often email addresses containing
+  // dots (e.g. eric.jivraj@bonhams.com). Use the last two `.` as the
+  // delimiters for signature and timestamp instead.
+  const sigDot = raw.lastIndexOf(".");
+  if (sigDot <= 0) return null;
+  const signature = raw.slice(sigDot + 1);
+  const beforeSig = raw.slice(0, sigDot);
+  const tsDot = beforeSig.lastIndexOf(".");
+  if (tsDot <= 0) return null;
+  const expiresAtRaw = beforeSig.slice(tsDot + 1);
+  const username = beforeSig.slice(0, tsDot);
+
   const payload = `${username}.${expiresAtRaw}`;
   const expectedSignature = sign(payload);
   if (!timingSafeEqualString(signature, expectedSignature)) return null;
