@@ -431,7 +431,7 @@ function ProjectCard({
           {project.team && (
             <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">{project.team}</span>
           )}
-          {project.storyPoints != null && (
+          {!hideStatusIndicators && project.storyPoints != null && (
             <Badge
               variant="outline"
               className="text-[11px] font-semibold px-2 py-0.5 bg-muted/50"
