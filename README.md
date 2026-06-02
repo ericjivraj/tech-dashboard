@@ -110,7 +110,6 @@ See [`.env.example`](.env.example) for a full list of variables with description
 | `VITE_CLERK_PUBLISHABLE_KEY` | Yes | Clerk publishable key for the browser |
 | `EDITOR_EMAILS` | Yes | Comma-separated list of editor email addresses |
 | `BASE_PATH` | Yes | Vite base path — use `/` locally |
-| `VITE_TD_SITE_PASSCODE` | No | Passcode gate for the dashboard (blank = disabled) |
 | `TD_ADMIN_ACCOUNTS` | Yes | JSON array of admin accounts (`[{"username","password","firstName","lastName","role"}]`) |
 | `TD_ADMIN_SESSION_SECRET` | Yes | HMAC secret for signing admin session cookies (32+ bytes) |
 | `PORT` | No | API server port (default `3000`) |

@@ -8,4 +8,3 @@ export * from "./auditLog";
 export * from "./projectSprintAllocations";
 export * from "./projectCycleAllocations";
 export * from "./adminCredentials";
-export * from "./sitePasscode";
