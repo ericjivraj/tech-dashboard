@@ -84,6 +84,7 @@ export default function Dashboard() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Technology Overview</h1>
           <p className="text-muted-foreground mt-1">The centralized view for all technology projects. All projects undergo final prioritization by Senior Leadership (C-Suite).</p>
+          <p className="text-xs text-muted-foreground/70 mt-1">Dashboard created by Alejandro Tabares, Dipika Makan and Eric Jivraj</p>
         </div>
         <div className="flex items-center gap-2">
           <ExportButton />
