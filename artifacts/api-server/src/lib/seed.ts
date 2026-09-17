@@ -13,7 +13,6 @@ export async function seedIfEmpty(): Promise<void> {
     await client.query("DELETE FROM project_updates");
     await client.query("DELETE FROM project_sprint_allocations");
     await client.query("DELETE FROM project_goals");
-    await client.query("DELETE FROM sprint_capacity");
     await client.query("DELETE FROM projects");
     await client.query("DELETE FROM goals");
     await client.query("DELETE FROM sprints");
@@ -67,20 +66,6 @@ export async function seedIfEmpty(): Promise<void> {
       ON CONFLICT (id) DO NOTHING
     `);
 
-    // Sprint capacity (sprints 41-55 = Cycles B-F)
-    const capacityRows: string[] = [];
-    let capId = 1;
-    for (const sprintId of [41,42,43,44,45,46,47,48,49,50,51,52,53,54,55]) {
-      capacityRows.push(`(${capId++},${sprintId},'a3',27)`);
-      capacityRows.push(`(${capId++},${sprintId},'backend',36)`);
-      capacityRows.push(`(${capId++},${sprintId},'frontend',45)`);
-    }
-    await client.query(`
-      INSERT INTO sprint_capacity (id, sprint_id, sub_team, capacity_points) VALUES
-        ${capacityRows.join(",")}
-      ON CONFLICT (id) DO NOTHING
-    `);
-
     await client.query(`
       INSERT INTO goals (id, name, color) VALUES
         (1,  'Increase Bidding',           '#3b82f6'),
@@ -99,38 +84,37 @@ export async function seedIfEmpty(): Promise<void> {
     `);
 
     await client.query(`
-      INSERT INTO projects (id, title, description, sponsor, team, status, confidence, story_points, start_date, end_date, impact, blocked_reason, cycle_id, sprint_id, stakeholder, completion_percent) VALUES
+      INSERT INTO projects (id, title, description, sponsor, team, status, story_points, start_date, end_date, impact, cycle_id, sprint_id) VALUES
         (1,  'Kubernetes Platform Migration',
              'Migrate all microservices from bare-metal VMs to Kubernetes to improve scalability and resilience. Includes full cluster setup, CI/CD integration, and runbook updates.',
-             'Tech', 'Development', 'in_progress', 'high', 34, '2026-03-31', '2026-05-13',
+             'Tech', 'Development', 'in_progress', 34, '2026-03-31', '2026-05-13',
              'Enables zero-downtime deployments and horizontal scaling for all services. Estimated 40% reduction in infrastructure incidents.',
-             NULL, 7, NULL, 'James Whitfield', 40),
+             7, NULL),
         (4,  'Real-Time Analytics Dashboard',
              'Build an embedded analytics layer for customers showing usage metrics, adoption rates, and feature engagement. Powered by ClickHouse with a React frontend.',
-             'Business Development', 'Development', 'up_next', 'high', 34, '2026-05-13', '2026-06-24',
+             'Business Development', 'Development', 'up_next', 34, '2026-05-13', '2026-06-24',
              'Top-3 feature request from enterprise customers. Reduces churn risk by giving customers visibility into ROI.',
-             NULL, 8, NULL, 'Sarah Okonkwo', 0),
+             8, NULL),
         (5,  'Payment Gateway Upgrade',
              'Replace the legacy Stripe v2 integration with Stripe v4, including support for local payment methods, stronger SCA compliance, and improved webhook reliability.',
-             'Finance', 'Development', 'blocked', 'at_risk', 21, '2026-03-31', '2026-05-13',
+             'Finance', 'Development', 'blocked', 21, '2026-03-31', '2026-05-13',
              'Ensures PCI DSS compliance ahead of Q3 audit. Unlocks new payment methods for EU market expansion.',
-             'Blocked on legal sign-off for updated payment data processing agreement (DPA). Waiting on legal team - ETA unknown. Engineering is ready to proceed.',
-             7, NULL, 'Linda Foster', 30),
+             7, NULL),
         (6,  'API Rate Limiting & Throttling',
              'Implement per-tenant API rate limiting at the gateway layer to prevent abuse and ensure fair usage across the platform.',
-             'Tech', 'Development', 'done', 'high', 8, '2026-01-07', '2026-02-18',
+             'Tech', 'Development', 'done', 8, '2026-01-07', '2026-02-18',
              'Eliminated 3 customer-reported incidents caused by runaway API clients. Improved 99th percentile API latency by 18%.',
-             NULL, 5, NULL, 'James Whitfield', 100),
+             5, NULL),
         (13, 'Customer Data Platform (CDP)',
              'Centralise all customer behavioural data into a unified CDP. Enable marketing and customer success teams to build segments and trigger automations without engineering.',
-             'Legal & Compliance', 'Data', 'backlog', 'medium', 55, '2026-06-24', '2026-08-05',
+             'Legal & Compliance', 'Data', 'backlog', 55, '2026-06-24', '2026-08-05',
              'Enables personalised comms at scale. Required for the planned loyalty programme in H2 2026.',
-             NULL, 9, NULL, 'Priya Sharma', 0),
+             9, NULL),
         (17, 'AI-Powered Smart Search',
              'Implement semantic search across the product using vector embeddings and LLMs. Replace current keyword-based search with intent-aware results.',
-             'Marketing', 'Development', 'new_request', NULL, 44, NULL, NULL,
+             'Marketing', 'Development', 'new_request', 44, NULL, NULL,
              'Expected 35% improvement in search-to-action conversion rate based on A/B testing in beta.',
-             NULL, NULL, NULL, 'Priya Sharma', 0)
+             NULL, NULL)
       ON CONFLICT (id) DO NOTHING
     `);
 
@@ -169,7 +153,6 @@ export async function seedIfEmpty(): Promise<void> {
     await client.query(`
       SELECT setval('cycles_id_seq',    (SELECT MAX(id) FROM cycles));
       SELECT setval('sprints_id_seq',   (SELECT MAX(id) FROM sprints));
-      SELECT setval('sprint_capacity_id_seq', (SELECT MAX(id) FROM sprint_capacity));
       SELECT setval('goals_id_seq',     (SELECT MAX(id) FROM goals));
       SELECT setval('projects_id_seq',  (SELECT MAX(id) FROM projects));
       SELECT setval('project_sprint_allocations_id_seq', (SELECT MAX(id) FROM project_sprint_allocations));

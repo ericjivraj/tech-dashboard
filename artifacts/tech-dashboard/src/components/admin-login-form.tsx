@@ -49,7 +49,7 @@ export default function AdminLoginForm() {
         <div className="space-y-1 text-center">
           <img
             src={`${import.meta.env.BASE_URL}logo.svg`}
-            alt="Tech Dashboard"
+            alt="Product Dashboard"
             className="mx-auto mb-4 h-7"
           />
           <p className="text-sm text-muted-foreground">Sign in to edit the dashboard</p>

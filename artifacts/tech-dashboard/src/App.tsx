@@ -46,10 +46,7 @@ function AppShell() {
         <Route path="/business" component={BusinessView} />
         <Route path="/leadership" component={Dashboard} />
         <Route path="/admin" component={CookieAdminPage} />
-        {/* `/` is handled by the old innovate via infra and never reaches us in
-            prod. Render nothing here so direct hits (e.g. pod IP) don't
-            accidentally surface a 404. */}
-        <Route path="/">{() => null}</Route>
+        <Route path="/" component={Dashboard} />
         <Route component={NotFound} />
       </Switch>
     </Layout>
