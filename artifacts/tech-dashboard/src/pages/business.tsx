@@ -66,7 +66,7 @@ export default function BusinessView() {
     <div className="w-full px-6 py-6 flex flex-col gap-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Technology Overview</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Product Overview</h1>
           <p className="text-muted-foreground mt-1">The centralized view for all technology projects. All projects undergo final prioritization by Senior Leadership (C-Suite).</p>
           <p className="text-xs text-muted-foreground/70 mt-1">Dashboard created by Alejandro Tabares, Dipika Makan and Eric Jivraj</p>
         </div>
