@@ -1,7 +1,7 @@
 // Wipes the "click-data" tables (projects, goals, project_goals,
 // project_updates, project_sprint_allocations) and reinserts everything from a
-// JSON file. Cycles, sprints, and sprint_capacity are left alone — they're
-// auto-seeded by the api server's seedIfEmpty() on startup.
+// JSON file. Sprints are left alone — they're auto-seeded by the api server's
+// seedIfEmpty() on startup.
 //
 // Usage:
 //   pnpm --filter @workspace/scripts run import-projects [-- --file path/to/data.json]
@@ -20,14 +20,13 @@ import { z } from "zod";
 import {
   db,
   pool,
-  cyclesTable,
   sprintsTable,
   goalsTable,
   projectsTable,
   projectGoalsTable,
   projectUpdatesTable,
   projectSprintAllocationsTable,
-  projectCycleAllocationsTable,
+  projectSprintCapacityAllocationsTable,
   PROJECT_STATUSES,
   SUB_TEAMS,
 } from "@workspace/db";
@@ -60,16 +59,15 @@ const projectInput = z.object({
   team: z.string().optional(),
   status: z.enum(PROJECT_STATUSES as readonly [string, ...string[]]),
   storyPoints: z.number().int().nonnegative().optional(),
-  cycleAllocations: z.array(z.object({
-    cycle: z.string().min(1),                                        // cycle name, e.g. "Cycle D"
+  sprintAllocations: z.array(z.object({
+    sprint: z.string().min(1),                                        // sprint name, e.g. "Sprint 32"
     percent: z.number().min(0).max(100),
   })).default([]),
   startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   sponsor: z.string().optional(),
   impact: z.string().optional(),
-  cycle: z.string().optional(),                    // cycle name, e.g. "Cycle D"
-  sprint: z.string().optional(),                   // sprint name, e.g. "D/2"
+  sprint: z.string().optional(),                   // sprint name, e.g. "Sprint 32"
   goals: z.array(z.string()).default([]),          // names — must exist in goals[]
   allocations: z.array(allocationInput).default([]),
   updates: z.array(updateInput).default([]),
@@ -110,18 +108,13 @@ async function main() {
   const data: FileInput = fileInput.parse(raw);
   console.log(`  ${data.goals.length} goals, ${data.projects.length} projects`);
 
-  // Build name → id maps for cycles and sprints (already seeded; used to resolve
-  // project.cycle / project.sprint / allocation.sprint references).
-  const cycles = await db.select({ id: cyclesTable.id, name: cyclesTable.name }).from(cyclesTable);
+  // Build a name → id map for sprints (already seeded; used to resolve
+  // project.sprint / allocation.sprint / sprintAllocation.sprint references).
   const sprints = await db.select({ id: sprintsTable.id, name: sprintsTable.name }).from(sprintsTable);
-  const cycleByName = new Map(cycles.map((c) => [c.name, c.id]));
   const sprintByName = new Map(sprints.map((s) => [s.name, s.id]));
 
   // Validate references before any writes so we fail fast with a clear message.
   for (const p of data.projects) {
-    if (p.cycle && !cycleByName.has(p.cycle)) {
-      throw new Error(`Project "${p.title}": cycle "${p.cycle}" not found. Available: ${[...cycleByName.keys()].join(", ")}`);
-    }
     if (p.sprint && !sprintByName.has(p.sprint)) {
       throw new Error(`Project "${p.title}": sprint "${p.sprint}" not found. Available: ${[...sprintByName.keys()].join(", ")}`);
     }
@@ -130,9 +123,9 @@ async function main() {
         throw new Error(`Project "${p.title}" allocation: sprint "${alloc.sprint}" not found.`);
       }
     }
-    for (const ca of p.cycleAllocations) {
-      if (!cycleByName.has(ca.cycle)) {
-        throw new Error(`Project "${p.title}" cycleAllocation: cycle "${ca.cycle}" not found.`);
+    for (const sa of p.sprintAllocations) {
+      if (!sprintByName.has(sa.sprint)) {
+        throw new Error(`Project "${p.title}" sprintAllocation: sprint "${sa.sprint}" not found.`);
       }
     }
     const goalNamesInFile = new Set(data.goals.map((g) => g.name));
@@ -146,7 +139,7 @@ async function main() {
   await db.transaction(async (tx) => {
     // Wipe click-data tables in FK-safe order.
     console.log("Wiping click-data tables...");
-    await tx.execute(sql`TRUNCATE TABLE project_updates, project_cycle_allocations, project_sprint_allocations, project_goals, projects, goals RESTART IDENTITY CASCADE`);
+    await tx.execute(sql`TRUNCATE TABLE project_updates, project_sprint_capacity_allocations, project_sprint_allocations, project_goals, projects, goals RESTART IDENTITY CASCADE`);
 
     // Insert goals; build name → id map for project_goals lookup.
     console.log(`Inserting ${data.goals.length} goals...`);
@@ -169,16 +162,15 @@ async function main() {
         endDate: p.endDate ?? null,
         sponsor: p.sponsor ?? null,
         impact: p.impact ?? null,
-        cycleId: p.cycle ? cycleByName.get(p.cycle)! : null,
         sprintId: p.sprint ? sprintByName.get(p.sprint)! : null,
       }).returning({ id: projectsTable.id });
 
-      if (p.cycleAllocations.length) {
-        await tx.insert(projectCycleAllocationsTable).values(
-          p.cycleAllocations.map((ca) => ({
+      if (p.sprintAllocations.length) {
+        await tx.insert(projectSprintCapacityAllocationsTable).values(
+          p.sprintAllocations.map((sa) => ({
             projectId: proj.id,
-            cycleId: cycleByName.get(ca.cycle)!,
-            allocationPercent: ca.percent.toString(),
+            sprintId: sprintByName.get(sa.sprint)!,
+            allocationPercent: sa.percent.toString(),
           })),
         );
       }

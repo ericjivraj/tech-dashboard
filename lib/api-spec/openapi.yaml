@@ -12,8 +12,6 @@ tags:
     description: Health operations
   - name: auth
     description: Authentication and user management
-  - name: cycles
-    description: Cycle management
   - name: sprints
     description: Sprint management
   - name: goals
@@ -63,123 +61,11 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
-  /cycles:
-    get:
-      operationId: listCycles
-      tags: [cycles]
-      summary: List all cycles
-      responses:
-        "200":
-          description: List of cycles
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Cycle"
-    post:
-      operationId: createCycle
-      tags: [cycles]
-      summary: Create a cycle (editor only)
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/CreateCycleBody"
-      responses:
-        "201":
-          description: Created cycle
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Cycle"
-        "400":
-          description: Validation error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "401":
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-
-  /cycles/{id}:
-    patch:
-      operationId: updateCycle
-      tags: [cycles]
-      summary: Update a cycle (editor only)
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/UpdateCycleBody"
-      responses:
-        "200":
-          description: Updated cycle
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Cycle"
-        "404":
-          description: Not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "401":
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-    delete:
-      operationId: deleteCycle
-      tags: [cycles]
-      summary: Delete a cycle (editor only)
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-      responses:
-        "204":
-          description: Deleted
-        "404":
-          description: Not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "401":
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-
   /sprints:
     get:
       operationId: listSprints
       tags: [sprints]
-      summary: List sprints, optionally filtered by cycle
-      parameters:
-        - name: cycleId
-          in: query
-          required: false
-          schema:
-            type: ["integer", "null"]
+      summary: List all sprints
       responses:
         "200":
           description: List of sprints
@@ -391,7 +277,7 @@ paths:
     get:
       operationId: listProjects
       tags: [projects]
-      summary: List all projects, optionally filtered by status, team, sponsor, goalId, or cycleId
+      summary: List all projects, optionally filtered by status, team, sponsor, or goalId
       parameters:
         - name: status
           in: query
@@ -410,11 +296,6 @@ paths:
           schema:
             type: ["string", "null"]
         - name: goalId
-          in: query
-          required: false
-          schema:
-            type: ["integer", "null"]
-        - name: cycleId
           in: query
           required: false
           schema:
@@ -764,31 +645,7 @@ paths:
     get:
       operationId: getProjectsTimeline
       tags: [summary]
-      summary: Get all projects with cycle/sprint info for the Gantt chart
-      parameters:
-        - name: year
-          in: query
-          required: false
-          schema:
-            type: ["integer", "null"]
-        - name: cycleId
-          in: query
-          required: false
-          description: When provided, sub-team summaries are scoped to sprints within this cycle
-          schema:
-            type: ["integer", "null"]
-        - name: startDate
-          in: query
-          required: false
-          description: ISO date string; when provided with endDate, scopes sub-team summaries to sprints overlapping this window
-          schema:
-            type: ["string", "null"]
-        - name: endDate
-          in: query
-          required: false
-          description: ISO date string; when provided with startDate, scopes sub-team summaries to sprints overlapping this window
-          schema:
-            type: ["string", "null"]
+      summary: Get all projects with sprint info for the Gantt chart
       responses:
         "200":
           description: Projects with timeline details
@@ -890,7 +747,7 @@ components:
           enum: [create, update, delete]
         entityType:
           type: string
-          enum: [project, goal, cycle, sprint]
+          enum: [project, goal, sprint]
         entityId:
           type: integer
         diff:
@@ -909,57 +766,6 @@ components:
         - diff
         - createdAt
 
-    Cycle:
-      type: object
-      properties:
-        id:
-          type: integer
-        name:
-          type: string
-        startDate:
-          type: string
-          format: date
-        endDate:
-          type: string
-          format: date
-        createdAt:
-          type: string
-          format: date-time
-      required:
-        - id
-        - name
-        - startDate
-        - endDate
-        - createdAt
-
-    CreateCycleBody:
-      type: object
-      properties:
-        name:
-          type: string
-        startDate:
-          type: string
-          format: date
-        endDate:
-          type: string
-          format: date
-      required:
-        - name
-        - startDate
-        - endDate
-
-    UpdateCycleBody:
-      type: object
-      properties:
-        name:
-          type: ["string", "null"]
-        startDate:
-          type: ["string", "null"]
-          format: date
-        endDate:
-          type: ["string", "null"]
-          format: date
-
     Sprint:
       type: object
       properties:
@@ -967,8 +773,6 @@ components:
           type: integer
         name:
           type: string
-        cycleId:
-          type: integer
         sprintNumber:
           type: integer
         startDate:
@@ -983,7 +787,6 @@ components:
       required:
         - id
         - name
-        - cycleId
         - sprintNumber
         - startDate
         - endDate
@@ -994,8 +797,6 @@ components:
       properties:
         name:
           type: string
-        cycleId:
-          type: integer
         sprintNumber:
           type: integer
         startDate:
@@ -1006,7 +807,6 @@ components:
           format: date
       required:
         - name
-        - cycleId
         - sprintNumber
         - startDate
         - endDate
@@ -1016,8 +816,6 @@ components:
       properties:
         name:
           type: ["string", "null"]
-        cycleId:
-          type: ["integer", "null"]
         sprintNumber:
           type: ["integer", "null"]
         startDate:
@@ -1092,13 +890,8 @@ components:
           type: ["string", "null"]
         impact:
           type: ["string", "null"]
-        cycleId:
-          type: ["integer", "null"]
         sprintId:
           type: ["integer", "null"]
-        ragStatus:
-          type: string
-          enum: [green, amber, red]
         displayOrder:
           type: integer
         listOrder:
@@ -1123,9 +916,7 @@ components:
         - startDate
         - endDate
         - impact
-        - cycleId
         - sprintId
-        - ragStatus
         - displayOrder
         - listOrder
         - timelineOrder
@@ -1161,24 +952,6 @@ components:
                 - authorName
                 - blocked
                 - createdAt
-            cycle:
-              type: ["object", "null"]
-              properties:
-                id:
-                  type: integer
-                name:
-                  type: string
-                startDate:
-                  type: string
-                  format: date
-                endDate:
-                  type: string
-                  format: date
-              required:
-                - id
-                - name
-                - startDate
-                - endDate
             sprint:
               type: ["object", "null"]
               properties:
@@ -1192,24 +965,40 @@ components:
                 - id
                 - name
                 - sprintNumber
-            cycleAllocations:
+            sprintAllocations:
               type: array
               items:
                 type: object
                 properties:
-                  cycleId:
+                  sprintId:
                     type: integer
                   percent:
                     type: number
                 required:
-                  - cycleId
+                  - sprintId
                   - percent
+            stageSchedules:
+              type: array
+              items:
+                type: object
+                properties:
+                  stage:
+                    type: string
+                    enum: [backlog, up_next, in_progress]
+                  startDate:
+                    type: string
+                  endDate:
+                    type: string
+                required:
+                  - stage
+                  - startDate
+                  - endDate
           required:
             - goals
             - latestUpdate
-            - cycle
             - sprint
-            - cycleAllocations
+            - sprintAllocations
+            - stageSchedules
 
     CreateProjectBody:
       type: object
@@ -1237,13 +1026,8 @@ components:
           type: ["string", "null"]
         impact:
           type: ["string", "null"]
-        cycleId:
-          type: ["integer", "null"]
         sprintId:
           type: ["integer", "null"]
-        ragStatus:
-          type: string
-          enum: [green, amber, red]
         goalIds:
           type: ["array", "null"]
           items:
@@ -1278,13 +1062,8 @@ components:
           type: ["string", "null"]
         impact:
           type: ["string", "null"]
-        cycleId:
-          type: ["integer", "null"]
         sprintId:
           type: ["integer", "null"]
-        ragStatus:
-          type: ["string", "null"]
-          enum: [green, amber, red, null]
         displayOrder:
           type: ["integer", "null"]
         listOrder:
@@ -1295,18 +1074,34 @@ components:
           type: ["array", "null"]
           items:
             type: integer
-        cycleAllocations:
+        sprintAllocations:
           type: ["array", "null"]
           items:
             type: object
             properties:
-              cycleId:
+              sprintId:
                 type: integer
               percent:
                 type: number
             required:
-              - cycleId
+              - sprintId
               - percent
+        stageSchedules:
+          type: ["array", "null"]
+          items:
+            type: object
+            properties:
+              stage:
+                type: string
+                enum: [backlog, up_next, in_progress]
+              startDate:
+                type: string
+              endDate:
+                type: string
+            required:
+              - stage
+              - startDate
+              - endDate
         expectedUpdatedAt:
           type: ["string", "null"]
           format: date-time
@@ -1405,13 +1200,15 @@ components:
             - up_next
             - backlog
             - new_request
-        activeCycle:
+        activeSprint:
           type: ["object", "null"]
           properties:
             id:
               type: integer
             name:
               type: string
+            sprintNumber:
+              type: integer
             startDate:
               type: string
             endDate:
@@ -1419,6 +1216,7 @@ components:
           required:
             - id
             - name
+            - sprintNumber
             - startDate
             - endDate
       required:
@@ -1426,7 +1224,7 @@ components:
         - totalStoryPoints
         - pointsByStatus
         - countByStatus
-        - activeCycle
+        - activeSprint
 
     ProjectTimeline:
       type: object
@@ -1450,23 +1248,12 @@ components:
           type: ["string", "null"]
         sponsor:
           type: ["string", "null"]
-        cycleName:
-          type: ["string", "null"]
-        cycleStartDate:
-          type: ["string", "null"]
-        cycleEndDate:
-          type: ["string", "null"]
-        cycleId:
-          type: ["integer", "null"]
         sprintId:
           type: ["integer", "null"]
         sprintName:
           type: ["string", "null"]
         sprintNumber:
           type: ["integer", "null"]
-        ragStatus:
-          type: string
-          enum: [green, amber, red]
         displayOrder:
           type: integer
         listOrder:
@@ -1475,27 +1262,43 @@ components:
           type: integer
         blocked:
           type: boolean
-        cycleAllocations:
+        sprintAllocations:
           type: array
           items:
             type: object
             properties:
-              cycleId:
+              sprintId:
                 type: integer
-              cycleName:
+              sprintName:
                 type: string
-              cycleStartDate:
+              sprintStartDate:
                 type: string
-              cycleEndDate:
+              sprintEndDate:
                 type: string
               percent:
                 type: number
             required:
-              - cycleId
-              - cycleName
-              - cycleStartDate
-              - cycleEndDate
+              - sprintId
+              - sprintName
+              - sprintStartDate
+              - sprintEndDate
               - percent
+        stageSchedules:
+          type: array
+          items:
+            type: object
+            properties:
+              stage:
+                type: string
+                enum: [backlog, up_next, in_progress]
+              startDate:
+                type: string
+              endDate:
+                type: string
+            required:
+              - stage
+              - startDate
+              - endDate
         goals:
           type: array
           items:
@@ -1510,19 +1313,15 @@ components:
         - team
         - functionName
         - sponsor
-        - cycleName
-        - cycleStartDate
-        - cycleEndDate
-        - cycleId
         - sprintId
         - sprintName
         - sprintNumber
-        - ragStatus
         - displayOrder
         - listOrder
         - timelineOrder
         - blocked
-        - cycleAllocations
+        - sprintAllocations
+        - stageSchedules
         - goals
 
     ProjectSprintAllocation:

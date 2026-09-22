@@ -1,9 +1,8 @@
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import {
   useCreateProject, useUpdateProject,
   getListProjectsQueryKey, getGetDashboardSummaryQueryKey, getGetProjectQueryKey, getGetProjectsTimelineQueryKey,
-  useListGoals, useListCycles, useListSprints,
-  useGetProjectAllocations, useUpsertProjectAllocations, getGetProjectAllocationsQueryKey,
+  useListGoals, useListSprints,
   ProjectWithDetails, ProjectStatus,
   ApiError,
 } from "@workspace/api-client-react";
@@ -20,35 +19,21 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { TEAMS, FUNCTIONS, STATUS_LABELS, STATUS_ORDER, cycleEffortPercent } from "@/lib/constants";
-import { format, parseISO } from "date-fns";
-
-const SHOW_SUB_TEAM_ALLOCATION = false;
+import { SQUADS, STATUS_LABELS, STATUS_ORDER, STAGE_ORDER } from "@/lib/constants";
 
 const formSchema = z.object({
   title: z.string().min(1, "Title is required"),
   description: z.string().optional().nullable(),
-  functionName: z.string().optional().nullable(),
   team: z.string().optional().nullable(),
-  sponsor: z.string().optional().nullable(),
   status: z.enum(["done", "in_progress", "up_next", "backlog", "new_request"]),
-  ragStatus: z.enum(["green", "amber", "red"]).default("green"),
-  cycleAllocations: z.array(z.object({ cycleId: z.number(), percent: z.coerce.number().min(0).max(100) })).default([]),
-  storyPoints: z.coerce.number().optional().nullable(),
-  startDate: z.string().optional().nullable(),
-  endDate: z.string().optional().nullable(),
+  stageSchedules: z.array(z.object({
+    stage: z.enum(["backlog", "up_next", "in_progress"]),
+    startDate: z.string(),
+    endDate: z.string(),
+  })).default([]),
   impact: z.string().optional().nullable(),
-  cycleId: z.coerce.number().optional().nullable(),
   goalIds: z.array(z.number()).default([])
 });
-
-type AllocationEntry = {
-  sprintId: number;
-  sprintName: string;
-  a3: number;
-  backend: number;
-  frontend: number;
-};
 
 export default function ProjectForm({
   open,
@@ -62,162 +47,56 @@ export default function ProjectForm({
   initialStatus?: ProjectStatus,
 }) {
   const { data: goals } = useListGoals();
-  const { data: cycles } = useListCycles();
   const { data: sprints } = useListSprints();
 
   const createProject = useCreateProject();
   const updateProject = useUpdateProject();
-  const upsertAllocations = useUpsertProjectAllocations();
   const queryClient = useQueryClient();
   const { toast } = useToast();
-
-  const [allocations, setAllocations] = useState<AllocationEntry[]>([]);
-
-  const allocProjectId = projectToEdit?.id ?? 0;
-  const { data: existingAllocations } = useGetProjectAllocations(
-    allocProjectId,
-    { query: {
-      enabled: !!projectToEdit && projectToEdit.team === "Development",
-      queryKey: getGetProjectAllocationsQueryKey(allocProjectId),
-    } }
-  );
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       title: "",
       description: "",
-      functionName: "",
       team: "",
-      sponsor: "",
       status: "new_request",
-      ragStatus: "green",
-      storyPoints: null,
-      startDate: "",
-      endDate: "",
       impact: "",
-      cycleId: null,
       goalIds: [],
-      cycleAllocations: [],
+      stageSchedules: STAGE_ORDER.map(stage => ({ stage, startDate: "", endDate: "" })),
     }
   });
-
-  const watchedTeam = form.watch("team");
-  const watchedCycleId = form.watch("cycleId");
-  const watchedStoryPoints = form.watch("storyPoints");
-  const isDevTeam = watchedTeam === "Development";
-
-  const watchedStartDate = form.watch("startDate");
-  const watchedEndDate = form.watch("endDate");
-
-  const cycleSprintsForAllocation = (() => {
-    if (!sprints || !isDevTeam) return [];
-    const projectStart = watchedStartDate || (projectToEdit?.startDate?.split("T")[0] ?? null);
-    const projectEnd = watchedEndDate || (projectToEdit?.endDate?.split("T")[0] ?? null);
-    if (projectStart && projectEnd) {
-      return sprints
-        .filter(s => s.endDate >= projectStart && s.startDate <= projectEnd)
-        .sort((a, b) => a.startDate.localeCompare(b.startDate));
-    }
-    if (watchedCycleId) {
-      return sprints
-        .filter(s => s.cycleId.toString() === watchedCycleId.toString())
-        .sort((a, b) => a.startDate.localeCompare(b.startDate));
-    }
-    return [];
-  })();
 
   useEffect(() => {
     if (projectToEdit) {
       form.reset({
         title: projectToEdit.title,
         description: projectToEdit.description,
-        functionName: projectToEdit.functionName,
         team: projectToEdit.team,
-        sponsor: projectToEdit.sponsor || "",
         status: projectToEdit.status as "done" | "in_progress" | "up_next" | "backlog" | "new_request",
-        ragStatus: (projectToEdit.ragStatus as "green" | "amber" | "red") ?? "green",
-        storyPoints: projectToEdit.storyPoints,
-        startDate: projectToEdit.startDate?.split('T')[0] || "",
-        endDate: projectToEdit.endDate?.split('T')[0] || "",
         impact: projectToEdit.impact,
-        cycleId: projectToEdit.cycleId,
         goalIds: projectToEdit.goals?.map(g => g.id) || [],
-        cycleAllocations: (projectToEdit as unknown as { cycleAllocations?: { cycleId: number; percent: number }[] }).cycleAllocations ?? [],
+        stageSchedules: STAGE_ORDER.map(stage => {
+          const existing = projectToEdit.stageSchedules?.find(s => s.stage === stage);
+          return {
+            stage,
+            startDate: existing?.startDate?.split('T')[0] ?? "",
+            endDate: existing?.endDate?.split('T')[0] ?? "",
+          };
+        }),
       });
     } else {
       form.reset({
         title: "",
         description: "",
-        functionName: "",
         team: "",
-        sponsor: "",
         status: initialStatus ?? "new_request",
-        ragStatus: "green",
-        storyPoints: null,
-        startDate: "",
-        endDate: "",
         impact: "",
-        cycleId: null,
         goalIds: [],
-        cycleAllocations: [],
+        stageSchedules: STAGE_ORDER.map(stage => ({ stage, startDate: "", endDate: "" })),
       });
-      setAllocations([]);
     }
   }, [projectToEdit, form, initialStatus, open]);
-
-  useEffect(() => {
-    if (!projectToEdit || !existingAllocations || !sprints) return;
-    const projectStart = projectToEdit.startDate?.split("T")[0] ?? null;
-    const projectEnd = projectToEdit.endDate?.split("T")[0] ?? null;
-    let relevantSprints = projectStart && projectEnd
-      ? sprints.filter(s => s.endDate >= projectStart && s.startDate <= projectEnd)
-      : (projectToEdit.cycleId ? sprints.filter(s => s.cycleId === projectToEdit.cycleId) : []);
-    relevantSprints = relevantSprints.sort((a, b) => a.startDate.localeCompare(b.startDate));
-    const newAllocations: AllocationEntry[] = relevantSprints.map(sprint => {
-      const a3 = existingAllocations.find(a => a.sprintId === sprint.id && a.subTeam === "a3")?.storyPoints ?? 0;
-      const backend = existingAllocations.find(a => a.sprintId === sprint.id && a.subTeam === "backend")?.storyPoints ?? 0;
-      const frontend = existingAllocations.find(a => a.sprintId === sprint.id && a.subTeam === "frontend")?.storyPoints ?? 0;
-      return { sprintId: sprint.id, sprintName: sprint.name, a3, backend, frontend };
-    });
-    setAllocations(newAllocations);
-  }, [existingAllocations, sprints, projectToEdit]);
-
-  useEffect(() => {
-    if (!isDevTeam || !cycleSprintsForAllocation.length) return;
-    setAllocations(prev => {
-      return cycleSprintsForAllocation.map(sprint => {
-        const existing = prev.find(a => a.sprintId === sprint.id);
-        return existing ?? { sprintId: sprint.id, sprintName: sprint.name, a3: 0, backend: 0, frontend: 0 };
-      });
-    });
-  }, [watchedCycleId, watchedStartDate, watchedEndDate, isDevTeam, sprints]);
-
-  const today = new Date().toISOString().slice(0, 10);
-  const totalAllocated = allocations.reduce((sum, a) => sum + a.a3 + a.backend + a.frontend, 0);
-  const pastAllocated = allocations
-    .filter(a => {
-      const sprint = sprints?.find(s => s.id === a.sprintId);
-      return sprint && sprint.endDate <= today;
-    })
-    .reduce((sum, a) => sum + a.a3 + a.backend + a.frontend, 0);
-  const autoCompletionPercent = watchedStoryPoints && watchedStoryPoints > 0 && pastAllocated > 0
-    ? Math.min(100, Math.round((pastAllocated / watchedStoryPoints) * 100))
-    : null;
-
-  const updateAllocation = (sprintId: number, field: "a3" | "backend" | "frontend", value: number) => {
-    setAllocations(prev => prev.map(a => a.sprintId === sprintId ? { ...a, [field]: value } : a));
-  };
-
-  const saveAllocations = async (projectId: number) => {
-    if (!isDevTeam) return;
-    const entries = allocations.flatMap(a => [
-      ...(a.a3 > 0 ? [{ sprintId: a.sprintId, subTeam: "a3" as const, storyPoints: a.a3 }] : []),
-      ...(a.backend > 0 ? [{ sprintId: a.sprintId, subTeam: "backend" as const, storyPoints: a.backend }] : []),
-      ...(a.frontend > 0 ? [{ sprintId: a.sprintId, subTeam: "frontend" as const, storyPoints: a.frontend }] : []),
-    ]);
-    await upsertAllocations.mutateAsync({ id: projectId, data: { allocations: entries } });
-  };
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     const trim = (v: string | null | undefined) => {
@@ -229,14 +108,9 @@ export default function ProjectForm({
       ...values,
       title: values.title.trim(),
       description: trim(values.description),
-      functionName: trim(values.functionName),
       team: trim(values.team),
-      sponsor: trim(values.sponsor),
       impact: trim(values.impact),
-      startDate: trim(values.startDate),
-      endDate: trim(values.endDate),
-      storyPoints: values.storyPoints ? Number(values.storyPoints) : null,
-      cycleId: values.cycleId ? Number(values.cycleId) : null,
+      stageSchedules: values.stageSchedules.filter((s) => s.startDate && s.endDate),
       // Optimistic concurrency token: the server compares this to the row's
       // current updated_at and 409s if someone else saved in between.
       expectedUpdatedAt: projectToEdit?.updatedAt ?? undefined,
@@ -265,12 +139,7 @@ export default function ProjectForm({
 
     if (projectToEdit) {
       updateProject.mutate({ id: projectToEdit.id, data: payload }, {
-        onSuccess: async () => {
-          try {
-            await saveAllocations(projectToEdit.id);
-          } catch {
-            toast({ title: "Project updated, but allocations failed to save", variant: "destructive" });
-          }
+        onSuccess: () => {
           onOpenChange(false);
           queryClient.invalidateQueries({ queryKey: getListProjectsQueryKey() });
           queryClient.invalidateQueries({ queryKey: getGetProjectQueryKey(projectToEdit.id) });
@@ -282,12 +151,7 @@ export default function ProjectForm({
       });
     } else {
       createProject.mutate({ data: payload }, {
-        onSuccess: async (created) => {
-          try {
-            await saveAllocations(created.id);
-          } catch {
-            toast({ title: "Project created, but allocations failed to save", variant: "destructive" });
-          }
+        onSuccess: () => {
           onOpenChange(false);
           form.reset();
           queryClient.invalidateQueries({ queryKey: getListProjectsQueryKey() });
@@ -337,368 +201,134 @@ export default function ProjectForm({
               )}
             />
             
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="status"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Status</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select status" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {STATUS_ORDER.map((status) => (
-                          <SelectItem key={status} value={status}>
-                            {STATUS_LABELS[status]}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="ragStatus"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>RAG status</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select RAG status" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="green">
-                          <span className="inline-flex items-center gap-2">
-                            <span className="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                            Green, on track
-                          </span>
-                        </SelectItem>
-                        <SelectItem value="amber">
-                          <span className="inline-flex items-center gap-2">
-                            <span className="inline-block w-2.5 h-2.5 rounded-full bg-amber-500" />
-                            Amber, at risk, needs attention
-                          </span>
-                        </SelectItem>
-                        <SelectItem value="red">
-                          <span className="inline-flex items-center gap-2">
-                            <span className="inline-block w-2.5 h-2.5 rounded-full bg-red-500" />
-                            Red, critical, escalation required
-                          </span>
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-            </div>
-
-
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="team"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Team</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || ""}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select team" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {TEAMS.map(t => (
-                          <SelectItem key={t} value={t}>{t}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="functionName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Sponsor</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || ""}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select function" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {FUNCTIONS.map(s => (
-                          <SelectItem key={s} value={s}>{s}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
             <FormField
               control={form.control}
-              name="sponsor"
+              name="status"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Stakeholder</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Primary sponsor contact" {...field} value={field.value || ""} />
-                  </FormControl>
+                  <FormLabel>Status</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select status" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {STATUS_ORDER.map((status) => (
+                        <SelectItem key={status} value={status}>
+                          {STATUS_LABELS[status]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
-            <div className="grid grid-cols-3 gap-4">
-              <FormField
-                control={form.control}
-                name="storyPoints"
-                render={({ field }) => {
-                  const pts = field.value == null ? null : Number(field.value);
-                  const pct = cycleEffortPercent(pts);
-                  return (
-                    <FormItem>
-                      <FormLabel>Cycle effort (story points)</FormLabel>
-                      <FormControl>
-                        <Input type="number" min={0} placeholder="e.g. 5" {...field} value={field.value ?? ""} />
-                      </FormControl>
-                      {pts != null && !Number.isNaN(pts) && (
-                        <p className="text-xs text-muted-foreground">
-                          {pct} of an average cycle
-                        </p>
-                      )}
-                      <FormMessage />
-                    </FormItem>
-                  );
-                }}
-              />
-              <FormField
-                control={form.control}
-                name="startDate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Start Date</FormLabel>
-                    <FormControl>
-                      <Input type="date" {...field} value={field.value || ""} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="endDate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>End Date</FormLabel>
-                    <FormControl>
-                      <Input type="date" {...field} value={field.value || ""} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            {/* The "Cycle" picker was removed because it duplicated information
-                already captured by the per-cycle Timeline bar (cycleAllocations)
-                and the explicit start/end dates below. The DB column lingers
-                for existing rows; nothing in the UI sets it for new projects. */}
 
             <FormField
               control={form.control}
-              name="cycleAllocations"
+              name="team"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Squad</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value || ""}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select squad" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {SQUADS.map(t => (
+                        <SelectItem key={t} value={t}>{t}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="stageSchedules"
               render={({ field }) => {
-                const allocations = field.value ?? [];
-                const getPercent = (cycleId: number) => {
-                  const found = allocations.find((a) => a.cycleId === cycleId);
-                  return found ? found.percent : 0;
+                const rows = field.value ?? [];
+                const getRow = (stage: (typeof STAGE_ORDER)[number]) =>
+                  rows.find((r) => r.stage === stage) ?? { stage, startDate: "", endDate: "" };
+                const setRow = (stage: (typeof STAGE_ORDER)[number], startDate: string, endDate: string) => {
+                  const others = rows.filter((r) => r.stage !== stage);
+                  field.onChange([...others, { stage, startDate, endDate }]);
                 };
-                const setPercent = (cycleId: number, raw: string) => {
-                  const pct = raw === "" ? 0 : Number(raw);
-                  if (Number.isNaN(pct) || pct < 0 || pct > 100) return;
-                  const others = allocations.filter((a) => a.cycleId !== cycleId);
-                  if (pct === 0) {
-                    field.onChange(others);
-                  } else {
-                    field.onChange([...others, { cycleId, percent: pct }]);
-                  }
-                };
-                const total = allocations.reduce((sum, a) => sum + (Number(a.percent) || 0), 0);
-
-                const startStr = (form.watch("startDate") as string | null | undefined) ?? "";
-                const endStr = (form.watch("endDate") as string | null | undefined) ?? "";
-                const canAutoDistribute = Boolean(startStr && endStr && (cycles ?? []).length > 0);
-
-                const autoDistributeFromDates = () => {
-                  if (!startStr || !endStr || !cycles) return;
-                  const start = parseISO(startStr);
-                  const end = parseISO(endStr);
-                  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end < start) return;
-                  const next: { cycleId: number; percent: number }[] = [];
-                  for (const c of cycles) {
-                    const cStart = parseISO(c.startDate);
-                    const cEnd = parseISO(c.endDate);
-                    const overlapStart = start > cStart ? start : cStart;
-                    const overlapEnd = end < cEnd ? end : cEnd;
-                    if (overlapStart > overlapEnd) continue;
-                    const overlapMs = overlapEnd.getTime() - overlapStart.getTime();
-                    const cycleMs = cEnd.getTime() - cStart.getTime();
-                    if (cycleMs <= 0) continue;
-                    const pct = Math.round((overlapMs / cycleMs) * 1000) / 10;
-                    if (pct > 0) next.push({ cycleId: c.id, percent: pct });
-                  }
-                  field.onChange(next);
-                };
-
-                const removeBar = () => {
-                  form.setValue("startDate", "");
-                  form.setValue("endDate", "");
-                  field.onChange([]);
+                const applySprint = (stage: (typeof STAGE_ORDER)[number], sprintId: string) => {
+                  const sprint = sprints?.find((s) => s.id.toString() === sprintId);
+                  if (!sprint) return;
+                  setRow(stage, sprint.startDate, sprint.endDate);
                 };
 
                 return (
                   <FormItem>
-                    <div className="flex items-center justify-between gap-2 flex-wrap">
-                      <FormLabel className="m-0">Timeline bar (% of cycle capacity per cycle)</FormLabel>
-                      <div className="flex items-center gap-1">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className="h-7 text-xs"
-                          disabled={!canAutoDistribute}
-                          onClick={autoDistributeFromDates}
-                          title={canAutoDistribute ? "Compute % per cycle from start/end dates" : "Set start and end dates first"}
-                        >
-                          Auto-distribute from dates
-                        </Button>
-                        {(allocations.length > 0 || startStr || endStr) && (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 text-xs text-muted-foreground hover:text-destructive"
-                            onClick={removeBar}
-                            title="Clear dates and allocations (removes the bar from Timeline view)"
-                          >
-                            Remove bar
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                    <div className="rounded-md border bg-muted/20 p-3 space-y-2">
-                      {(cycles ?? []).length === 0 && (
-                        <p className="text-xs text-muted-foreground">No cycles available.</p>
-                      )}
-                      {(cycles ?? []).map((c) => (
-                        <div key={c.id} className="grid grid-cols-[1fr_90px] items-center gap-3">
-                          <span className="text-sm">{c.name}</span>
-                          <div className="relative">
-                            <Input
-                              type="number"
-                              min={0}
-                              max={100}
-                              step={0.1}
-                              className="h-8 pr-7 text-sm tabular-nums"
-                              value={getPercent(c.id) || ""}
-                              placeholder="0"
-                              onChange={(e) => setPercent(c.id, e.target.value)}
-                            />
-                            <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">%</span>
-                          </div>
-                        </div>
-                      ))}
-                      {allocations.length > 0 && (
-                        <p className="text-xs text-muted-foreground pt-1 border-t border-border/50">
-                          Total across cycles: {total.toFixed(1)}%
-                        </p>
-                      )}
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1.5">
-                      Set start &amp; end dates above, then click <span className="font-medium">Auto-distribute</span> to fill the % per cycle from date overlap. You can fine-tune any value after.
+                    <FormLabel className="m-0">Project Stages</FormLabel>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Schedule when each lifecycle stage takes place — shown as separate bars in the Timeline view.
                     </p>
+                    <div className="rounded-md border bg-muted/20 p-3 space-y-3 mt-1.5">
+                      {STAGE_ORDER.map((stage) => {
+                        const row = getRow(stage);
+                        return (
+                          <div key={stage} className="grid grid-cols-[1fr_1fr_1fr_auto] items-end gap-2">
+                            <div className="space-y-1">
+                              <label className="text-xs font-medium">{STATUS_LABELS[stage]}</label>
+                              <Input
+                                type="date"
+                                className="h-8 text-sm"
+                                value={row.startDate}
+                                onChange={(e) => setRow(stage, e.target.value, row.endDate)}
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-xs font-medium text-transparent select-none">End</label>
+                              <Input
+                                type="date"
+                                className="h-8 text-sm"
+                                value={row.endDate}
+                                onChange={(e) => setRow(stage, row.startDate, e.target.value)}
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-xs font-medium text-transparent select-none">Sprint</label>
+                              <Select value="" onValueChange={(v) => applySprint(stage, v)}>
+                                <SelectTrigger className="h-8 text-sm">
+                                  <SelectValue placeholder="Pick sprint..." />
+                                </SelectTrigger>
+                                <SelectContent side="bottom" align="start">
+                                  {(sprints ?? []).map((s) => (
+                                    <SelectItem key={s.id} value={s.id.toString()}>{s.name}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            {(row.startDate || row.endDate) && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 text-xs text-muted-foreground hover:text-destructive"
+                                onClick={() => setRow(stage, "", "")}
+                              >
+                                Clear
+                              </Button>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
                     <FormMessage />
                   </FormItem>
                 );
               }}
             />
-
-            {SHOW_SUB_TEAM_ALLOCATION && isDevTeam && (
-              <div className="rounded-lg border border-blue-200 bg-blue-50/30 dark:border-blue-800/30 dark:bg-blue-950/10 p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-200">Sub-team Allocation</h4>
-                  {watchedCycleId ? null : (
-                    <span className="text-xs text-muted-foreground">Select a cycle to enter sprint allocations</span>
-                  )}
-                </div>
-
-                {cycleSprintsForAllocation.length > 0 && (
-                  <div className="space-y-2">
-                    <div className="grid grid-cols-4 gap-2 text-xs font-medium text-muted-foreground">
-                      <div>Sprint</div>
-                      <div>A3 pts</div>
-                      <div>Backend pts</div>
-                      <div>Frontend pts</div>
-                    </div>
-                    {cycleSprintsForAllocation.map(sprint => {
-                      const alloc = allocations.find(a => a.sprintId === sprint.id) ?? { sprintId: sprint.id, sprintName: sprint.name, a3: 0, backend: 0, frontend: 0 };
-                      return (
-                        <div key={sprint.id} className="grid grid-cols-4 gap-2 items-center">
-                          <div className="text-xs font-medium truncate" title={sprint.name}>{sprint.name}</div>
-                          <Input
-                            type="number"
-                            min={0}
-                            className="h-7 text-xs"
-                            value={alloc.a3 || ""}
-                            placeholder="0"
-                            onChange={e => updateAllocation(sprint.id, "a3", Number(e.target.value) || 0)}
-                          />
-                          <Input
-                            type="number"
-                            min={0}
-                            className="h-7 text-xs"
-                            value={alloc.backend || ""}
-                            placeholder="0"
-                            onChange={e => updateAllocation(sprint.id, "backend", Number(e.target.value) || 0)}
-                          />
-                          <Input
-                            type="number"
-                            min={0}
-                            className="h-7 text-xs"
-                            value={alloc.frontend || ""}
-                            placeholder="0"
-                            onChange={e => updateAllocation(sprint.id, "frontend", Number(e.target.value) || 0)}
-                          />
-                        </div>
-                      );
-                    })}
-                    {totalAllocated > 0 && (
-                      <p className="text-xs text-muted-foreground pt-1">
-                        Total allocated: {totalAllocated} pts
-                        {watchedStoryPoints ? ` / ${watchedStoryPoints} pts (${Math.round((totalAllocated / watchedStoryPoints) * 100)}%)` : ""}
-                      </p>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
 
             <FormField
               control={form.control}

@@ -40,11 +40,11 @@ import { computeInsertOrder } from "@/lib/order";
 import { isProjectBlocked } from "@/lib/blocked";
 
 const COLUMN_DESCRIPTIONS: Record<ProjectStatus, string> = {
-  new_request: "Newly submitted project requests awaiting triage by the respective function",
-  backlog: "Projects that have been deemed important by the function and/or senior leadership",
-  up_next: "Projects that have been confirmed as a priority by the function and/or senior leadership for the next available development cycle",
-  in_progress: "Projects prioritized by senior leadership and actively in development",
-  done: "Completed and delivered projects",
+  new_request: "New requests that have not yet been started",
+  backlog: "Requests that are currently in business requirements gathering stage",
+  up_next: "Requests that are currently in technical requirements investigation stage",
+  in_progress: "Requests that have been prioritized and are actively in development in a sprint",
+  done: "Requests that have been completed",
 };
 
 const COLUMNS: { id: ProjectStatus; label: string }[] = [
@@ -443,18 +443,6 @@ function ProjectCard({
         )}
       </CardContent>
       <CardFooter className="p-3 pt-0 flex flex-col gap-1.5 items-start text-[10px] text-muted-foreground">
-        {project.functionName && (
-          <div className="flex items-center gap-1 w-full" title={project.functionName}>
-            <span className="text-muted-foreground/60 shrink-0">Sponsor:</span>
-            <span className="truncate font-medium">{project.functionName}</span>
-          </div>
-        )}
-        {project.sponsor && (
-          <div className="flex items-center gap-1 w-full" title={project.sponsor}>
-            <span className="text-muted-foreground/60 shrink-0">Stakeholder:</span>
-            <span className="truncate font-medium">{project.sponsor}</span>
-          </div>
-        )}
         {project.goals && project.goals.length > 0 && (
           <div className="flex items-center gap-1.5 flex-wrap w-full pt-1 mt-0.5 border-t border-border/40">
             {project.goals.map((g) => (

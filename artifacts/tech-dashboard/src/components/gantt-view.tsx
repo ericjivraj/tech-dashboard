@@ -1,7 +1,6 @@
 import { useMemo, useRef, useState } from "react";
 import {
   useGetProjectsTimeline,
-  useListCycles,
   useListSprints,
   useGetMe,
   useUpdateProject,
@@ -35,65 +34,56 @@ import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Info, GripVertical, MoreHorizontal } from "lucide-react";
-import { format, parseISO, startOfYear, endOfYear, differenceInDays } from "date-fns";
-import { projectMatchesCycle, type FilterState } from "@/lib/filter-types";
+import { format, parseISO, startOfYear, endOfYear, differenceInDays, eachMonthOfInterval, startOfMonth, endOfMonth, isSameMonth } from "date-fns";
+import { projectMatchesSprint, type FilterState } from "@/lib/filter-types";
 import { matchesSearch } from "@/lib/search";
 import { computeInsertOrder } from "@/lib/order";
 import { isProjectBlocked } from "@/lib/blocked";
-import { AVG_CYCLE_CAPACITY, cycleEffortPercent } from "@/lib/constants";
-import { planMoveToCycle } from "@/lib/move-to-cycle";
+import { planMoveToSprint } from "@/lib/move-to-sprint";
 import { useToast } from "@/hooks/use-toast";
+import { STAGE_ORDER, STATUS_COLORS, STATUS_LABELS, type ProjectStage } from "@/lib/constants";
 
 
 interface GanttViewProps {
   filters: FilterState;
 }
 
-type CycleAllocation = {
-  cycleId: number;
-  cycleName: string;
-  cycleStartDate: string;
-  cycleEndDate: string;
+type SprintAllocation = {
+  sprintId: number;
+  sprintName: string;
+  sprintStartDate: string;
+  sprintEndDate: string;
   percent: number;
 };
 
-function getCycleAllocations(p: unknown): CycleAllocation[] {
-  return (p as { cycleAllocations?: CycleAllocation[] }).cycleAllocations ?? [];
+function getSprintAllocations(p: unknown): SprintAllocation[] {
+  return (p as { sprintAllocations?: SprintAllocation[] }).sprintAllocations ?? [];
 }
 
-// Effective Gantt-bar span. Priority: explicit start/end dates → cycle
-// allocations (min cycle start → max cycle end). A project with only a primary
-// cycle assigned (and no allocations or dates) is treated as not yet
+// Effective Gantt-bar span. Priority: explicit start/end dates → sprint
+// allocations (min sprint start → max sprint end). A project with only a
+// primary sprint assigned (and no allocations or dates) is treated as not yet
 // committed to a timeline and hidden from the Gantt — it still appears in the
 // kanban view under its status column.
 function getEffectiveDates(p: ProjectTimeline): { start: string; end: string } | null {
   if (p.startDate && p.endDate) return { start: p.startDate, end: p.endDate };
-  const allocs = getCycleAllocations(p);
+  const allocs = getSprintAllocations(p);
   if (allocs.length > 0) {
-    return { start: allocs[0].cycleStartDate, end: allocs[allocs.length - 1].cycleEndDate };
+    return { start: allocs[0].sprintStartDate, end: allocs[allocs.length - 1].sprintEndDate };
   }
   return null;
 }
 
 export default function GanttView({ filters }: GanttViewProps) {
   const currentYear = new Date().getFullYear();
-  // Cycle zoom is driven by the global filter so picking a cycle in the
+  // Sprint zoom is driven by the global filter so picking a sprint in the
   // filter-bar zooms the timeline AND restricts rows in one move.
-  const selectedCycleId = filters.cycleId;
+  const selectedSprintId = filters.sprintId;
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
   const [projectToEdit, setProjectToEdit] = useState<ProjectWithDetails | null>(null);
+  const [headerMode, setHeaderMode] = useState<"sprints" | "months">("sprints");
 
-  const timelineCycleId = selectedCycleId !== "all" ? parseInt(selectedCycleId) : null;
-  const timelineWindowDates =
-    timelineCycleId != null
-      ? {}
-      : { startDate: `${currentYear}-01-01`, endDate: `${currentYear}-12-31` };
-  const { data: projects, isLoading } = useGetProjectsTimeline({
-    year: currentYear,
-    ...(timelineCycleId != null ? { cycleId: timelineCycleId } : {}),
-    ...timelineWindowDates,
-  });
-  const { data: cycles } = useListCycles();
+  const { data: projects, isLoading } = useGetProjectsTimeline();
   const { data: sprints } = useListSprints();
 
   const { data: me } = useGetMe();
@@ -104,29 +94,29 @@ export default function GanttView({ filters }: GanttViewProps) {
   const { toast } = useToast();
   const justDraggedRef = useRef(false);
 
-  const cyclesSorted = useMemo(
-    () => (cycles ? [...cycles].sort((a, b) => a.startDate.localeCompare(b.startDate)) : []),
-    [cycles],
+  const sprintsSorted = useMemo(
+    () => (sprints ? [...sprints].sort((a, b) => a.startDate.localeCompare(b.startDate)) : []),
+    [sprints],
   );
 
-  const handleMoveProjectToCycle = (project: ProjectTimeline, targetCycleId: number) => {
-    const targetCycle = cyclesSorted.find((c) => c.id === targetCycleId);
-    if (!targetCycle) return;
-    const plan = planMoveToCycle(
+  const handleMoveProjectToSprint = (project: ProjectTimeline, targetSprintId: number) => {
+    const targetSprint = sprintsSorted.find((s) => s.id === targetSprintId);
+    if (!targetSprint) return;
+    const plan = planMoveToSprint(
       {
         storyPoints: project.storyPoints,
         startDate: project.startDate ?? null,
         endDate: project.endDate ?? null,
-        cycleAllocations: getCycleAllocations(project),
+        sprintAllocations: getSprintAllocations(project),
       },
-      targetCycle,
-      cyclesSorted,
+      targetSprint,
+      sprintsSorted,
     );
     updateProject.mutate(
       {
         id: project.id,
         data: {
-          cycleAllocations: plan.cycleAllocations,
+          sprintAllocations: plan.sprintAllocations,
           startDate: plan.startDate,
           endDate: plan.endDate,
         },
@@ -135,11 +125,11 @@ export default function GanttView({ filters }: GanttViewProps) {
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: timelineQueryKey });
           queryClient.invalidateQueries({ queryKey: getListProjectsQueryKey() });
-          const bits: string[] = [`Moved to ${targetCycle.name}`];
+          const bits: string[] = [`Moved to ${targetSprint.name}`];
           if (plan.summary.droppedAllocations > 0) {
-            bits.push(`${plan.summary.droppedAllocations} allocation${plan.summary.droppedAllocations === 1 ? "" : "s"} fell off the cycle range`);
+            bits.push(`${plan.summary.droppedAllocations} allocation${plan.summary.droppedAllocations === 1 ? "" : "s"} fell off the sprint range`);
           }
-          if (plan.summary.createdAllocation) bits.push("created cycle allocation from story points");
+          if (plan.summary.createdAllocation) bits.push("created sprint allocation from story points");
           toast({ title: bits[0], description: bits.slice(1).join(" · ") || undefined });
         },
         onError: (err) => {
@@ -152,11 +142,7 @@ export default function GanttView({ filters }: GanttViewProps) {
       },
     );
   };
-  const timelineQueryKey = getGetProjectsTimelineQueryKey({
-    year: currentYear,
-    ...(timelineCycleId != null ? { cycleId: timelineCycleId } : {}),
-    ...timelineWindowDates,
-  });
+  const timelineQueryKey = getGetProjectsTimelineQueryKey();
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -225,48 +211,81 @@ export default function GanttView({ filters }: GanttViewProps) {
   let viewStart = startOfYear(new Date(currentYear, 0, 1));
   let viewEnd = endOfYear(viewStart);
 
-  if (selectedCycleId !== "all" && cycles) {
-    const cycle = cycles.find((c) => c.id.toString() === selectedCycleId);
-    if (cycle) {
-      viewStart = parseISO(cycle.startDate);
-      viewEnd = parseISO(cycle.endDate);
+  if (selectedSprintId !== "all" && sprints) {
+    const sprint = sprints.find((s) => s.id.toString() === selectedSprintId);
+    if (sprint) {
+      viewStart = parseISO(sprint.startDate);
+      viewEnd = parseISO(sprint.endDate);
     }
   }
 
-  // When viewing all cycles, skip completed ones by clamping viewStart to
-  // the first cycle that hasn't ended yet.
-  if (selectedCycleId === "all" && cycles) {
+  // When viewing all sprints, skip completed ones by clamping viewStart to
+  // the first sprint that hasn't ended yet.
+  if (selectedSprintId === "all" && sprints) {
     const today = new Date();
-    const firstActiveCycle = [...cycles]
+    const firstActiveSprint = [...sprints]
       .sort((a, b) => a.startDate.localeCompare(b.startDate))
-      .find((c) => parseISO(c.endDate) >= today);
-    if (firstActiveCycle) {
-      viewStart = parseISO(firstActiveCycle.startDate);
+      .find((s) => parseISO(s.endDate) >= today);
+    if (firstActiveSprint) {
+      viewStart = parseISO(firstActiveSprint.startDate);
+    }
+  }
+
+  // When viewing all sprints (not zoomed to one), don't let the default
+  // calendar-year window cut off a project scheduled further out — stretch
+  // viewEnd to cover the latest stage-schedule or fallback end date across
+  // every project. Built from the unfiltered list, same rule as the sprint
+  // header totals below, so search/status/team/goal filters never change it.
+  if (selectedSprintId === "all") {
+    const maxScheduledEndMs = projects.reduce((max, p) => {
+      const ends: number[] = [];
+      for (const s of p.stageSchedules ?? []) {
+        const t = parseISO(s.endDate).getTime();
+        if (!Number.isNaN(t)) ends.push(t);
+      }
+      const effective = getEffectiveDates(p);
+      if (effective) {
+        const t = parseISO(effective.end).getTime();
+        if (!Number.isNaN(t)) ends.push(t);
+      }
+      return ends.length ? Math.max(max, ...ends) : max;
+    }, viewEnd.getTime());
+    if (maxScheduledEndMs > viewEnd.getTime()) {
+      viewEnd = new Date(maxScheduledEndMs);
     }
   }
 
   const totalDays = Math.max(1, differenceInDays(viewEnd, viewStart));
   const today = new Date();
 
-  const cyclesInView = cycles
-    ? cycles
-        .filter((c) => parseISO(c.startDate) < viewEnd && parseISO(c.endDate) > viewStart)
+  const sprintsInView = sprints
+    ? sprints
+        .filter((s) => parseISO(s.startDate) < viewEnd && parseISO(s.endDate) > viewStart)
         .sort((a, b) => a.startDate.localeCompare(b.startDate))
     : [];
 
-  const selectedCycle = selectedCycleId !== "all" ? cycles?.find((c) => c.id.toString() === selectedCycleId) ?? null : null;
-  const sprintsForCycle = selectedCycle && sprints
-    ? [...sprints.filter((s) => s.cycleId === selectedCycle.id)].sort((a, b) => a.startDate.localeCompare(b.startDate))
-    : [];
-  const showSprintHeaders = sprintsForCycle.length > 0;
+  // Calendar months intersecting the view window — the alternative header
+  // mode to sprints. Bar positioning (getBarPosition) is date-based and
+  // doesn't care which header mode is active; only the header row and
+  // gridlines change.
+  const monthsInView = eachMonthOfInterval({ start: viewStart, end: viewEnd }).map((m) => ({
+    key: format(m, "yyyy-MM"),
+    monthStart: startOfMonth(m),
+    monthEnd: endOfMonth(m),
+    label: format(m, "MMMM yyyy"),
+  }));
+
+  const gridlineColumns = headerMode === "months"
+    ? monthsInView.map((m) => ({ key: m.key, start: m.monthStart }))
+    : sprintsInView.map((s) => ({ key: `sprint-${s.id}`, start: parseISO(s.startDate) }));
 
   const getBarPosition = (start: string, end: string) => {
     const startMs = parseISO(start).getTime();
     const endMs = parseISO(end).getTime();
-    // Treat cycle/view ranges as half-open [start, end) so boundary days don't
-    // attribute a bar to two cycles. E.g. Cycle D ends 2026-05-13 and Cycle E
-    // starts 2026-05-13 — a project starting 2026-05-13 belongs to E only,
-    // and shouldn't render at the right edge of D's view.
+    // Treat sprint/view ranges as half-open [start, end) so boundary days don't
+    // attribute a bar to two sprints. E.g. Sprint 32 ends 2026-11-04 and
+    // Sprint 33 starts 2026-11-05 — a project starting 2026-11-05 belongs to
+    // 33 only, and shouldn't render at the right edge of 32's view.
     if (startMs >= viewEnd.getTime() || endMs <= viewStart.getTime()) return null;
 
     const sDate = Math.max(startMs, viewStart.getTime());
@@ -277,10 +296,10 @@ export default function GanttView({ filters }: GanttViewProps) {
     return { left: `${Math.max(0, left)}%`, width: `${Math.max(0.5, width)}%` };
   };
 
-  // Start with every project. Status / cycle / search filters below decide
+  // Start with every project. Status / sprint / search filters below decide
   // what shows up. Unscheduled projects (no dates, no allocations, no primary
-  // cycle) appear as rows with no bar — that's how new_request items become
-  // discoverable in the timeline. Bar rendering and cycle-header %
+  // sprint) appear as rows with no bar — that's how new_request items become
+  // discoverable in the timeline. Bar rendering and sprint-header %
   // calculations naturally skip projects without dates/allocations.
   let filteredProjects = [...projects];
 
@@ -293,45 +312,39 @@ export default function GanttView({ filters }: GanttViewProps) {
   if (filters.team !== "all") {
     filteredProjects = filteredProjects.filter((p) => p.team === filters.team);
   }
-  if (filters.functionName !== "all") {
-    filteredProjects = filteredProjects.filter((p) => p.functionName === filters.functionName);
-  }
   if (filters.goalId !== "all") {
     filteredProjects = filteredProjects.filter((p) => p.goals.some((g) => g.id.toString() === filters.goalId));
   }
-  // The cycle filter zooms the timeline (drives viewStart/viewEnd above) AND
-  // restricts rows so the focused-cycle view is honest. Same rule as
+  // The sprint filter zooms the timeline (drives viewStart/viewEnd above) AND
+  // restricts rows so the focused-sprint view is honest. Same rule as
   // dashboard.tsx / business.tsx: a project shows when it has an allocation
-  // for the focused cycle, when its start date falls in the cycle's
+  // for the focused sprint, when its start date falls in the sprint's
   // half-open range, or when it has no schedule at all (floating row).
-  if (filters.cycleId !== "all" && cycles) {
-    const focusedCycle = cycles.find((c) => c.id.toString() === filters.cycleId);
-    if (focusedCycle) {
-      filteredProjects = filteredProjects.filter((p) => projectMatchesCycle(p, focusedCycle) !== "miss");
+  if (filters.sprintId !== "all" && sprints) {
+    const focusedSprint = sprints.find((s) => s.id.toString() === filters.sprintId);
+    if (focusedSprint) {
+      filteredProjects = filteredProjects.filter((p) => projectMatchesSprint(p, focusedSprint) !== "miss");
     }
-  }
-  if ((filters.sprintId ?? "all") !== "all") {
-    filteredProjects = filteredProjects.filter((p) => p.sprintId?.toString() === filters.sprintId);
   }
 
   // Show every filtered project as a row. If the bar falls outside the
-  // current view (e.g. zoomed to Cycle D, project has dates in Cycle E), the
-  // row appears with no visible bar — Row's getBarPosition returns null and
-  // the bar element is conditionally hidden.
+  // current view (e.g. zoomed to Sprint 32, project has dates in Sprint 33),
+  // the row appears with no visible bar — Row's getBarPosition returns null
+  // and the bar element is conditionally hidden.
   const visibleProjects = filteredProjects;
 
-  // Cycle header totals are independent of the active row filters — the %
-  // for "Cycle E" represents the real allocation against that cycle, not
+  // Sprint header totals are independent of the active row filters — the %
+  // for "Sprint 32" represents the real allocation against that sprint, not
   // "the allocation among the projects you happen to be looking at right
   // now". Built from the unfiltered project list so toggling status / team /
-  // sponsor / goal / cycle / search filters never changes the header sum.
-  const projectsByCycleId = new Map<number, typeof projects>();
+  // goal / sprint / search filters never changes the header sum.
+  const projectsBySprintId = new Map<number, typeof projects>();
   for (const p of projects) {
-    const allocs = getCycleAllocations(p);
+    const allocs = getSprintAllocations(p);
     if (allocs.length === 0) continue;
     for (const a of allocs) {
-      if (!projectsByCycleId.has(a.cycleId)) projectsByCycleId.set(a.cycleId, []);
-      projectsByCycleId.get(a.cycleId)!.push(p);
+      if (!projectsBySprintId.has(a.sprintId)) projectsBySprintId.set(a.sprintId, []);
+      projectsBySprintId.get(a.sprintId)!.push(p);
     }
   }
 
@@ -341,22 +354,38 @@ export default function GanttView({ filters }: GanttViewProps) {
       <div className="space-y-4">
         {/* Quarter + Status + Clear filters used to live here, but they
             duplicated the global filter-bar above. The filter-bar now drives
-            cycle zoom and status multi-select for the timeline directly. */}
+            sprint zoom and status multi-select for the timeline directly. */}
 
-        <div className="flex flex-wrap gap-3">
-          {[
-            { color: "#22c55e", label: "Green", desc: "On track" },
-            { color: "#f59e0b", label: "Amber", desc: "At risk, needs attention" },
-            { color: "#ef4444", label: "Red", desc: "Critical, escalation required" },
-          ].map(({ color, label, desc }) => (
-            <div key={label} className="flex items-start gap-2 rounded-lg border bg-card px-4 py-3 min-w-[200px]">
-              <span className="w-4 h-4 rounded shrink-0 mt-0.5" style={{ backgroundColor: color }} />
-              <div>
-                <div className="text-sm font-semibold text-foreground">{label}</div>
-                <div className="text-xs text-muted-foreground mt-0.5">{desc}</div>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap gap-3">
+            {STAGE_ORDER.map((stage) => (
+              <div key={stage} className="flex items-center gap-2 rounded-lg border bg-card px-4 py-3">
+                <span className="w-4 h-4 rounded shrink-0" style={{ backgroundColor: STATUS_COLORS[stage] }} />
+                <div className="text-sm font-semibold text-foreground">{STATUS_LABELS[stage]}</div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="text-xs font-medium text-muted-foreground mr-1">Columns:</span>
+            <Button
+              type="button"
+              size="sm"
+              variant={headerMode === "sprints" ? "default" : "outline"}
+              className="h-7 text-xs"
+              onClick={() => setHeaderMode("sprints")}
+            >
+              Sprints
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant={headerMode === "months" ? "default" : "outline"}
+              className="h-7 text-xs"
+              onClick={() => setHeaderMode("months")}
+            >
+              Months
+            </Button>
+          </div>
         </div>
 
         <div className="rounded-xl border bg-card overflow-x-auto">
@@ -371,41 +400,57 @@ export default function GanttView({ filters }: GanttViewProps) {
                     </button>
                   </PopoverTrigger>
                   <PopoverContent side="bottom" align="start" className="w-auto max-w-[220px] px-3 py-1.5 text-xs">
-                    Project name with team, functionName, sponsor, and goals
+                    Project name with squad and goals
                   </PopoverContent>
                 </Popover>
               </div>
-              {/* Cycle row: when zoomed, just the focused cycle (full view width).
-                  Otherwise, every cycle that intersects the view. Always
+              {/* Sprint row: when zoomed, just the focused sprint (full view width).
+                  Otherwise, every sprint that intersects the view. Always
                   clickable to show the per-project allocation popover. */}
               <div className="flex">
-                {(showSprintHeaders && selectedCycle ? [selectedCycle] : cyclesInView).map((cycle) => {
-                  const cStart = Math.max(parseISO(cycle.startDate).getTime(), viewStart.getTime());
-                  const cEnd = Math.min(parseISO(cycle.endDate).getTime(), viewEnd.getTime());
-                  const widthPct = (differenceInDays(new Date(cEnd), new Date(cStart)) / totalDays) * 100;
-                  const isActive = parseISO(cycle.startDate) <= today && parseISO(cycle.endDate) >= today;
-                  const cycleProjects = projectsByCycleId.get(cycle.id) ?? [];
+                {headerMode === "months" ? monthsInView.map((month) => {
+                  const mStart = Math.max(month.monthStart.getTime(), viewStart.getTime());
+                  const mEnd = Math.min(month.monthEnd.getTime(), viewEnd.getTime());
+                  const widthPct = (differenceInDays(new Date(mEnd), new Date(mStart)) / totalDays) * 100;
+                  const isCurrentMonth = isSameMonth(month.monthStart, today);
+                  return (
+                    <div
+                      key={month.key}
+                      className={`text-sm font-medium text-foreground text-center border-l first:border-l-0 border-border/50 px-2 overflow-hidden rounded-sm ${isCurrentMonth ? "bg-blue-50 dark:bg-blue-950/40" : ""}`}
+                      style={{ width: `${widthPct}%` }}
+                    >
+                      <div className={`font-bold truncate text-sm ${isCurrentMonth ? "text-blue-700 dark:text-blue-400" : "text-foreground"}`}>
+                        {month.label}{isCurrentMonth && <span className="ml-1 text-[10px] font-medium bg-blue-600 text-white rounded-full px-1.5 py-0.5 leading-none align-middle">Now</span>}
+                      </div>
+                    </div>
+                  );
+                }) : sprintsInView.map((sprint) => {
+                  const sStart = Math.max(parseISO(sprint.startDate).getTime(), viewStart.getTime());
+                  const sEnd = Math.min(parseISO(sprint.endDate).getTime(), viewEnd.getTime());
+                  const widthPct = (differenceInDays(new Date(sEnd), new Date(sStart)) / totalDays) * 100;
+                  const isActive = parseISO(sprint.startDate) <= today && parseISO(sprint.endDate) >= today;
+                  const sprintProjects = projectsBySprintId.get(sprint.id) ?? [];
 
-                  // Sum each project's allocation percent specifically for this cycle.
-                  const literalSum = cycleProjects
-                    .map((p) => getCycleAllocations(p).find((a) => a.cycleId === cycle.id)?.percent ?? null)
+                  // Sum each project's allocation percent specifically for this sprint.
+                  const literalSum = sprintProjects
+                    .map((p) => getSprintAllocations(p).find((a) => a.sprintId === sprint.id)?.percent ?? null)
                     .filter((v): v is number => v != null)
                     .reduce((s, v) => s + v, 0);
                   const overallCap = literalSum > 0
                     ? { pct: literalSum, label: `${literalSum.toFixed(1)}%` }
                     : null;
                   return (
-                    <Popover key={cycle.id}>
+                    <Popover key={sprint.id}>
                       <PopoverTrigger asChild>
                         <div
                           className={`text-sm font-medium text-foreground text-center border-l first:border-l-0 border-border/50 px-2 overflow-hidden rounded-sm cursor-pointer ${isActive ? "bg-blue-50 dark:bg-blue-950/40" : ""}`}
                           style={{ width: `${widthPct}%` }}
                         >
                           <div className={`font-bold truncate text-sm ${isActive ? "text-blue-700 dark:text-blue-400" : "text-foreground"}`}>
-                            {cycle.name}{isActive && <span className="ml-1 text-[10px] font-medium bg-blue-600 text-white rounded-full px-1.5 py-0.5 leading-none align-middle">Now</span>}
+                            {sprint.name}{isActive && <span className="ml-1 text-[10px] font-medium bg-blue-600 text-white rounded-full px-1.5 py-0.5 leading-none align-middle">Now</span>}
                           </div>
                           <div className="text-xs font-normal truncate mt-0.5">
-                            {format(parseISO(cycle.startDate), 'MMM d')} – {format(parseISO(cycle.endDate), 'MMM d')}
+                            {format(parseISO(sprint.startDate), 'MMM d')} – {format(parseISO(sprint.endDate), 'MMM d')}
                           </div>
                           {overallCap && (
                             <div className="mt-2 px-0.5">
@@ -422,11 +467,11 @@ export default function GanttView({ filters }: GanttViewProps) {
                           )}
                         </div>
                       </PopoverTrigger>
-                      {cycleProjects.length > 0 && (
+                      {sprintProjects.length > 0 && (
                         <PopoverContent side="bottom" className="w-[28rem] max-w-[90vw] p-4 space-y-2 text-sm">
-                          <p className="font-bold text-foreground text-base mb-3">{cycle.name}: Project Allocation</p>
-                          {[...cycleProjects]
-                            .map((p) => ({ p, percent: getCycleAllocations(p).find((a) => a.cycleId === cycle.id)?.percent ?? 0 }))
+                          <p className="font-bold text-foreground text-base mb-3">{sprint.name}: Project Allocation</p>
+                          {[...sprintProjects]
+                            .map((p) => ({ p, percent: getSprintAllocations(p).find((a) => a.sprintId === sprint.id)?.percent ?? 0 }))
                             .sort((a, b) => b.percent - a.percent)
                             .map(({ p, percent }) => (
                               <div key={p.id} className="flex justify-between gap-3">
@@ -446,27 +491,6 @@ export default function GanttView({ filters }: GanttViewProps) {
                   );
                 })}
               </div>
-
-              {showSprintHeaders && (
-                <div className="flex mt-2 border-t border-border/30 pt-2">
-                  {sprintsForCycle.map((sprint) => {
-                    const sprintDays = Math.max(1, differenceInDays(parseISO(sprint.endDate), parseISO(sprint.startDate)));
-                    const widthPct = (sprintDays / totalDays) * 100;
-                    return (
-                      <div
-                        key={sprint.id}
-                        className="text-xs font-medium text-muted-foreground text-center border-l first:border-l-0 border-border/50 px-1 overflow-hidden"
-                        style={{ width: `${widthPct}%` }}
-                      >
-                        <div className="font-semibold text-foreground truncate">{sprint.name}</div>
-                        <div className="text-[10px] font-normal truncate">
-                          {format(parseISO(sprint.startDate), 'MMM d')} – {format(parseISO(sprint.endDate), 'MMM d')}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
             </div>
 
             {visibleProjects.length === 0 ? (
@@ -498,12 +522,10 @@ export default function GanttView({ filters }: GanttViewProps) {
                           today={today}
                           viewStart={viewStart}
                           totalDays={totalDays}
-                          showSprintHeaders={showSprintHeaders}
-                          sprintsForCycle={sprintsForCycle}
-                          cyclesInView={cyclesInView}
+                          gridlineColumns={gridlineColumns}
                           getBarPosition={getBarPosition}
-                          availableCycles={cyclesSorted}
-                          onMoveToCycle={(cycleId) => handleMoveProjectToCycle(project, cycleId)}
+                          availableSprints={sprintsSorted}
+                          onMoveToSprint={(sprintId) => handleMoveProjectToSprint(project, sprintId)}
                           dragHandle={
                             <DragHandle />
                           }
@@ -527,9 +549,7 @@ export default function GanttView({ filters }: GanttViewProps) {
                       today={today}
                       viewStart={viewStart}
                       totalDays={totalDays}
-                      showSprintHeaders={showSprintHeaders}
-                      sprintsForCycle={sprintsForCycle}
-                      cyclesInView={cyclesInView}
+                      gridlineColumns={gridlineColumns}
                       getBarPosition={getBarPosition}
                       dragHandle={null}
                     />
@@ -607,26 +627,26 @@ function DragHandle() {
 }
 
 // Inline kebab menu on each gantt row. Hidden until row-hover (group-hover),
-// visible while open. Lists every cycle; clicking one shifts the project's
-// allocations + dates to that cycle (handled by the parent's
-// onMoveToCycle, which calls planMoveToCycle then PATCHes). The current
-// "anchor" cycle (earliest allocated) is marked and disabled to prevent
+// visible while open. Lists every sprint; clicking one shifts the project's
+// allocations + dates to that sprint (handled by the parent's
+// onMoveToSprint, which calls planMoveToSprint then PATCHes). The current
+// "anchor" sprint (earliest allocated) is marked and disabled to prevent
 // accidental no-op moves.
 function RowKebab({
   project,
-  cycles,
-  onMoveToCycle,
+  sprints,
+  onMoveToSprint,
 }: {
   project: ProjectTimeline;
-  cycles: { id: number; name: string }[];
-  onMoveToCycle: (cycleId: number) => void;
+  sprints: { id: number; name: string }[];
+  onMoveToSprint: (sprintId: number) => void;
 }) {
-  const allocs = getCycleAllocations(project);
-  const allocCycleIds = new Set(allocs.map((a) => a.cycleId));
-  // Anchor = the currently-earliest allocation, or the project's primary cycle if no allocations.
-  const anchorCycleId = allocs.length > 0
-    ? [...allocs].sort((a, b) => a.cycleStartDate.localeCompare(b.cycleStartDate))[0].cycleId
-    : project.cycleId ?? null;
+  const allocs = getSprintAllocations(project);
+  const allocSprintIds = new Set(allocs.map((a) => a.sprintId));
+  // Anchor = the currently-earliest allocation, or the project's primary sprint if no allocations.
+  const anchorSprintId = allocs.length > 0
+    ? [...allocs].sort((a, b) => a.sprintStartDate.localeCompare(b.sprintStartDate))[0].sprintId
+    : project.sprintId ?? null;
 
   return (
     <DropdownMenu>
@@ -648,20 +668,20 @@ function RowKebab({
         className="w-56"
         onClick={(e) => e.stopPropagation()}
       >
-        <DropdownMenuLabel className="text-xs text-muted-foreground">Move to cycle</DropdownMenuLabel>
+        <DropdownMenuLabel className="text-xs text-muted-foreground">Move to sprint</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        {cycles.map((c) => {
-          const isAnchor = c.id === anchorCycleId;
-          const hasAlloc = allocCycleIds.has(c.id);
+        {sprints.map((s) => {
+          const isAnchor = s.id === anchorSprintId;
+          const hasAlloc = allocSprintIds.has(s.id);
           return (
             <DropdownMenuItem
-              key={c.id}
+              key={s.id}
               disabled={isAnchor}
-              onSelect={() => onMoveToCycle(c.id)}
-              data-testid={`gantt-move-${project.id}-${c.id}`}
+              onSelect={() => onMoveToSprint(s.id)}
+              data-testid={`gantt-move-${project.id}-${s.id}`}
               className="flex items-center justify-between gap-2"
             >
-              <span>{c.name}</span>
+              <span>{s.name}</span>
               {isAnchor ? (
                 <span className="text-[10px] uppercase text-muted-foreground">Current</span>
               ) : hasAlloc ? (
@@ -680,16 +700,14 @@ interface GanttRowContentProps {
   today: Date;
   viewStart: Date;
   totalDays: number;
-  showSprintHeaders: boolean;
-  sprintsForCycle: { id: number; startDate: string; endDate: string }[];
-  cyclesInView: { id: number; startDate: string }[];
+  gridlineColumns: { key: string; start: Date }[];
   getBarPosition: (start: string, end: string) => { left: string; width: string } | null;
   dragHandle: React.ReactNode;
   // Editor-only: when set, renders a hover-revealed "..." menu in the row
-  // with cycles to move the project to. Selecting a cycle reallocates the
-  // project (and shifts dates) via planMoveToCycle.
-  availableCycles?: { id: number; name: string }[];
-  onMoveToCycle?: (cycleId: number) => void;
+  // with sprints to move the project to. Selecting a sprint reallocates the
+  // project (and shifts dates) via planMoveToSprint.
+  availableSprints?: { id: number; name: string }[];
+  onMoveToSprint?: (sprintId: number) => void;
 }
 
 function GanttRowContent({
@@ -697,25 +715,19 @@ function GanttRowContent({
   today,
   viewStart,
   totalDays,
-  showSprintHeaders,
-  sprintsForCycle,
-  cyclesInView,
+  gridlineColumns,
   getBarPosition,
   dragHandle,
-  availableCycles,
-  onMoveToCycle,
+  availableSprints,
+  onMoveToSprint,
 }: GanttRowContentProps) {
   const dates = getEffectiveDates(project);
   const effectiveStart = dates?.start;
   const effectiveEnd = dates?.end;
-  const usingCycleFallback = !project.startDate && !project.endDate;
+  const usingSprintFallback = !project.startDate && !project.endDate;
   const pos = dates ? getBarPosition(dates.start, dates.end) : null;
-  const color =
-    project.ragStatus === "red"
-      ? "#ef4444"
-      : project.ragStatus === "amber"
-        ? "#f59e0b"
-        : "#22c55e";
+  const color = STATUS_COLORS[project.status];
+  const stageSchedules = project.stageSchedules ?? [];
 
   return (
     <>
@@ -730,63 +742,63 @@ function GanttRowContent({
               Blocked
             </span>
           )}
-          {availableCycles && onMoveToCycle && (
+          {availableSprints && onMoveToSprint && (
             <RowKebab
               project={project}
-              cycles={availableCycles}
-              onMoveToCycle={onMoveToCycle}
+              sprints={availableSprints}
+              onMoveToSprint={onMoveToSprint}
             />
           )}
         </div>
         <div className="flex items-center gap-1.5 mt-0.5">
-          <span className="text-xs text-foreground truncate">{project.team || "No team"}</span>
-          {project.storyPoints != null && (
-            <Badge
-              variant="outline"
-              className="shrink-0 text-xs font-semibold px-2 py-0.5 bg-muted/50"
-              title={`${project.storyPoints} pts of ~${AVG_CYCLE_CAPACITY} avg per cycle`}
-            >
-              {cycleEffortPercent(project.storyPoints)} of cycle
-            </Badge>
-          )}
+          <span className="text-xs text-foreground truncate">{project.team || "No squad"}</span>
         </div>
       </div>
 
       <div className="flex-1 relative h-7 bg-muted/10 rounded overflow-hidden">
-        {showSprintHeaders
-          ? sprintsForCycle.map((sprint) => {
-              const left = (differenceInDays(parseISO(sprint.startDate), viewStart) / totalDays) * 100;
+        {gridlineColumns.map((col) => {
+          const left = (differenceInDays(col.start, viewStart) / totalDays) * 100;
+          return left > 0 ? (
+            <div
+              key={col.key}
+              className="absolute top-0 bottom-0 border-l border-border/40"
+              style={{ left: `${left}%` }}
+            />
+          ) : null;
+        })}
+        {stageSchedules.length > 0
+          ? stageSchedules.map((s) => {
+              const stagePos = getBarPosition(s.startDate, s.endDate);
+              if (!stagePos) return null;
+              const stage = s.stage as ProjectStage;
               return (
                 <div
-                  key={sprint.id}
-                  className="absolute top-0 bottom-0 border-l border-border/40"
-                  style={{ left: `${Math.max(0, left)}%` }}
-                />
+                  key={stage}
+                  className="absolute top-1 bottom-1 rounded-sm shadow-sm transition-opacity opacity-90 hover:opacity-100"
+                  style={{
+                    left: stagePos.left,
+                    width: stagePos.width,
+                    backgroundColor: STATUS_COLORS[stage],
+                  }}
+                  title={`${project.title} — ${STATUS_LABELS[stage]}\n${format(parseISO(s.startDate), "MMM d")} to ${format(parseISO(s.endDate), "MMM d, yyyy")}`}
+                >
+                  <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/10 rounded-b-sm" />
+                </div>
               );
             })
-          : cyclesInView.map((cycle) => {
-              const left = (differenceInDays(parseISO(cycle.startDate), viewStart) / totalDays) * 100;
-              return left > 0 ? (
-                <div
-                  key={cycle.id}
-                  className="absolute top-0 bottom-0 border-l border-border/40"
-                  style={{ left: `${left}%` }}
-                />
-              ) : null;
-            })}
-        {pos && effectiveStart && effectiveEnd && (
-          <div
-            className="absolute top-1 bottom-1 rounded-sm shadow-sm transition-opacity opacity-90 hover:opacity-100"
-            style={{
-              left: pos.left,
-              width: pos.width,
-              backgroundColor: color,
-            }}
-            title={`${project.title}\n${format(parseISO(effectiveStart), "MMM d")} to ${format(parseISO(effectiveEnd), "MMM d, yyyy")}${usingCycleFallback ? "\n(dates from cycle)" : ""}`}
-          >
-            <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/10 rounded-b-sm" />
-          </div>
-        )}
+          : pos && effectiveStart && effectiveEnd && (
+              <div
+                className="absolute top-1 bottom-1 rounded-sm shadow-sm transition-opacity opacity-90 hover:opacity-100"
+                style={{
+                  left: pos.left,
+                  width: pos.width,
+                  backgroundColor: color,
+                }}
+                title={`${project.title}\n${format(parseISO(effectiveStart), "MMM d")} to ${format(parseISO(effectiveEnd), "MMM d, yyyy")}${usingSprintFallback ? "\n(dates from sprint)" : ""}`}
+              >
+                <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/10 rounded-b-sm" />
+              </div>
+            )}
       </div>
     </>
   );

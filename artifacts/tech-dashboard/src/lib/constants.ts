@@ -1,9 +1,9 @@
 import type { ProjectStatus } from "@workspace/api-client-react";
 
 export const STATUS_LABELS: Record<ProjectStatus, string> = {
-  new_request: "New Requests",
-  backlog: "Priorities",
-  up_next: "Priorities Next Dev",
+  new_request: "Not Started",
+  backlog: "Pre-Discovery",
+  up_next: "Discovery",
   in_progress: "In Development",
   done: "Done",
 };
@@ -16,35 +16,18 @@ export const STATUS_ORDER: ProjectStatus[] = [
   "done",
 ];
 
-export const PIPELINE_STATUS_ORDER: ProjectStatus[] = [
-  "in_progress",
-  "up_next",
-  "backlog",
-  "new_request",
-  "done",
-];
+export const STATUS_COLORS: Record<ProjectStatus, string> = {
+  new_request: "#c084fc",
+  backlog: "#a855f7",
+  up_next: "#3b82f6",
+  in_progress: "#22c55e",
+  done: "#10b981",
+};
 
-export const TEAMS = ["Development", "Data", "Infrastructure", "Cybersecurity", "SysOps"];
+// The three lifecycle stages that can be individually scheduled with their
+// own Timeline bar. Reuses the same status literals as STATUS_LABELS so
+// stage bars share labels/colors with the rest of the app.
+export const STAGE_ORDER = ["backlog", "up_next", "in_progress"] as const;
+export type ProjectStage = (typeof STAGE_ORDER)[number];
 
-export const FUNCTIONS = [
-  "Leadership",
-  "Finance",
-  "Operations",
-  "Business Development",
-  "Marketing",
-  "Tech",
-  "Cars",
-  "Legal & Compliance",
-  "Departments",
-];
-
-// Average story-point capacity of a single dev cycle. Used to express a
-// project's total effort as a percentage of one cycle's worth of work, e.g.
-// 5 / 324 = 1.54 %. TODO: move to per-cycle settings (capacity actually
-// varies cycle-to-cycle based on holidays, headcount, etc.).
-export const AVG_CYCLE_CAPACITY = 324;
-
-export function cycleEffortPercent(storyPoints: number | null | undefined): string | null {
-  if (storyPoints == null) return null;
-  return ((storyPoints / AVG_CYCLE_CAPACITY) * 100).toFixed(2) + "%";
-}
+export const SQUADS = ["User-facing", "Operator", "Onboarding", "Pulse"];

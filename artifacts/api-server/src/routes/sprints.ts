@@ -7,30 +7,14 @@ import {
   UpdateSprintBody,
   UpdateSprintParams,
   DeleteSprintParams,
-  ListSprintsQueryParams,
 } from "@workspace/api-zod";
 import { requireRole } from "../middlewares/requireAuth";
 import { logAudit } from "../lib/auditLog";
 
 const router: IRouter = Router();
 
-router.get("/sprints", async (req, res): Promise<void> => {
-  const query = ListSprintsQueryParams.safeParse(req.query);
-  if (!query.success) {
-    res.status(400).json({ error: query.error.message });
-    return;
-  }
-  const cycleId = query.data.cycleId;
-  let sprints;
-  if (cycleId != null) {
-    sprints = await db
-      .select()
-      .from(sprintsTable)
-      .where(eq(sprintsTable.cycleId, cycleId))
-      .orderBy(sprintsTable.sprintNumber);
-  } else {
-    sprints = await db.select().from(sprintsTable).orderBy(sprintsTable.startDate);
-  }
+router.get("/sprints", async (_req, res): Promise<void> => {
+  const sprints = await db.select().from(sprintsTable).orderBy(sprintsTable.startDate);
   res.json(sprints);
 });
 
@@ -40,12 +24,11 @@ router.post("/sprints", requireRole(["admin"]), async (req, res): Promise<void> 
     res.status(400).json({ error: parsed.error.message });
     return;
   }
-  const { name, cycleId, sprintNumber, startDate, endDate } = parsed.data;
+  const { name, sprintNumber, startDate, endDate } = parsed.data;
   const [sprint] = await db
     .insert(sprintsTable)
     .values({
       name,
-      cycleId,
       sprintNumber,
       startDate: startDate instanceof Date ? startDate.toISOString().split("T")[0] : String(startDate),
       endDate: endDate instanceof Date ? endDate.toISOString().split("T")[0] : String(endDate),
@@ -68,7 +51,6 @@ router.patch("/sprints/:id", requireRole(["admin"]), async (req, res): Promise<v
   }
   const updates: Record<string, unknown> = {};
   if (parsed.data.name != null) updates.name = parsed.data.name;
-  if (parsed.data.cycleId != null) updates.cycleId = parsed.data.cycleId;
   if (parsed.data.sprintNumber != null) updates.sprintNumber = parsed.data.sprintNumber;
   if (parsed.data.startDate != null) {
     const d = parsed.data.startDate;

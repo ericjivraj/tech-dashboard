@@ -66,7 +66,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { AlertCircle, Edit, Trash2, Clock, Send, X, Pencil, Check, ShieldOff } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
-import { STATUS_LABELS, AVG_CYCLE_CAPACITY, cycleEffortPercent } from "@/lib/constants";
+import { STATUS_LABELS } from "@/lib/constants";
 import { isProjectBlocked } from "@/lib/blocked";
 
 export default function ProjectModal({ 
@@ -212,15 +212,6 @@ export default function ProjectModal({
                         Blocked
                       </Badge>
                     )}
-                    {project.storyPoints != null && (
-                      <Badge
-                        variant="outline"
-                        className="text-xs font-semibold bg-muted/50"
-                        title={`${project.storyPoints} pts of ~${AVG_CYCLE_CAPACITY} avg per cycle`}
-                      >
-                        {cycleEffortPercent(project.storyPoints)} of cycle
-                      </Badge>
-                    )}
                   </div>
                 </div>
                 {!readOnly && canEditProject(project.team) && (
@@ -282,19 +273,9 @@ export default function ProjectModal({
               </div>
 
               <div className="space-y-4 bg-muted/20 p-4 rounded-lg border">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <span className="text-xs text-muted-foreground block mb-1">Team</span>
-                    <span className="text-sm font-medium">{project.team || ""}</span>
-                  </div>
-                  <div>
-                    <span className="text-xs text-muted-foreground block mb-1">Sponsor</span>
-                    <span className="text-sm font-medium">{project.functionName || ""}</span>
-                  </div>
-                  <div>
-                    <span className="text-xs text-muted-foreground block mb-1">Stakeholder</span>
-                    <span className="text-sm font-medium">{project.sponsor || ""}</span>
-                  </div>
+                <div>
+                  <span className="text-xs text-muted-foreground block mb-1">Squad</span>
+                  <span className="text-sm font-medium">{project.team || ""}</span>
                 </div>
                 
                 {project.goals && project.goals.length > 0 && (

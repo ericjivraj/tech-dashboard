@@ -1,16 +1,16 @@
 // View + filter state ↔ URL query string. Lets users share a link to a
-// specific view/cycle/status combo and survives hard refresh.
+// specific view/sprint/status combo and survives hard refresh.
 //
 // Encoding favours compactness and readability — default values are omitted,
-// arrays are comma-joined, and short keys (q, cycle, function) are used.
+// arrays are comma-joined, and short keys (q, sprint, goal) are used.
 
 import type { ProjectStatus } from "@workspace/api-client-react";
 import { DEFAULT_FILTERS, type FilterState } from "./filter-types";
 
-export type ViewKey = "kanban" | "gantt" | "pipeline";
+export type ViewKey = "kanban" | "gantt";
 
 const DEFAULT_VIEW: ViewKey = "kanban";
-const VALID_VIEWS: ViewKey[] = ["kanban", "gantt", "pipeline"];
+const VALID_VIEWS: ViewKey[] = ["kanban", "gantt"];
 const VALID_STATUSES: ProjectStatus[] = ["new_request", "backlog", "up_next", "in_progress", "done"];
 
 export interface UrlState {
@@ -24,9 +24,7 @@ export function serializeToQuery(state: UrlState): string {
   if (state.filters.search) params.set("q", state.filters.search);
   if (state.filters.status.length > 0) params.set("status", state.filters.status.join(","));
   if (state.filters.team !== "all") params.set("team", state.filters.team);
-  if (state.filters.functionName !== "all") params.set("function", state.filters.functionName);
   if (state.filters.goalId !== "all") params.set("goal", state.filters.goalId);
-  if (state.filters.cycleId !== "all") params.set("cycle", state.filters.cycleId);
   if (state.filters.sprintId !== "all") params.set("sprint", state.filters.sprintId);
   const s = params.toString();
   return s ? `?${s}` : "";
@@ -50,9 +48,7 @@ export function parseFromQuery(search: string): UrlState {
       search: params.get("q") ?? "",
       status,
       team: params.get("team") ?? "all",
-      functionName: params.get("function") ?? "all",
       goalId: params.get("goal") ?? "all",
-      cycleId: params.get("cycle") ?? "all",
       sprintId: params.get("sprint") ?? "all",
     },
   };

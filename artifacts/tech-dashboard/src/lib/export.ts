@@ -18,11 +18,8 @@ export function exportProjectsToCSV(
   const headers = [
     "Title",
     "Status",
-    "Function",
-    "Team",
-    "Sponsor",
-    "Story Points",
-    "Cycle",
+    "Squad",
+    "Sprint",
     "Goals",
     "Latest Update",
     "Start Date",
@@ -32,11 +29,8 @@ export function exportProjectsToCSV(
   const rows = projects.map((p) => [
     escapeCSV(p.title),
     escapeCSV(STATUS_LABELS[p.status] ?? p.status),
-    escapeCSV(p.functionName ?? ""),
     escapeCSV(p.team ?? ""),
-    escapeCSV(p.sponsor ?? ""),
-    escapeCSV(p.storyPoints != null ? String(p.storyPoints) : ""),
-    escapeCSV(p.cycle?.name ?? ""),
+    escapeCSV(p.sprint?.name ?? ""),
     escapeCSV(p.goals?.map((g) => g.name).join("; ") ?? ""),
     escapeCSV(p.latestUpdate?.content ?? ""),
     escapeCSV(p.startDate ?? ""),
@@ -79,34 +73,16 @@ export const PDF_COLUMNS: PdfColumn[] = [
     getValue: (p) => STATUS_LABELS[p.status] ?? p.status,
   },
   {
-    key: "functionName",
-    label: "Sponsor",
-    width: 9,
-    getValue: (p) => p.functionName ?? "",
-  },
-  {
     key: "team",
-    label: "Team",
+    label: "Squad",
     width: 9,
     getValue: (p) => p.team ?? "",
   },
   {
-    key: "sponsor",
-    label: "Stakeholder",
-    width: 9,
-    getValue: (p) => p.sponsor ?? "",
-  },
-  {
-    key: "cycle",
-    label: "Cycle",
+    key: "sprint",
+    label: "Sprint",
     width: 13,
-    getValue: (p) => {
-      if (!p.cycle) return "Unscheduled";
-      if (p.cycle.startDate && p.cycle.endDate) {
-        return `${p.cycle.name}: ${shortDate(p.cycle.startDate)} – ${shortDate(p.cycle.endDate, true)}`;
-      }
-      return p.cycle.name;
-    },
+    getValue: (p) => p.sprint?.name ?? "Unscheduled",
   },
   {
     key: "goals",
@@ -135,8 +111,8 @@ export const PDF_COLUMNS: PdfColumn[] = [
 ];
 
 const CORE_PDF_COLUMN_KEYS = [
-  "title", "status", "functionName", "team",
-  "sponsor", "cycle", "goals", "latestUpdate",
+  "title", "status", "team",
+  "sprint", "goals", "latestUpdate",
 ];
 
 export const ALL_PDF_COLUMN_KEYS = PDF_COLUMNS.map((c) => c.key);
@@ -218,15 +194,6 @@ export function exportProjectsToPDF(
 
   const date = new Date().toISOString().split("T")[0];
   doc.save(`tech-${date}.pdf`);
-}
-
-function shortDate(dateStr: string, includeYear = false): string {
-  const d = new Date(dateStr + "T00:00:00");
-  const month = d.toLocaleDateString("en-US", { month: "short" });
-  const day = d.getDate();
-  return includeYear
-    ? `${month} ${day}, ${d.getFullYear()}`
-    : `${month} ${day}`;
 }
 
 function ordinalDate(dateStr: string): string {

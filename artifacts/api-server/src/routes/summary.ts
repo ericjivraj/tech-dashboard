@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { db } from "@workspace/db";
-import { projectsTable, cyclesTable } from "@workspace/db";
+import { projectsTable, sprintsTable } from "@workspace/db";
 
 const router: IRouter = Router();
 
@@ -28,17 +28,19 @@ router.get("/summary", async (_req, res): Promise<void> => {
   }
 
   const now = new Date().toISOString().split("T")[0];
-  const allCycles = await db.select().from(cyclesTable);
-  const activeCycleRow = allCycles.find(
-    (c) => c.startDate <= now && c.endDate >= now,
-  ) ?? allCycles[allCycles.length - 1] ?? null;
+  const allSprints = await db.select().from(sprintsTable);
+  const sortedSprints = [...allSprints].sort((a, b) => a.startDate.localeCompare(b.startDate));
+  const activeSprintRow = sortedSprints.find(
+    (s) => s.startDate <= now && s.endDate >= now,
+  ) ?? sortedSprints[sortedSprints.length - 1] ?? null;
 
-  const activeCycle = activeCycleRow
+  const activeSprint = activeSprintRow
     ? {
-        id: activeCycleRow.id,
-        name: activeCycleRow.name,
-        startDate: activeCycleRow.startDate,
-        endDate: activeCycleRow.endDate,
+        id: activeSprintRow.id,
+        name: activeSprintRow.name,
+        sprintNumber: activeSprintRow.sprintNumber,
+        startDate: activeSprintRow.startDate,
+        endDate: activeSprintRow.endDate,
       }
     : null;
 
@@ -47,7 +49,7 @@ router.get("/summary", async (_req, res): Promise<void> => {
     totalStoryPoints,
     pointsByStatus,
     countByStatus,
-    activeCycle,
+    activeSprint,
   });
 });
 

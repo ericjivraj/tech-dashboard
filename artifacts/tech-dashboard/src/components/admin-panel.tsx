@@ -1,7 +1,7 @@
 import { useState } from "react";
 import {
   useListGoals, useCreateGoal, useUpdateGoal, useDeleteGoal, getListGoalsQueryKey,
-  useListCycles, useCreateCycle, useUpdateCycle, useDeleteCycle, getListCyclesQueryKey,
+  useListSprints, useCreateSprint, useUpdateSprint, useDeleteSprint, getListSprintsQueryKey,
 } from "@workspace/api-client-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -24,15 +24,15 @@ export default function AdminPanel({ open, onOpenChange }: { open: boolean, onOp
         <Tabs defaultValue="goals" className="flex-1 flex flex-col min-h-0">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="goals" data-testid="admin-tab-goals">Goals</TabsTrigger>
-            <TabsTrigger value="cycles" data-testid="admin-tab-cycles">Cycles</TabsTrigger>
+            <TabsTrigger value="sprints" data-testid="admin-tab-sprints">Sprints</TabsTrigger>
           </TabsList>
 
           <div className="flex-1 overflow-y-auto mt-4 min-h-[400px]">
             <TabsContent value="goals" className="m-0 border-0 p-0 h-full">
               <GoalsTab />
             </TabsContent>
-            <TabsContent value="cycles" className="m-0 border-0 p-0 h-full">
-              <CyclesTab />
+            <TabsContent value="sprints" className="m-0 border-0 p-0 h-full">
+              <SprintsTab />
             </TabsContent>
           </div>
         </Tabs>
@@ -167,58 +167,61 @@ function GoalsTab() {
   );
 }
 
-function CyclesTab() {
-  const { data: cycles } = useListCycles();
-  const createCycle = useCreateCycle();
-  const updateCycle = useUpdateCycle();
-  const deleteCycle = useDeleteCycle();
+function SprintsTab() {
+  const { data: sprints } = useListSprints();
+  const createSprint = useCreateSprint();
+  const updateSprint = useUpdateSprint();
+  const deleteSprint = useDeleteSprint();
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  
+
   const [name, setName] = useState("");
+  const [sprintNumber, setSprintNumber] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
 
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editName, setEditName] = useState("");
+  const [editSprintNumber, setEditSprintNumber] = useState("");
   const [editStart, setEditStart] = useState("");
   const [editEnd, setEditEnd] = useState("");
 
   const handleAdd = () => {
-    if (!name || !startDate || !endDate) return;
-    createCycle.mutate({ data: { name, startDate, endDate } }, {
+    if (!name || !sprintNumber || !startDate || !endDate) return;
+    createSprint.mutate({ data: { name, sprintNumber: Number(sprintNumber), startDate, endDate } }, {
       onSuccess: () => {
-        setName(""); setStartDate(""); setEndDate("");
-        queryClient.invalidateQueries({ queryKey: getListCyclesQueryKey() });
-        toast({ title: "Cycle created" });
+        setName(""); setSprintNumber(""); setStartDate(""); setEndDate("");
+        queryClient.invalidateQueries({ queryKey: getListSprintsQueryKey() });
+        toast({ title: "Sprint created" });
       }
     });
   };
 
-  const startEdit = (id: number, n: string, s: string, e: string) => {
+  const startEdit = (id: number, n: string, num: number, s: string, e: string) => {
     setEditingId(id);
     setEditName(n);
+    setEditSprintNumber(num.toString());
     setEditStart(s);
     setEditEnd(e);
   };
 
   const handleUpdate = (id: number) => {
-    if (!editName || !editStart || !editEnd) return;
-    updateCycle.mutate({ id, data: { name: editName, startDate: editStart, endDate: editEnd } }, {
+    if (!editName || !editSprintNumber || !editStart || !editEnd) return;
+    updateSprint.mutate({ id, data: { name: editName, sprintNumber: Number(editSprintNumber), startDate: editStart, endDate: editEnd } }, {
       onSuccess: () => {
         setEditingId(null);
-        queryClient.invalidateQueries({ queryKey: getListCyclesQueryKey() });
-        toast({ title: "Cycle updated" });
+        queryClient.invalidateQueries({ queryKey: getListSprintsQueryKey() });
+        toast({ title: "Sprint updated" });
       }
     });
   };
-  
+
   const handleDelete = (id: number) => {
-    if (!confirm("Delete this cycle? All sprints in this cycle will also be deleted.")) return;
-    deleteCycle.mutate({ id }, {
+    if (!confirm("Delete this sprint? Any project allocations for this sprint will also be removed.")) return;
+    deleteSprint.mutate({ id }, {
       onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: getListCyclesQueryKey() });
-        toast({ title: "Cycle deleted" });
+        queryClient.invalidateQueries({ queryKey: getListSprintsQueryKey() });
+        toast({ title: "Sprint deleted" });
       }
     });
   };
@@ -228,7 +231,11 @@ function CyclesTab() {
       <div className="flex items-end gap-2 p-4 border rounded-lg bg-muted/20">
         <div className="space-y-1 flex-1">
           <label className="text-xs font-medium">Name</label>
-          <Input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Cycle 5 - Q3 2026" data-testid="input-cycle-name" />
+          <Input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Sprint 48" data-testid="input-sprint-name" />
+        </div>
+        <div className="space-y-1 w-24">
+          <label className="text-xs font-medium">Sprint #</label>
+          <Input type="number" value={sprintNumber} onChange={e => setSprintNumber(e.target.value)} />
         </div>
         <div className="space-y-1 w-40">
           <label className="text-xs font-medium">Start Date</label>
@@ -238,8 +245,8 @@ function CyclesTab() {
           <label className="text-xs font-medium">End Date</label>
           <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} />
         </div>
-        <Button onClick={handleAdd} disabled={!name || !startDate || !endDate || createCycle.isPending} data-testid="button-add-cycle">
-          <Plus className="h-4 w-4 mr-2"/> Add Cycle
+        <Button onClick={handleAdd} disabled={!name || !sprintNumber || !startDate || !endDate || createSprint.isPending} data-testid="button-add-sprint">
+          <Plus className="h-4 w-4 mr-2"/> Add Sprint
         </Button>
       </div>
 
@@ -247,34 +254,40 @@ function CyclesTab() {
         <TableHeader>
           <TableRow>
             <TableHead>Name</TableHead>
+            <TableHead>Sprint #</TableHead>
             <TableHead>Start Date</TableHead>
             <TableHead>End Date</TableHead>
             <TableHead className="w-24">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {cycles?.map(c => (
-            <TableRow key={c.id} data-testid={`cycle-row-${c.id}`}>
+          {sprints?.map(s => (
+            <TableRow key={s.id} data-testid={`sprint-row-${s.id}`}>
               <TableCell>
-                {editingId === c.id ? (
+                {editingId === s.id ? (
                   <Input value={editName} onChange={e => setEditName(e.target.value)} className="h-8 text-sm" />
-                ) : <span className="font-medium">{c.name}</span>}
+                ) : <span className="font-medium">{s.name}</span>}
               </TableCell>
               <TableCell>
-                {editingId === c.id ? (
+                {editingId === s.id ? (
+                  <Input type="number" value={editSprintNumber} onChange={e => setEditSprintNumber(e.target.value)} className="h-8 text-sm w-20" />
+                ) : s.sprintNumber}
+              </TableCell>
+              <TableCell>
+                {editingId === s.id ? (
                   <Input type="date" value={editStart} onChange={e => setEditStart(e.target.value)} className="h-8 text-sm w-36" />
-                ) : format(parseISO(c.startDate), 'MMM d, yyyy')}
+                ) : format(parseISO(s.startDate), 'MMM d, yyyy')}
               </TableCell>
               <TableCell>
-                {editingId === c.id ? (
+                {editingId === s.id ? (
                   <Input type="date" value={editEnd} onChange={e => setEditEnd(e.target.value)} className="h-8 text-sm w-36" />
-                ) : format(parseISO(c.endDate), 'MMM d, yyyy')}
+                ) : format(parseISO(s.endDate), 'MMM d, yyyy')}
               </TableCell>
               <TableCell>
                 <div className="flex gap-1">
-                  {editingId === c.id ? (
+                  {editingId === s.id ? (
                     <>
-                      <Button variant="ghost" size="icon" onClick={() => handleUpdate(c.id)} disabled={updateCycle.isPending}>
+                      <Button variant="ghost" size="icon" onClick={() => handleUpdate(s.id)} disabled={updateSprint.isPending}>
                         <Check className="h-4 w-4 text-emerald-600" />
                       </Button>
                       <Button variant="ghost" size="icon" onClick={() => setEditingId(null)}>
@@ -283,10 +296,10 @@ function CyclesTab() {
                     </>
                   ) : (
                     <>
-                      <Button variant="ghost" size="icon" onClick={() => startEdit(c.id, c.name, c.startDate, c.endDate)} data-testid={`edit-cycle-${c.id}`}>
+                      <Button variant="ghost" size="icon" onClick={() => startEdit(s.id, s.name, s.sprintNumber, s.startDate, s.endDate)} data-testid={`edit-sprint-${s.id}`}>
                         <Pencil className="h-4 w-4 text-muted-foreground" />
                       </Button>
-                      <Button variant="ghost" size="icon" onClick={() => handleDelete(c.id)} disabled={deleteCycle.isPending} data-testid={`delete-cycle-${c.id}`}>
+                      <Button variant="ghost" size="icon" onClick={() => handleDelete(s.id)} disabled={deleteSprint.isPending} data-testid={`delete-sprint-${s.id}`}>
                         <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
                     </>

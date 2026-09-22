@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useListGoals, useListCycles, useListSprints } from "@workspace/api-client-react";
+import { useListGoals, useListSprints } from "@workspace/api-client-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
@@ -12,20 +12,10 @@ import { useFilterPresets } from "@/lib/use-filter-presets";
 import { STATUS_LABELS, STATUS_ORDER } from "@/lib/constants";
 import type { ProjectStatus } from "@workspace/api-client-react";
 
-// Strategic goals come first in this fixed order; non-strategic goals follow
-// in whatever order the API returns (currently alphabetical).
-const STRATEGIC_GOAL_ORDER = [
-  "Strategic: EBITDA £20M",
-  "Strategic: Technology leader",
-  "Strategic: Brand value",
-  "Strategic: Talent retention",
-];
-
 interface FilterBarProps {
   filters: FilterState;
   onFiltersChange: (filters: FilterState) => void;
-  teams: string[];
-  sponsors: string[];
+  squads: string[];
   filteredCount?: number;
   totalCount?: number;
   // Restrict the status multi-select dropdown to a subset (e.g. business view
@@ -33,10 +23,9 @@ interface FilterBarProps {
   availableStatuses?: ProjectStatus[];
 }
 
-export default function FilterBar({ filters, onFiltersChange, teams, sponsors, filteredCount, totalCount, availableStatuses }: FilterBarProps) {
+export default function FilterBar({ filters, onFiltersChange, squads, filteredCount, totalCount, availableStatuses }: FilterBarProps) {
   const statusesToShow = availableStatuses ?? STATUS_ORDER;
   const { data: goals } = useListGoals();
-  const { data: cycles } = useListCycles();
   const { data: sprints } = useListSprints();
   const { presets, savePreset, deletePreset } = useFilterPresets();
 
@@ -56,14 +45,9 @@ export default function FilterBar({ filters, onFiltersChange, teams, sponsors, f
     activeFilters.push({ key: "status", label: STATUS_LABELS[s] ?? s, extra: s });
   }
   if (filters.team !== "all") activeFilters.push({ key: "team", label: filters.team });
-  if (filters.functionName !== "all") activeFilters.push({ key: "functionName", label: filters.functionName });
   if (filters.goalId !== "all") {
     const goal = goals?.find((g) => g.id.toString() === filters.goalId);
     activeFilters.push({ key: "goalId", label: goal?.name ?? "Goal" });
-  }
-  if (filters.cycleId !== "all") {
-    const cycle = cycles?.find((c) => c.id.toString() === filters.cycleId);
-    activeFilters.push({ key: "cycleId", label: cycle?.name ?? "Cycle" });
   }
   if (filters.sprintId !== "all") {
     const sprint = sprints?.find((s) => s.id.toString() === filters.sprintId);
@@ -154,30 +138,16 @@ export default function FilterBar({ filters, onFiltersChange, teams, sponsors, f
           </DropdownMenuContent>
         </DropdownMenu>
 
-        {/* Team filter hidden — only one team (Development) for now. */}
-        {false && teams.length > 0 && (
+        {/* Squad filter hidden — re-enable once there's more than one squad worth filtering by. */}
+        {false && squads.length > 0 && (
           <Select value={filters.team} onValueChange={(v) => update({ team: v })} data-testid="filter-team">
             <SelectTrigger className="h-8 w-[140px] text-sm">
-              <SelectValue placeholder="Team" />
+              <SelectValue placeholder="Squad" />
             </SelectTrigger>
             <SelectContent side="bottom" align="start">
-              <SelectItem value="all">All Teams</SelectItem>
-              {teams.map((t) => (
+              <SelectItem value="all">All Squads</SelectItem>
+              {squads.map((t) => (
                 <SelectItem key={t} value={t}>{t}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
-
-        {sponsors.length > 0 && (
-          <Select value={filters.functionName} onValueChange={(v) => update({ functionName: v })} data-testid="filter-functionName">
-            <SelectTrigger className="h-8 w-[140px] text-sm">
-              <SelectValue placeholder="Sponsor" />
-            </SelectTrigger>
-            <SelectContent side="bottom" align="start">
-              <SelectItem value="all">All Sponsors</SelectItem>
-              {sponsors.map((s) => (
-                <SelectItem key={s} value={s}>{s}</SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -190,17 +160,7 @@ export default function FilterBar({ filters, onFiltersChange, teams, sponsors, f
             </SelectTrigger>
             <SelectContent position="popper" side="bottom" align="start" avoidCollisions={false} className="max-h-[60vh]">
               <SelectItem value="all">All Goals</SelectItem>
-              {goals
-                .slice()
-                .sort((a, b) => {
-                  const aIdx = STRATEGIC_GOAL_ORDER.indexOf(a.name);
-                  const bIdx = STRATEGIC_GOAL_ORDER.indexOf(b.name);
-                  if (aIdx !== -1 && bIdx !== -1) return aIdx - bIdx;
-                  if (aIdx !== -1) return -1;
-                  if (bIdx !== -1) return 1;
-                  return 0;
-                })
-                .map((g) => (
+              {goals.map((g) => (
                 <SelectItem key={g.id} value={g.id.toString()}>
                   <span className="flex items-center gap-2">
                     <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: g.color }} />
@@ -212,44 +172,44 @@ export default function FilterBar({ filters, onFiltersChange, teams, sponsors, f
           </Select>
         )}
 
-        {cycles && cycles.length > 0 && (() => {
-          const activeCycleId = cycles.find((c) => c.startDate <= today && c.endDate >= today)?.id ?? null;
-          const nextCycleId = cycles.find((c) => c.startDate > today)?.id ?? null;
+        {sprints && sprints.length > 0 && (() => {
+          const activeSprintId = sprints.find((s) => s.startDate <= today && s.endDate >= today)?.id ?? null;
+          const nextSprintId = sprints.find((s) => s.startDate > today)?.id ?? null;
           return (
             <Select
-              value={filters.cycleId}
+              value={filters.sprintId}
               onValueChange={(v) => {
-                // When focusing a cycle for the first time, default the status
+                // When focusing a sprint for the first time, default the status
                 // multi-select to In Development so the timeline lands on the
                 // most useful slice. Only auto-set when the user hasn't
                 // already chosen any statuses, to avoid overwriting their
                 // active selection.
-                const patch: Partial<FilterState> = { cycleId: v, sprintId: "all" };
-                if (v !== "all" && filters.cycleId === "all" && filters.status.length === 0) {
+                const patch: Partial<FilterState> = { sprintId: v };
+                if (v !== "all" && filters.sprintId === "all" && filters.status.length === 0) {
                   patch.status = ["in_progress"];
                 }
                 update(patch);
               }}
-              data-testid="filter-cycle"
+              data-testid="filter-sprint"
             >
               <SelectTrigger className="h-8 w-[150px] text-sm">
-                <SelectValue placeholder="Cycle" />
+                <SelectValue placeholder="Sprint" />
               </SelectTrigger>
               <SelectContent side="bottom" align="start">
-                <SelectItem value="all">All Cycles</SelectItem>
-                {cycles.map((c) => {
-                  const isPast = c.endDate < today;
+                <SelectItem value="all">All Sprints</SelectItem>
+                {sprints.map((s) => {
+                  const isPast = s.endDate < today;
                   return (
-                    <SelectItem key={c.id} value={c.id.toString()}>
+                    <SelectItem key={s.id} value={s.id.toString()}>
                       <span className="flex items-center gap-1.5">
-                        {c.name}
-                        {c.id === activeCycleId && (
+                        {s.name}
+                        {s.id === activeSprintId && (
                           <span className="inline-flex items-center rounded-full bg-blue-100 px-1.5 py-0.5 text-[10px] font-medium text-blue-700 dark:bg-blue-900 dark:text-blue-300 leading-none">Active</span>
                         )}
-                        {c.id === nextCycleId && (
+                        {s.id === nextSprintId && (
                           <span className="inline-flex items-center rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 dark:bg-amber-900 dark:text-amber-300 leading-none">Next</span>
                         )}
-                        {isPast && c.id !== activeCycleId && (
+                        {isPast && s.id !== activeSprintId && (
                           <span className="inline-flex items-center rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300 leading-none">Done</span>
                         )}
                       </span>
